@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace lemonSpire2.Chat;
 
 /// <summary>
-/// 聊天UI组件 - 类似DevConsole风格，按Tab切换显示
+///     聊天UI组件 - 类似DevConsole风格，按Tab切换显示
 /// </summary>
 public partial class ChatUi : Panel
 {
@@ -15,20 +15,20 @@ public partial class ChatUi : Panel
     private const int CollapsedVisibleLines = 2;
     private const int FontSize = 18;
     private const float InputHeight = 40f;
-    private const float FadeOutDelaySeconds = 20f;
-    private const float FadeOutDurationSeconds = 1f;
-
-    private RichTextLabel _outputBuffer = null!;
-    private LineEdit _inputBuffer = null!;
-    private Control _inputContainer = null!;
-    private Label _promptLabel = null!;
-    private StyleBoxFlat _panelStyle = null!;
+    private const float FadeOutDelaySeconds = 5f;
+    private const float FadeOutDurationSeconds = 5f;
 
     private readonly List<ChatMessageEntry> _messages = [];
+    private LineEdit _inputBuffer = null!;
+    private Control _inputContainer = null!;
     private bool _isExpanded;
+    private bool _isFadedOut;
     private bool _isInputFocused;
     private double _lastMessageTime;
-    private bool _isFadedOut;
+
+    private RichTextLabel _outputBuffer = null!;
+    private StyleBoxFlat _panelStyle = null!;
+    private Label _promptLabel = null!;
 
     public event Action<string>? OnMessageSent;
 
@@ -52,7 +52,7 @@ public partial class ChatUi : Panel
             BgColor = new Color(0f, 0f, 0f, 0.85f),
             BorderColor = new Color(0.2f, 0.2f, 0.2f),
             BorderWidthTop = 1,
-            BorderWidthRight = 1,
+            BorderWidthRight = 1
         };
         AddThemeStyleboxOverride("panel", _panelStyle);
 
@@ -94,17 +94,19 @@ public partial class ChatUi : Panel
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             PlaceholderText = ModLocalization.Get("chat.placeholder", "Type a message..."),
             MouseFilter = MouseFilterEnum.Stop,
-            CaretBlink = true,
+            CaretBlink = true
         };
         _inputBuffer.AddThemeColorOverride("font_color", Colors.White);
         _inputBuffer.AddThemeColorOverride("font_placeholder_color", new Color(0.5f, 0.5f, 0.5f));
         _inputBuffer.AddThemeColorOverride("caret_color", new Color(0f, 0.831f, 1f));
         _inputBuffer.AddThemeFontSizeOverride("font_size", FontSize);
         // 移除输入框的白边
+#pragma warning disable CA2000 // StyleBoxFlat 所有权转移给主题系统
         var inputStyle = new StyleBoxFlat
         {
-            BgColor = new Color(0.1f, 0.1f, 0.1f, 0.9f),
+            BgColor = new Color(0.1f, 0.1f, 0.1f, 0.9f)
         };
+#pragma warning restore CA2000
         _inputBuffer.AddThemeStyleboxOverride("normal", inputStyle);
         _inputBuffer.AddThemeStyleboxOverride("focus", inputStyle);
         _inputBuffer.AddThemeStyleboxOverride("read_only", inputStyle);
@@ -229,15 +231,11 @@ public partial class ChatUi : Panel
         _outputBuffer.Text = string.Join("\n", lines);
     }
 
-    private static string EscapeBbcode(string text)
-    {
-        return text.Replace("[", "[lb]").Replace("]", "[rb]");
-    }
+    private static string EscapeBbcode(string text) =>
+        text.Replace("[", "[lb]", StringComparison.Ordinal)
+            .Replace("]", "[rb]", StringComparison.Ordinal);
 
-    private void ScrollToBottom()
-    {
-        _outputBuffer.ScrollToLine(_outputBuffer.GetLineCount() - 1);
-    }
+    private void ScrollToBottom() => _outputBuffer.ScrollToLine(_outputBuffer.GetLineCount() - 1);
 
     public override void _Input(InputEvent @event)
     {
@@ -281,15 +279,12 @@ public partial class ChatUi : Panel
         }
     }
 
-    private void ToggleExpanded()
-    {
-        SetExpanded(!_isExpanded);
-    }
+    private void ToggleExpanded() => SetExpanded(!_isExpanded);
 
     private void SetExpanded(bool expanded)
     {
         _isExpanded = expanded;
-        ResetFadeOut();
+        // ResetFadeOut(); // 发消息再保持吧。
         UpdateLayout();
 
         if (expanded)
@@ -305,10 +300,7 @@ public partial class ChatUi : Panel
         }
     }
 
-    private void OnTextSubmitted(string text)
-    {
-        SendMessage(text);
-    }
+    private void OnTextSubmitted(string text) => SendMessage(text);
 
     private void SendMessage(string text)
     {
@@ -329,6 +321,8 @@ public partial class ChatUi : Panel
         }
     }
 
+    private bool _hasShownWelcome;
+
     public void SetVisibleForMultiplayer(bool isMultiplayer)
     {
         Visible = isMultiplayer;
@@ -339,10 +333,32 @@ public partial class ChatUi : Panel
 
         ResetFadeOut();
         UpdateLayout();
+
+        // 首次显示时添加欢迎提示
+        if (!_hasShownWelcome)
+        {
+            _hasShownWelcome = true;
+            var hint = ModLocalization.Get("chat.welcome", "Press [Tab] to open chat");
+            _outputBuffer.Text = $"[color=#888888]{hint}[/color]";
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _outputBuffer?.Dispose();
+            _inputBuffer?.Dispose();
+            _inputContainer?.Dispose();
+            _promptLabel?.Dispose();
+            _panelStyle?.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 }
 
 /// <summary>
-/// 聊天消息条目
+///     聊天消息条目
 /// </summary>
 public record ChatMessageEntry(ulong SenderId, string SenderName, string Content, long Timestamp);

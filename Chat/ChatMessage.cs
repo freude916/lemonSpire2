@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Multiplayer.Transport;
 namespace lemonSpire2.Chat;
 
 /// <summary>
-/// 聊天消息网络协议
+///     聊天消息网络协议
 /// </summary>
 public struct ChatMessage : INetMessage, IPacketSerializable
 {

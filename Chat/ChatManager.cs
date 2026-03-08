@@ -5,25 +5,32 @@ using MegaCrit.Sts2.Core.Platform;
 namespace lemonSpire2.Chat;
 
 /// <summary>
-/// 聊天管理器 - 负责消息收发和网络同步
+///     聊天管理器 - 负责消息收发和网络同步
 /// </summary>
 public class ChatManager : IDisposable
 {
+    private const int MaxHistorySize = 100;
     private static ChatManager? _instance;
-    public static ChatManager Instance => _instance ??= new ChatManager();
 
-    private INetGameService? _netService;
+    private readonly List<ChatMessageEntry> _messageHistory = new();
     private ChatUi? _chatUI;
     private bool _isInitialized;
 
-    private readonly List<ChatMessageEntry> _messageHistory = new();
-    private const int MaxHistorySize = 100;
-
-    public event Action<ChatMessageEntry>? OnMessageReceived;
+    private INetGameService? _netService;
 
     private ChatManager()
     {
     }
+
+    public static ChatManager Instance => _instance ??= new ChatManager();
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    public event Action<ChatMessageEntry>? OnMessageReceived;
 
     public void Initialize(INetGameService netService)
     {
@@ -134,8 +141,6 @@ public class ChatManager : IDisposable
         }
     }
 
-    public IReadOnlyList<ChatMessageEntry> GetMessageHistory() => _messageHistory;
-
     public void UpdateVisibility()
     {
         if (_chatUI != null && GodotObject.IsInstanceValid(_chatUI))
@@ -163,8 +168,13 @@ public class ChatManager : IDisposable
         MainFile.Logger.Info("ChatManager cleaned up");
     }
 
-    public void Dispose()
+    protected virtual void Dispose(bool disposing)
     {
+        if (!disposing)
+        {
+            return;
+        }
+
         Cleanup();
         _instance = null;
     }

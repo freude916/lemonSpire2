@@ -1,12 +1,14 @@
 namespace lemonSpire2.StatsTracker;
 
 /// <summary>
-/// Dynamic statistics storage using a sorted dictionary.
-/// Keys are i18n keys, values are float (displayed as integers).
+///     Dynamic statistics storage using a sorted dictionary.
+///     Keys are i18n keys, values are float (displayed as integers).
 /// </summary>
 public class StatsValues
 {
     private readonly SortedDictionary<string, float> _values = new();
+
+    public bool IsEmpty => _values.Count == 0;
 
     public void Add(string key, float amount)
     {
@@ -26,7 +28,19 @@ public class StatsValues
 
     public void Reset() => _values.Clear();
 
-    public IEnumerable<KeyValuePair<string, float>> GetAll() => _values;
+    /// <summary>
+    ///     Reset only combat-specific stats, preserve total stats.
+    /// </summary>
+    public void ResetCombatStats()
+    {
+        var combatKeys = _values.Keys
+            .Where(k => k.StartsWith("stats.combat."))
+            .ToList();
+        foreach (var key in combatKeys)
+        {
+            _values.Remove(key);
+        }
+    }
 
-    public bool IsEmpty => _values.Count == 0;
+    public IEnumerable<KeyValuePair<string, float>> GetAll() => _values;
 }

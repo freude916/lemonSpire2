@@ -8,7 +8,7 @@ using MegaCrit.Sts2.Core.Runs;
 namespace lemonSpire2.Chat;
 
 /// <summary>
-/// Harmony 补丁：在 NGlobalUi 初始化时注入聊天UI
+///     Harmony 补丁：在 NGlobalUi 初始化时注入聊天UI
 /// </summary>
 [HarmonyPatchCategory("Chat")]
 [HarmonyPatch(typeof(NGlobalUi))]
@@ -44,15 +44,14 @@ public static class ChatUIPatch
 }
 
 /// <summary>
-/// Harmony 补丁：在游戏退出时清理聊天UI
+///     Harmony 补丁：在游戏退出时清理聊天UI
 /// </summary>
 [HarmonyPatchCategory("Chat")]
-[HarmonyPatch(typeof(NGame))]
+[HarmonyPatch(typeof(NGame), "_ExitTree")]
 public static class ChatUICleanupPatch
 {
-    [HarmonyPatch("_ExitTree")]
     [HarmonyPrefix]
-    public static void ExitTreePrefix()
+    public static void Prefix()
     {
         // 清理聊天管理器
         ChatManager.Instance.Cleanup();

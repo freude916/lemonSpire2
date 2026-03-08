@@ -8,8 +8,8 @@ using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 namespace lemonSpire2.PlayerTooltip;
 
 /// <summary>
-/// Patch for NMultiplayerPlayerState to show tooltips from registered providers.
-/// This patch is decoupled from specific tooltip content - providers register themselves.
+///     Patch for NMultiplayerPlayerState to show tooltips from registered providers.
+///     This patch is decoupled from specific tooltip content - providers register themselves.
 /// </summary>
 [HarmonyPatchCategory("PlayerTooltip")]
 [HarmonyPatch(typeof(NMultiplayerPlayerState))]
@@ -46,7 +46,9 @@ public static class NMultiplayerPlayerStatePatch
 
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
 
+#pragma warning disable CA2000 // NHoverTipSet 所有权转移给场景树管理
         var tipSet = NHoverTipSet.CreateAndShow(instance, hoverTips);
+#pragma warning restore CA2000
         tipSet.GlobalPosition = instance.GlobalPosition + Vector2.Down * 80f;
     }
 }

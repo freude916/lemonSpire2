@@ -46,7 +46,7 @@ public static class ModLocalization
                 return translations;
             }
 
-            var path = $"res://{MainFile.ModId}/localization/{candidate}.json";
+            var path = $"res://localization/{candidate}.json";
             translations = TryLoadFromGodotPath(path);
             if (translations is { Count: > 0 })
             {
@@ -143,7 +143,7 @@ public static class ModLocalization
         var normalized = NormalizeLanguageCode(language);
         yield return normalized;
 
-        var separatorIndex = normalized.IndexOf('_');
+        var separatorIndex = normalized.IndexOf('_', StringComparison.Ordinal);
         if (separatorIndex > 0)
         {
             yield return normalized[..separatorIndex];
@@ -167,12 +167,14 @@ public static class ModLocalization
             return DefaultLanguage;
         }
 
+#pragma warning disable CA1308 // 语言代码需要小写
         var normalized = language.Trim().Replace('-', '_').ToLowerInvariant();
+#pragma warning restore CA1308
         return normalized switch
         {
             "zh_cn" or "zh_hans" or "zh_sg" or "zh" => "zhs",
             "en_us" or "en_gb" => "en",
-            _ => normalized,
+            _ => normalized
         };
     }
 }

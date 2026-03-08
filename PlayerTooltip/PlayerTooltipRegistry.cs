@@ -4,15 +4,20 @@ using MegaCrit.Sts2.Core.HoverTips;
 namespace lemonSpire2.PlayerTooltip;
 
 /// <summary>
-/// Registry for tooltip providers that contribute to multiplayer player state tooltips.
-/// Providers can be registered/unregistered dynamically.
+///     Registry for tooltip providers that contribute to multiplayer player state tooltips.
+///     Providers can be registered/unregistered dynamically.
 /// </summary>
 public static class PlayerTooltipRegistry
 {
     private static readonly List<ITooltipProvider> _providers = new();
 
     /// <summary>
-    /// Register a tooltip provider.
+    ///     Check if there are any providers registered.
+    /// </summary>
+    public static bool HasProviders => _providers.Count > 0;
+
+    /// <summary>
+    ///     Register a tooltip provider.
     /// </summary>
     public static void Register(ITooltipProvider provider)
     {
@@ -26,23 +31,17 @@ public static class PlayerTooltipRegistry
     }
 
     /// <summary>
-    /// Unregister a tooltip provider by its ID.
+    ///     Unregister a tooltip provider by its ID.
     /// </summary>
-    public static void Unregister(string providerId)
-    {
-        _providers.RemoveAll(p => p.Id == providerId);
-    }
+    public static void Unregister(string providerId) => _providers.RemoveAll(p => p.Id == providerId);
 
     /// <summary>
-    /// Unregister a tooltip provider instance.
+    ///     Unregister a tooltip provider instance.
     /// </summary>
-    public static void Unregister(ITooltipProvider provider)
-    {
-        _providers.Remove(provider);
-    }
+    public static void Unregister(ITooltipProvider provider) => _providers.Remove(provider);
 
     /// <summary>
-    /// Get all hover tips for a player from registered providers.
+    ///     Get all hover tips for a player from registered providers.
     /// </summary>
     public static IEnumerable<IHoverTip> GetHoverTips(Player player)
     {
@@ -62,15 +61,7 @@ public static class PlayerTooltipRegistry
     }
 
     /// <summary>
-    /// Check if there are any providers registered.
+    ///     Clear all registered providers.
     /// </summary>
-    public static bool HasProviders => _providers.Count > 0;
-
-    /// <summary>
-    /// Clear all registered providers.
-    /// </summary>
-    public static void Clear()
-    {
-        _providers.Clear();
-    }
+    public static void Clear() => _providers.Clear();
 }

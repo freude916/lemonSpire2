@@ -18,20 +18,6 @@ public partial class MainFile : Node
     public static Logger Logger { get; } =
         new(ModId, LogType.Generic);
 
-    #region Feature Flags
-
-    /// <summary>聊天系统 (多人游戏)</summary>
-    public static bool EnableChat { get; set; } = true;
-
-
-    /// <summary>握手指示器</summary>
-    public static bool EnableHandshakeIndicator { get; set; } = true;
-
-    /// <summary>统计追踪器</summary>
-    public static bool EnableStatsTracker { get; set; } = true;
-
-    #endregion
-
     public static void Initialize()
     {
         Harmony harmony = new(ModId);
@@ -41,13 +27,14 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(ChatUIPatch)).Patch();
         }
 
-        if (EnableHandshakeIndicator)
+        if (EnableSynergyIndicator)
         {
             harmony.CreateClassProcessor(typeof(SynergyIndicatorPatch)).Patch();
         }
 
         if (EnableStatsTracker)
         {
+            harmony.CreateClassProcessor(typeof(PowerCmdPatch)).Patch();
             StatsTrackerManager.Instance.Initialize();
             PlayerTooltipRegistry.Register(new StatsTooltipProvider());
         }
@@ -59,4 +46,18 @@ public partial class MainFile : Node
 
         Logger.Info("lemonSpire2 mod initialized");
     }
+
+    #region Feature Flags
+
+    /// <summary>聊天系统 (多人游戏)</summary>
+    public static bool EnableChat { get; set; } = true;
+
+
+    /// <summary>队友辅助指示器</summary>
+    public static bool EnableSynergyIndicator { get; set; } = true;
+
+    /// <summary>统计追踪器</summary>
+    public static bool EnableStatsTracker { get; set; } = true;
+
+    #endregion
 }
