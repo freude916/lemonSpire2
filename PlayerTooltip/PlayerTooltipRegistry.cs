@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
 
@@ -17,7 +16,11 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static void Register(ITooltipProvider provider)
     {
-        if (_providers.Contains(provider)) return;
+        if (_providers.Contains(provider))
+        {
+            return;
+        }
+
         _providers.Add(provider);
         _providers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
     }
@@ -45,7 +48,11 @@ public static class PlayerTooltipRegistry
     {
         foreach (var provider in _providers)
         {
-            if (!provider.ShouldShow(player)) continue;
+            if (!provider.ShouldShow(player))
+            {
+                continue;
+            }
+
             var tip = provider.CreateHoverTip(player);
             if (tip.HasValue)
             {

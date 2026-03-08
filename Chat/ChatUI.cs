@@ -1,152 +1,193 @@
-using System.Collections.Generic;
 using Godot;
-using MegaCrit.Sts2.Core.ControllerInput;
 using MegaCrit.Sts2.Core.Localization.Fonts;
-using MegaCrit.Sts2.Core.Multiplayer.Game;
-using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
-using MegaCrit.Sts2.addons.mega_text;
 
 namespace lemonSpire2.Chat;
 
 /// <summary>
-/// 聊天UI组件 - 显示在屏幕左下角
+/// 聊天UI组件 - 类似DevConsole风格，按Tab切换显示
 /// </summary>
-public partial class ChatUI : Control
+public partial class ChatUi : Panel
 {
-    private const int MaxVisibleMessages = 8;
-    private const float MessageFadeTime = 10f;
-    private const float ChatWidth = 300f;
-    private const float InputHeight = 30f;
-    private const float MessageHeight = 22f;
+    private const Key ToggleKey = Key.Tab;
+    private const Key SendKey = Key.Enter;
 
-    private VBoxContainer _messageContainer = null!;
-    private ScrollContainer _scrollContainer = null!;
-    private LineEdit _inputField = null!;
+    private const int CollapsedVisibleLines = 2;
+    private const int FontSize = 18;
+    private const float InputHeight = 40f;
+    private const float FadeOutDelaySeconds = 20f;
+    private const float FadeOutDurationSeconds = 1f;
+
+    private RichTextLabel _outputBuffer = null!;
+    private LineEdit _inputBuffer = null!;
     private Control _inputContainer = null!;
-    private Button _sendButton = null!;
-    private Button _toggleButton = null!;
+    private Label _promptLabel = null!;
+    private StyleBoxFlat _panelStyle = null!;
 
-    private readonly List<ChatMessageEntry> _messages = new();
-    private bool _isExpanded = true;
-    private bool _isInputFocused = false;
-    private double _lastMessageTime = 0;
+    private readonly List<ChatMessageEntry> _messages = [];
+    private bool _isExpanded;
+    private bool _isInputFocused;
+    private double _lastMessageTime;
+    private bool _isFadedOut;
 
-    public event System.Action<string>? OnMessageSent;
+    public event Action<string>? OnMessageSent;
 
     public override void _Ready()
     {
+        // 设置为半屏宽度，左侧
         AnchorLeft = 0;
         AnchorTop = 1;
         AnchorRight = 0;
         AnchorBottom = 1;
 
-        OffsetLeft = 10;
-        OffsetTop = -300;
-        OffsetRight = 10 + ChatWidth;
-        OffsetBottom = -10;
-
-        MouseFilter = MouseFilterEnum.Ignore;
-
-        CreateUI();
+        CreateUi();
+        UpdateLayout();
     }
 
-    private void CreateUI()
+    private void CreateUi()
     {
-        // 主容器
-        var mainContainer = new VBoxContainer
+        // 背景样式
+        _panelStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0f, 0f, 0f, 0.85f),
+            BorderColor = new Color(0.2f, 0.2f, 0.2f),
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+        };
+        AddThemeStyleboxOverride("panel", _panelStyle);
+
+        // 输出区域
+        _outputBuffer = new RichTextLabel
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        AddChild(mainContainer);
-
-        // 切换按钮
-        _toggleButton = new Button
-        {
-            Text = "💬",
-            CustomMinimumSize = new Vector2(40, 30),
-            ToggleMode = true,
-            ButtonPressed = true,
+            BbcodeEnabled = true,
+            ScrollActive = true,
+            ScrollFollowing = true,
             MouseFilter = MouseFilterEnum.Stop
         };
-        _toggleButton.Connect(Button.SignalName.Toggled, Callable.From<bool>(OnTogglePressed));
-        mainContainer.AddChild(_toggleButton);
+        _outputBuffer.AddThemeColorOverride("default_color", Colors.White);
+        _outputBuffer.AddThemeFontSizeOverride("normal_font_size", FontSize);
+        AddChild(_outputBuffer);
 
-        // 可折叠内容区域
-        _scrollContainer = new ScrollContainer
-        {
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(ChatWidth, 200),
-            MouseFilter = MouseFilterEnum.Stop
-        };
-        _scrollContainer.AddThemeStyleboxOverride("panel", CreatePanelStyle(new Color(0, 0, 0, 0.7f)));
-        mainContainer.AddChild(_scrollContainer);
-
-        _messageContainer = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill
-        };
-        _scrollContainer.AddChild(_messageContainer);
-
-        // 输入区域容器
+        // 输入容器
         _inputContainer = new HBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(ChatWidth, InputHeight),
             MouseFilter = MouseFilterEnum.Stop
         };
-        _inputContainer.AddThemeStyleboxOverride("panel", CreatePanelStyle(new Color(0, 0, 0, 0.8f)));
-        mainContainer.AddChild(_inputContainer);
+        AddChild(_inputContainer);
+
+        // 提示符
+        _promptLabel = new Label
+        {
+            Text = "➜",
+            CustomMinimumSize = new Vector2(30, 0)
+        };
+        _promptLabel.AddThemeColorOverride("font_color", new Color(0f, 0.831f, 1f));
+        _promptLabel.AddThemeFontSizeOverride("font_size", FontSize);
+        _inputContainer.AddChild(_promptLabel);
 
         // 输入框
-        _inputField = new LineEdit
+        _inputBuffer = new LineEdit
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             PlaceholderText = ModLocalization.Get("chat.placeholder", "Type a message..."),
-            MouseFilter = MouseFilterEnum.Stop
+            MouseFilter = MouseFilterEnum.Stop,
+            CaretBlink = true,
         };
-        _inputField.AddThemeColorOverride("font_color", Colors.White);
-        _inputField.AddThemeColorOverride("font_placeholder_color", new Color(0.7f, 0.7f, 0.7f));
-        _inputField.AddThemeColorOverride("background_color", new Color(0.1f, 0.1f, 0.1f, 0.9f));
-        _inputField.Connect(LineEdit.SignalName.TextSubmitted, Callable.From<string>(OnTextSubmitted));
-        _inputField.Connect(LineEdit.SignalName.FocusEntered, Callable.From(() => OnInputFocusEntered()));
-        _inputField.Connect(LineEdit.SignalName.FocusExited, Callable.From(() => OnInputFocusExited()));
-        _inputField.ApplyLocaleFontSubstitution(FontType.Regular, "font");
-        _inputContainer.AddChild(_inputField);
-
-        // 发送按钮
-        _sendButton = new Button
+        _inputBuffer.AddThemeColorOverride("font_color", Colors.White);
+        _inputBuffer.AddThemeColorOverride("font_placeholder_color", new Color(0.5f, 0.5f, 0.5f));
+        _inputBuffer.AddThemeColorOverride("caret_color", new Color(0f, 0.831f, 1f));
+        _inputBuffer.AddThemeFontSizeOverride("font_size", FontSize);
+        // 移除输入框的白边
+        var inputStyle = new StyleBoxFlat
         {
-            Text = ModLocalization.Get("chat.send", "Send"),
-            CustomMinimumSize = new Vector2(60, 0),
-            MouseFilter = MouseFilterEnum.Stop
+            BgColor = new Color(0.1f, 0.1f, 0.1f, 0.9f),
         };
-        _sendButton.Connect(Button.SignalName.Pressed, Callable.From(OnSendPressed));
-        _inputContainer.AddChild(_sendButton);
+        _inputBuffer.AddThemeStyleboxOverride("normal", inputStyle);
+        _inputBuffer.AddThemeStyleboxOverride("focus", inputStyle);
+        _inputBuffer.AddThemeStyleboxOverride("read_only", inputStyle);
+
+        _inputBuffer.Connect(LineEdit.SignalName.TextSubmitted, Callable.From<string>(OnTextSubmitted));
+        _inputBuffer.Connect(LineEdit.SignalName.FocusEntered, Callable.From(() => _isInputFocused = true));
+        _inputBuffer.Connect(LineEdit.SignalName.FocusExited, Callable.From(() => _isInputFocused = false));
+        _inputBuffer.ApplyLocaleFontSubstitution(FontType.Regular, "font");
+        _inputContainer.AddChild(_inputBuffer);
     }
 
-    private StyleBoxFlat CreatePanelStyle(Color bgColor)
+    private void UpdateLayout()
     {
-        return new StyleBoxFlat
+        var viewportSize = GetViewportRect().Size;
+        var halfWidth = viewportSize.X / 2f;
+
+        if (_isExpanded)
         {
-            BgColor = bgColor,
-            BorderColor = new Color(0.3f, 0.3f, 0.3f),
-            BorderWidthLeft = 1,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            CornerRadiusBottomLeft = 4,
-            CornerRadiusBottomRight = 4,
-            CornerRadiusTopLeft = 4,
-            CornerRadiusTopRight = 4,
-            ContentMarginLeft = 4,
-            ContentMarginRight = 4,
-            ContentMarginTop = 2,
-            ContentMarginBottom = 2
-        };
+            // 展开状态：显示完整历史，占半屏高度
+            var expandedHeight = viewportSize.Y * 0.5f;
+            OffsetLeft = 0;
+            OffsetTop = -expandedHeight;
+            OffsetRight = halfWidth;
+            OffsetBottom = 0;
+
+            _outputBuffer.Visible = true;
+            _outputBuffer.Size = new Vector2(halfWidth, expandedHeight - InputHeight);
+            _outputBuffer.Position = new Vector2(0, 0);
+
+            _inputContainer.Visible = true;
+            _inputContainer.Size = new Vector2(halfWidth, InputHeight);
+            _inputContainer.Position = new Vector2(0, expandedHeight - InputHeight);
+        }
+        else
+        {
+            // 折叠状态：只显示最近1-2行
+            var collapsedHeight = InputHeight * 2.5f;
+            OffsetLeft = 0;
+            OffsetTop = -collapsedHeight;
+            OffsetRight = halfWidth;
+            OffsetBottom = 0;
+
+            _outputBuffer.Visible = true;
+            _outputBuffer.Size = new Vector2(halfWidth, collapsedHeight - InputHeight);
+            _outputBuffer.Position = new Vector2(0, 0);
+
+            _inputContainer.Visible = false;
+        }
+    }
+
+    public override void _Process(double delta)
+    {
+        // 只在折叠状态下处理淡出逻辑
+        if (_isExpanded || _isFadedOut)
+        {
+            return;
+        }
+
+        var timeSinceLastMessage = Time.GetTicksMsec() / 1000.0 - _lastMessageTime;
+        if (!(timeSinceLastMessage >= FadeOutDelaySeconds))
+        {
+            return;
+        }
+
+        // 计算淡出进度
+        var fadeProgress = (timeSinceLastMessage - FadeOutDelaySeconds) / FadeOutDurationSeconds;
+        var alpha = Mathf.Clamp(1f - (float)fadeProgress, 0f, 1f);
+
+        _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.85f * alpha);
+        Modulate = new Color(1f, 1f, 1f, alpha);
+
+        if (alpha <= 0f)
+        {
+            _isFadedOut = true;
+        }
+    }
+
+    private void ResetFadeOut()
+    {
+        _lastMessageTime = Time.GetTicksMsec() / 1000.0;
+        _isFadedOut = false;
+        _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.85f);
+        Modulate = Colors.White;
     }
 
     public void AddMessage(ulong senderId, string senderName, string content, long timestamp)
@@ -154,73 +195,114 @@ public partial class ChatUI : Control
         var entry = new ChatMessageEntry(senderId, senderName, content, timestamp);
         _messages.Add(entry);
 
-        var label = CreateMessageLabel(entry);
-        _messageContainer.AddChild(label);
-
         // 限制消息数量
-        while (_messages.Count > 50)
+        while (_messages.Count > 100)
         {
             _messages.RemoveAt(0);
-            var firstChild = _messageContainer.GetChild(0);
-            firstChild?.QueueFree();
         }
+
+        // 重置淡出计时器
+        ResetFadeOut();
+
+        // 渲染消息
+        RenderMessages();
 
         // 滚动到底部
         CallDeferred(nameof(ScrollToBottom));
-        _lastMessageTime = Time.GetTicksMsec() / 1000.0;
-
-        // 如果折叠状态，自动展开
-        if (!_isExpanded)
-        {
-            SetExpanded(true);
-        }
     }
 
-    private Label CreateMessageLabel(ChatMessageEntry entry)
+    private void RenderMessages()
     {
-        var label = new Label
-        {
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Ignore
-        };
-        label.AddThemeColorOverride("font_color", Colors.White);
-        label.AddThemeFontSizeOverride("font_size", 14);
-
-        // 区分自己和他人消息的颜色
         var netService = RunManager.Instance?.NetService;
-        if (netService != null && entry.SenderId == netService.NetId)
+        var myNetId = netService?.NetId ?? 0;
+
+        var lines = new List<string>();
+
+        var startIndex = _isExpanded ? 0 : Math.Max(0, _messages.Count - CollapsedVisibleLines);
+        for (var i = startIndex; i < _messages.Count; i++)
         {
-            label.AddThemeColorOverride("font_color", new Color(0.6f, 1f, 0.6f)); // 自己的消息 - 浅绿色
-        }
-        else
-        {
-            label.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 1f)); // 他人消息 - 浅蓝色
+            var entry = _messages[i];
+            var color = entry.SenderId == myNetId ? "#7fff7f" : "#ccccff";
+            lines.Add($"[color={color}][{entry.SenderName}]:[/color] {EscapeBbcode(entry.Content)}");
         }
 
-        label.Text = $"[{entry.SenderName}]: {entry.Content}";
-        return label;
+        _outputBuffer.Text = string.Join("\n", lines);
+    }
+
+    private static string EscapeBbcode(string text)
+    {
+        return text.Replace("[", "[lb]").Replace("]", "[rb]");
     }
 
     private void ScrollToBottom()
     {
-        if (_scrollContainer != null)
+        _outputBuffer.ScrollToLine(_outputBuffer.GetLineCount() - 1);
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is not InputEventKey { Pressed: true } keyEvent)
         {
-            _scrollContainer.ScrollVertical = (int)_scrollContainer.GetVScrollBar().MaxValue;
+            return;
+        }
+
+        // 检查是否有其他 LineEdit 持有焦点
+        var focusedOwner = GetViewport()?.GuiGetFocusOwner();
+        if (focusedOwner is LineEdit && focusedOwner != _inputBuffer)
+        {
+            // 其他输入框有焦点，忽略 Tab 键
+            return;
+        }
+
+        // Tab 键切换展开/折叠
+        if (keyEvent.Keycode == ToggleKey)
+        {
+            ToggleExpanded();
+            GetViewport()?.SetInputAsHandled();
+            return;
+        }
+
+        // 展开状态下的快捷键
+        if (_isExpanded)
+        {
+            switch (keyEvent.Keycode)
+            {
+                // Enter 发送消息
+                case SendKey when !string.IsNullOrWhiteSpace(_inputBuffer.Text):
+                    SendMessage(_inputBuffer.Text);
+                    GetViewport()?.SetInputAsHandled();
+                    return;
+                // Escape 折叠
+                case Key.Escape:
+                    SetExpanded(false);
+                    GetViewport()?.SetInputAsHandled();
+                    return;
+            }
         }
     }
 
-    private void OnTogglePressed(bool pressed)
+    private void ToggleExpanded()
     {
-        SetExpanded(pressed);
+        SetExpanded(!_isExpanded);
     }
 
     private void SetExpanded(bool expanded)
     {
         _isExpanded = expanded;
-        _scrollContainer.Visible = expanded;
-        _inputContainer.Visible = expanded;
-        _toggleButton.ButtonPressed = expanded;
+        ResetFadeOut();
+        UpdateLayout();
+
+        if (expanded)
+        {
+            _inputBuffer.CallDeferred(Control.MethodName.GrabFocus);
+            RenderMessages(); // 重新渲染所有消息
+        }
+        else
+        {
+            _inputBuffer.ReleaseFocus();
+            GetViewport()?.GuiReleaseFocus();
+            RenderMessages(); // 只渲染最近几条
+        }
     }
 
     private void OnTextSubmitted(string text)
@@ -228,61 +310,35 @@ public partial class ChatUI : Control
         SendMessage(text);
     }
 
-    private void OnSendPressed()
-    {
-        SendMessage(_inputField.Text);
-    }
-
     private void SendMessage(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
+        {
             return;
+        }
 
         OnMessageSent?.Invoke(text.Trim());
-        _inputField.Text = "";
-        _inputField.ReleaseFocus();
+        _inputBuffer.Text = "";
     }
 
-    private void OnInputFocusEntered()
+    public override void _Notification(int what)
     {
-        _isInputFocused = true;
-    }
-
-    private void OnInputFocusExited()
-    {
-        _isInputFocused = false;
-    }
-
-    public override void _Input(InputEvent @event)
-    {
-        // 按 Enter 聚焦输入框（如果未聚焦）
-        if (@event.IsActionPressed(MegaInput.select) && !_isInputFocused && _isExpanded)
+        if (what == NotificationResized)
         {
-            var isChatVisible = Visible && GetViewport()?.GuiGetFocusOwner() == null;
-            if (isChatVisible && IsInstanceValid(_inputField))
-            {
-                _inputField.GrabFocus();
-                GetViewport()?.SetInputAsHandled();
-            }
+            UpdateLayout();
         }
-
-        // 按 Escape 取消聚焦
-        if (@event.IsActionPressed(MegaInput.cancel) && _isInputFocused)
-        {
-            _inputField.ReleaseFocus();
-            GetViewport()?.SetInputAsHandled();
-        }
-    }
-
-    public override void _Process(double delta)
-    {
-        // 自动折叠逻辑：如果消息区域空闲超过一定时间，自动折叠
-        // 这里暂不实现，保持展开状态便于查看
     }
 
     public void SetVisibleForMultiplayer(bool isMultiplayer)
     {
         Visible = isMultiplayer;
+        if (!isMultiplayer)
+        {
+            return;
+        }
+
+        ResetFadeOut();
+        UpdateLayout();
     }
 }
 

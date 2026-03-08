@@ -13,7 +13,9 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
     public void Register(T node)
     {
         if (!GodotObject.IsInstanceValid(node))
+        {
             return;
+        }
 
         for (var i = _refs.Count - 1; i >= 0; i--)
         {
@@ -26,7 +28,9 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
 
             // Skip adding duplicate
             if (ReferenceEquals(existing, node))
+            {
                 return;
+            }
         }
 
         _refs.Add(new WeakReference<T>(node));
@@ -42,7 +46,10 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
                 continue;
             }
 
-            if (node != null) action(node);
+            if (node != null)
+            {
+                action(node);
+            }
         }
     }
 
@@ -50,7 +57,9 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
     {
         node = null;
         if (!_refs[index].TryGetTarget(out var target) || !GodotObject.IsInstanceValid(target))
+        {
             return false;
+        }
 
         node = target;
         return true;

@@ -43,10 +43,16 @@ public static class SynergyIndicatorPatch
 
     private static void CreateIndicator(NMultiplayerPlayerState instance)
     {
-        if (_indicators.ContainsKey(instance)) return;
+        if (_indicators.ContainsKey(instance))
+        {
+            return;
+        }
 
         var icon = CharacterIconField?.GetValue(instance) as TextureRect;
-        if (icon == null) return;
+        if (icon == null)
+        {
+            return;
+        }
 
         var label = new Label
         {
@@ -66,12 +72,17 @@ public static class SynergyIndicatorPatch
     private static void RemoveIndicator(NMultiplayerPlayerState instance)
     {
         if (_indicators.Remove(instance, out var label) && GodotObject.IsInstanceValid(instance))
+        {
             label.QueueFree();
+        }
     }
 
     private static void UpdateIndicator(NMultiplayerPlayerState instance)
     {
-        if (!_indicators.TryGetValue(instance, out var label)) return;
+        if (!_indicators.TryGetValue(instance, out var label))
+        {
+            return;
+        }
 
         var cards = instance.Player?.PlayerCombatState?.Hand?.Cards;
         if (cards == null)

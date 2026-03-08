@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using MegaCrit.Sts2.Core.Entities.Multiplayer;
+using Godot;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Platform;
-using MegaCrit.Sts2.Core.Runs;
 
 namespace lemonSpire2.Chat;
 
@@ -16,15 +13,17 @@ public class ChatManager : IDisposable
     public static ChatManager Instance => _instance ??= new ChatManager();
 
     private INetGameService? _netService;
-    private ChatUI? _chatUI;
-    private bool _isInitialized = false;
+    private ChatUi? _chatUI;
+    private bool _isInitialized;
 
     private readonly List<ChatMessageEntry> _messageHistory = new();
     private const int MaxHistorySize = 100;
 
     public event Action<ChatMessageEntry>? OnMessageReceived;
 
-    private ChatManager() { }
+    private ChatManager()
+    {
+    }
 
     public void Initialize(INetGameService netService)
     {
@@ -40,7 +39,7 @@ public class ChatManager : IDisposable
         MainFile.Logger.Info("ChatManager initialized");
     }
 
-    public void SetChatUI(ChatUI chatUI)
+    public void SetChatUI(ChatUi chatUI)
     {
         _chatUI = chatUI;
         _chatUI.OnMessageSent += OnLocalMessageSent;
@@ -51,6 +50,12 @@ public class ChatManager : IDisposable
 
     private void OnChatMessageReceived(ChatMessage message, ulong senderId)
     {
+        // 忽略自己发的消息（已在 OnLocalMessageSent 中显示）
+        if (_netService != null && message.senderId == _netService.NetId)
+        {
+            return;
+        }
+
         var entry = new ChatMessageEntry(
             message.senderId,
             message.senderName,
@@ -62,9 +67,9 @@ public class ChatManager : IDisposable
         OnMessageReceived?.Invoke(entry);
 
         // 在主线程更新UI
-        if (_chatUI != null && Godot.GodotObject.IsInstanceValid(_chatUI))
+        if (_chatUI != null && GodotObject.IsInstanceValid(_chatUI))
         {
-            _chatUI.CallDeferred(nameof(ChatUI.AddMessage),
+            _chatUI.CallDeferred(nameof(ChatUi.AddMessage),
                 message.senderId, message.senderName, message.content, message.timestamp);
         }
 
@@ -80,7 +85,7 @@ public class ChatManager : IDisposable
         }
 
         // 获取当前玩家名称
-        string playerName = GetLocalPlayerName();
+        var playerName = GetLocalPlayerName();
 
         var message = new ChatMessage
         {
@@ -93,12 +98,18 @@ public class ChatManager : IDisposable
         // 发送到网络
         _netService.SendMessage(message);
 
-        // 本地也显示（因为消息会广播回来，但自己发的会立即显示）
-        // 注意：根据 ShouldBroadcast = true，消息会广播给所有人包括自己
-        // 所以这里不需要手动添加，等待广播回调即可
-        // 但为了更好的用户体验，我们立即显示自己发的消息
+        // 立即显示自己发的消息
+        // 注意：虽然 ShouldBroadcast = true，但 Host 作为服务器不会收到自己广播的消息
+        // 所以需要在这里直接显示，而 Client 会通过广播回调收到（避免重复）
         var entry = new ChatMessageEntry(message.senderId, message.senderName, message.content, message.timestamp);
         AddToHistory(entry);
+
+        // 直接在 UI 显示本地消息
+        if (_chatUI != null && GodotObject.IsInstanceValid(_chatUI))
+        {
+            _chatUI.CallDeferred(nameof(ChatUi.AddMessage),
+                message.senderId, message.senderName, message.content, message.timestamp);
+        }
 
         MainFile.Logger.Debug($"Chat message sent: {content}");
     }
@@ -106,7 +117,9 @@ public class ChatManager : IDisposable
     private string GetLocalPlayerName()
     {
         if (_netService == null)
+        {
             return "Player";
+        }
 
         return PlatformUtil.GetPlayerName(_netService.Platform, _netService.NetId) ?? "Player";
     }
@@ -125,10 +138,10 @@ public class ChatManager : IDisposable
 
     public void UpdateVisibility()
     {
-        if (_chatUI != null && Godot.GodotObject.IsInstanceValid(_chatUI))
+        if (_chatUI != null && GodotObject.IsInstanceValid(_chatUI))
         {
-            bool isMultiplayer = _netService != null && _netService.Type.IsMultiplayer();
-            _chatUI.CallDeferred(nameof(ChatUI.SetVisibleForMultiplayer), isMultiplayer);
+            var isMultiplayer = _netService != null && _netService.Type.IsMultiplayer();
+            _chatUI.CallDeferred(nameof(ChatUi.SetVisibleForMultiplayer), isMultiplayer);
         }
     }
 

@@ -11,9 +11,13 @@ public class StatsValues
     public void Add(string key, float amount)
     {
         if (_values.TryGetValue(key, out var existing))
+        {
             _values[key] = existing + amount;
+        }
         else
+        {
             _values[key] = amount;
+        }
     }
 
     public void Set(string key, float value) => _values[key] = value;

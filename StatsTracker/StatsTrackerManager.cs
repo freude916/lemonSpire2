@@ -12,7 +12,9 @@ public class StatsTrackerManager
     private readonly Dictionary<ulong, StatsValues> _playerStats = new();
     private readonly HashSet<int> _processedHashes = new();
 
-    private StatsTrackerManager() { }
+    private StatsTrackerManager()
+    {
+    }
 
     public void Initialize()
     {
@@ -23,7 +25,10 @@ public class StatsTrackerManager
     private void OnCombatSetUp(CombatState _)
     {
         foreach (var stats in _playerStats.Values)
+        {
             stats.Reset();
+        }
+
         _processedHashes.Clear();
         CombatManager.Instance.History.Changed += OnHistoryChanged;
     }
@@ -31,7 +36,10 @@ public class StatsTrackerManager
     private void OnCombatEnded(CombatRoom _)
     {
         foreach (var stats in _playerStats.Values)
+        {
             stats.Reset();
+        }
+
         _processedHashes.Clear();
         CombatManager.Instance.History.Changed -= OnHistoryChanged;
     }
@@ -41,25 +49,38 @@ public class StatsTrackerManager
         var entries = CombatManager.Instance.History.Entries;
         foreach (var entry in entries)
         {
-            int hash = entry.GetHashCode();
+            var hash = entry.GetHashCode();
             if (!_processedHashes.Add(hash))
+            {
                 continue;
+            }
 
             if (entry is DamageReceivedEntry damageEntry)
+            {
                 ProcessDamageEntry(damageEntry);
+            }
         }
     }
 
     private void ProcessDamageEntry(DamageReceivedEntry entry)
     {
         var dealer = entry.Dealer;
-        if (dealer == null) return;
+        if (dealer == null)
+        {
+            return;
+        }
 
         var player = dealer.IsPlayer ? dealer.Player : dealer.PetOwner;
-        if (player == null) return;
+        if (player == null)
+        {
+            return;
+        }
 
-        int damage = entry.Result.UnblockedDamage;
-        if (damage <= 0) return;
+        var damage = entry.Result.UnblockedDamage;
+        if (damage <= 0)
+        {
+            return;
+        }
 
         var stats = GetOrCreateStats(player.NetId);
         stats.Add("stats.combat_damage", damage);
@@ -73,6 +94,7 @@ public class StatsTrackerManager
             stats = new StatsValues();
             _playerStats[netId] = stats;
         }
+
         return stats;
     }
 

@@ -1,7 +1,7 @@
 using System.Reflection;
+using lemonSpire2.PlayerTooltip;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
-using lemonSpire2.PlayerTooltip;
 
 namespace lemonSpire2.StatsTracker;
 
@@ -21,30 +21,40 @@ public class StatsTooltipProvider : ITooltipProvider
 
     public bool ShouldShow(Player player)
     {
-        if (player == null) return false;
+        if (player == null)
+        {
+            return false;
+        }
+
         var stats = StatsTrackerManager.Instance.GetStats(player.NetId);
         return stats != null && !stats.IsEmpty;
     }
 
     public HoverTip? CreateHoverTip(Player player)
     {
-        if (player == null) return null;
+        if (player == null)
+        {
+            return null;
+        }
 
         var stats = StatsTrackerManager.Instance.GetStats(player.NetId);
-        if (stats == null || stats.IsEmpty) return null;
+        if (stats == null || stats.IsEmpty)
+        {
+            return null;
+        }
 
-        string title = ModLocalization.Get("stats.title", "Stats");
+        var title = ModLocalization.Get("stats.title", "Stats");
         var lines = stats.GetAll()
             .Select(kv => $"{ModLocalization.Get(kv.Key, kv.Key)}: {(long)kv.Value}");
 
-        string description = string.Join("\n", lines);
+        var description = string.Join("\n", lines);
         return CreateHoverTip(title, description, Id);
     }
 
     private static HoverTip CreateHoverTip(string title, string description, string id)
     {
         HoverTip tip = default;
-        TypedReference tr = __makeref(tip);
+        var tr = __makeref(tip);
         TitleField?.SetValueDirect(tr, title);
         DescriptionField?.SetValueDirect(tr, description);
         IdField?.SetValueDirect(tr, id);

@@ -4,6 +4,9 @@
         <ImplicitUsings>true</ImplicitUsings>
         <Nullable>enable</Nullable> <!--Makes code analysis regarding null values stricter.-->
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!-- 在构建时强制运行代码风格分析，让 dotnet build 和 Rider 检查一致 -->
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <AnalysisLevel>latest-all</AnalysisLevel>
     </PropertyGroup>
 
     <!-- OS Detection -->
@@ -41,7 +44,7 @@
             <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
             <Publicize>False</Publicize> <!--Allows private/protected field references but may cause errors.-->
         </Reference>
-        
+
 
         <PackageReference Include="Alchyr.Sts2.ModAnalyzers" Version="0.0.1"/>
         <AdditionalFiles Include="lemonSpire2\localization\**\*.json"/>
@@ -56,17 +59,17 @@
         <EmbeddedResource Remove="materials\**"/>
         <EmbeddedResource Remove="shaders\**"/>
         <EmbeddedResource Remove="images\**"/>
-        <Compile Remove="codebase\**" />
-        <EmbeddedResource Remove="codebase\**" />
+        <Compile Remove="codebase\**"/>
+        <EmbeddedResource Remove="codebase\**"/>
     </ItemGroup>
 
     <ItemGroup>
         <Content Include=".gitignore"/>
-        <Content Include="localization\**" />
+        <Content Include="localization\**"/>
         <Content Include="mod_manifest.json"/>
         <Content Include="project.godot"/>
         <Content Include="lemonSpire2\**"/>
-        <Content Include="README.md" />
+        <Content Include="README.md"/>
     </ItemGroup>
 
     <ItemGroup>

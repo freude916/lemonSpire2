@@ -21,12 +21,14 @@ public static class ModLocalization
 
     private static void EnsureLoaded()
     {
-        string language = ResolveLanguage();
+        var language = ResolveLanguage();
 
         lock (SyncRoot)
         {
             if (string.Equals(_loadedLanguage, language, StringComparison.OrdinalIgnoreCase))
+            {
                 return;
+            }
 
             _translations = LoadTranslations(language);
             _loadedLanguage = language;
@@ -35,16 +37,16 @@ public static class ModLocalization
 
     private static Dictionary<string, string> LoadTranslations(string language)
     {
-        foreach (string candidate in GetLanguageCandidates(language))
+        foreach (var candidate in GetLanguageCandidates(language))
         {
-            Dictionary<string, string>? translations = TryLoadEmbedded(candidate);
+            var translations = TryLoadEmbedded(candidate);
             if (translations is { Count: > 0 })
             {
                 MainFile.Logger.Info($"Loaded embedded localization for '{candidate}'.");
                 return translations;
             }
 
-            string path = $"res://{MainFile.ModId}/localization/{candidate}.json";
+            var path = $"res://{MainFile.ModId}/localization/{candidate}.json";
             translations = TryLoadFromGodotPath(path);
             if (translations is { Count: > 0 })
             {
@@ -59,10 +61,12 @@ public static class ModLocalization
 
     private static Dictionary<string, string>? TryLoadEmbedded(string language)
     {
-        string resourceName = $"{MainFile.ModId}.localization.{language}.json";
-        using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+        var resourceName = $"{MainFile.ModId}.localization.{language}.json";
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
         if (stream == null)
+        {
             return null;
+        }
 
         try
         {
@@ -78,9 +82,11 @@ public static class ModLocalization
     private static Dictionary<string, string>? TryLoadFromGodotPath(string path)
     {
         if (!FileAccess.FileExists(path))
+        {
             return null;
+        }
 
-        using FileAccess? file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+        using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
         if (file == null)
         {
             MainFile.Logger.Error($"Failed to open localization file: {path}");
@@ -100,9 +106,11 @@ public static class ModLocalization
 
     private static string ResolveLanguage()
     {
-        string? language = LocManager.Instance?.Language;
+        var language = LocManager.Instance?.Language;
         if (string.IsNullOrWhiteSpace(language))
+        {
             language = TranslationServer.GetLocale();
+        }
 
         return NormalizeLanguageCode(language);
     }
@@ -111,41 +119,55 @@ public static class ModLocalization
     {
         HashSet<string> candidates = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (string candidate in ExpandLanguageCandidates(language))
+        foreach (var candidate in ExpandLanguageCandidates(language))
         {
             if (candidates.Add(candidate))
+            {
                 yield return candidate;
+            }
         }
 
         if (candidates.Add(DefaultLanguage))
+        {
             yield return DefaultLanguage;
+        }
     }
 
     private static IEnumerable<string> ExpandLanguageCandidates(string? language)
     {
         if (string.IsNullOrWhiteSpace(language))
+        {
             yield break;
+        }
 
-        string normalized = NormalizeLanguageCode(language);
+        var normalized = NormalizeLanguageCode(language);
         yield return normalized;
 
-        int separatorIndex = normalized.IndexOf('_');
+        var separatorIndex = normalized.IndexOf('_');
         if (separatorIndex > 0)
+        {
             yield return normalized[..separatorIndex];
+        }
 
         if (normalized.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+        {
             yield return "zhs";
+        }
 
         if (normalized.StartsWith("en", StringComparison.OrdinalIgnoreCase))
+        {
             yield return "en";
+        }
     }
 
     private static string NormalizeLanguageCode(string? language)
     {
         if (string.IsNullOrWhiteSpace(language))
+        {
             return DefaultLanguage;
+        }
 
-        string normalized = language.Trim().Replace('-', '_').ToLowerInvariant();
+        var normalized = language.Trim().Replace('-', '_').ToLowerInvariant();
         return normalized switch
         {
             "zh_cn" or "zh_hans" or "zh_sg" or "zh" => "zhs",

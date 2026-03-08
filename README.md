@@ -18,6 +18,7 @@ WIP / 施工中
 A mod that combines my previous three mods.
 
 Includes:
+
 - Fast SL in single player mode
 - Show incoming damage
 - Show each player's damage contribution in multiplayer mode
