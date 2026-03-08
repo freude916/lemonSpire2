@@ -7,7 +7,8 @@ A mod inspired by Mint Spire, mainly providing some QoL for Slay the Spire 2 (es
 目前包含功能：
 
 - 多人模式下显示每个玩家的伤害贡献、buff 贡献
-- （新增）显示别的玩家是否有多人专属牌（一般是仅帮助队友的效果），显示为一个握手小图标
+- 显示别的玩家是否有多人专属牌（一般是仅帮助队友的效果），显示为一个握手小图标
+- 多人聊天
 
 A mod that combines my previous three mods.
 
@@ -15,4 +16,5 @@ Includes:
 
 
 - Show each player's damage and buff contribution in multiplayer mode
-- (New) Show whether other players have multiplayer-exclusive cards (generally effects that only help teammates), displayed as a handshake icon
+- Show whether other players have multiplayer-exclusive cards (generally effects that only help teammates), displayed as a handshake icon
+- Multiplayer Chat
