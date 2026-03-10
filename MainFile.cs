@@ -2,6 +2,7 @@ using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
 using lemonSpire2.PlayerTooltip;
+using lemonSpire2.SendItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SynergyIndicator;
 using MegaCrit.Sts2.Core.Logging;
@@ -25,6 +26,9 @@ public partial class MainFile : Node
         if (EnableChat)
         {
             harmony.CreateClassProcessor(typeof(ChatUiPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(ChatUiCleanupPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(SendItemInputPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(ItemInputCaptureCleanupPatch)).Patch();
         }
 
         if (EnableSynergyIndicator)

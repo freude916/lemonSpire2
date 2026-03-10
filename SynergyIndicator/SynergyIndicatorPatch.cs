@@ -34,17 +34,26 @@ public static class SynergyIndicatorPatch
     [HarmonyPostfix]
     [HarmonyPatch("OnCombatSetUp")]
     public static void OnCombatSetUpPostfix(NMultiplayerPlayerState __instance)
-        => UpdateIndicator(__instance);
+    {
+        ArgumentNullException.ThrowIfNull(__instance);
+        UpdateIndicator(__instance);
+    }
 
     [HarmonyPostfix]
     [HarmonyPatch("OnCardAdded")]
     public static void OnCardAddedPostfix(NMultiplayerPlayerState __instance)
-        => UpdateIndicator(__instance);
+    {
+        ArgumentNullException.ThrowIfNull(__instance);
+        UpdateIndicator(__instance);
+    }
 
     [HarmonyPostfix]
     [HarmonyPatch("OnCardRemoved")]
     public static void OnCardRemovedPostfix(NMultiplayerPlayerState __instance)
-        => UpdateIndicator(__instance);
+    {
+        ArgumentNullException.ThrowIfNull(__instance);
+        UpdateIndicator(__instance);
+    }
 
     [HarmonyPrefix]
     [HarmonyPatch("_ExitTree")]

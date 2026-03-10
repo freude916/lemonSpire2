@@ -11,4 +11,5 @@ Properties/
 *.uid
 *.user
 /.codebase/*
+/.sts2/*
 *.import

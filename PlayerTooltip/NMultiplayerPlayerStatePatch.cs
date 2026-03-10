@@ -23,6 +23,7 @@ public static class NMultiplayerPlayerStatePatch
     [HarmonyPatch("UpdateHighlightedState")]
     public static void UpdateHighlightedStatePostfix(NMultiplayerPlayerState __instance, bool ____isHighlighted)
     {
+        ArgumentNullException.ThrowIfNull(__instance);
         if (!____isHighlighted)
         {
             return;
