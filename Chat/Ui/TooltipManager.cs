@@ -49,6 +49,7 @@ public sealed class TooltipManager : IDisposable
     /// </summary>
     public void UpdatePreviewPosition(Vector2 globalMousePosition)
     {
+        if ( _currentPreview is null) return;
         _currentPreview.Position = globalMousePosition + new Vector2(16, 16);
     }
 
@@ -111,12 +112,8 @@ public sealed class TooltipManager : IDisposable
 
     private void ClearPreview()
     {
-        if (_currentPreview is not null)
-        {
-            _currentPreview.QueueFree();
-            _currentPreview = null;
-        }
-
+        _currentPreview?.QueueFree();
+        _currentPreview = null;
         _currentMeta = null;
     }
 }

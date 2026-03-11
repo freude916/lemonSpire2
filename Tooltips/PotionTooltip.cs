@@ -13,6 +13,14 @@ public sealed class PotionTooltip : Tooltip
 
     public required string ModelIdStr { get; set; }
 
+    public static PotionTooltip FromModel(PotionModel potion)
+    {
+        return new PotionTooltip
+        {
+            ModelIdStr = potion.Id.Entry
+        };
+    }
+
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);

@@ -259,7 +259,7 @@ public sealed class ChatPanel : IDisposable
             _tooltipManager.UpdatePreviewPosition(viewport.GetMousePosition());
         }
 
-        if (_isExpanded || _isFadedOut) return;
+        if (_isExpanded || _isFadedOut || _panelStyle == null || _container == null) return;
 
         var timeSinceLastMessage = Time.GetTicksMsec() / 1000.0 - _lastMessageTime;
         if (timeSinceLastMessage < FadeOutDelaySeconds) return;
@@ -267,8 +267,8 @@ public sealed class ChatPanel : IDisposable
         var fadeProgress = (timeSinceLastMessage - FadeOutDelaySeconds) / FadeOutDurationSeconds;
         var alpha = Mathf.Clamp(1f - (float)fadeProgress, 0f, 1f);
 
-        _panelStyle!.BgColor = new Color(0f, 0f, 0f, 0.80f * alpha);
-        _container!.Modulate = new Color(1f, 1f, 1f, alpha);
+        _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.80f * alpha);
+        _container.Modulate = new Color(1f, 1f, 1f, alpha);
 
         if (alpha <= 0f)
         {

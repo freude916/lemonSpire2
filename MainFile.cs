@@ -5,6 +5,7 @@ using lemonSpire2.PlayerTooltip;
 using lemonSpire2.SendItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SynergyIndicator;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;

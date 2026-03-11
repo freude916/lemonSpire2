@@ -20,13 +20,20 @@ public static class SynergyIndicatorPatch
     private static readonly Dictionary<NMultiplayerPlayerState, Label> _indicators = new();
     private static readonly Dictionary<NMultiplayerPlayerState, bool> _indicatorVisibility = new();
 
-    private static AudioStream? _noticeSound;
+    private static AudioStreamPlayer? _soundPlayer;
 
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
     public static void ReadyPostfix(NMultiplayerPlayerState __instance)
     {
-        _noticeSound ??= GD.Load<AudioStream>("res://lemonSpire2/synergy-notice.mp3");
+        ArgumentNullException.ThrowIfNull(__instance);
+
+        if (_soundPlayer == null)
+        {
+            var stream = GD.Load<AudioStream>("res://lemonSpire2/synergy-notice.mp3");
+            _soundPlayer = new AudioStreamPlayer { Stream = stream, VolumeDb = -3f };
+            __instance.GetTree().Root.AddChild(_soundPlayer);
+        }
         CreateIndicator(__instance);
         CombatManager.Instance.TurnStarted += OnTurnStarted;
     }
@@ -151,30 +158,15 @@ public static class SynergyIndicatorPatch
         if (shouldShow && !wasVisible)
         {
             FlashIndicator(label);
-            PlayNoticeSound(instance);
+            PlayNoticeSound();
         }
 
         label.Visible = shouldShow;
         _indicatorVisibility[instance] = shouldShow;
     }
 
-    private static void PlayNoticeSound(Node node)
+    private static void PlayNoticeSound()
     {
-        if (_noticeSound == null)
-        {
-            return;
-        }
-
-#pragma warning disable CA2000 
-        //! AudioStreamPlayer's ownership is transferred to the scene tree, and it will be freed by QueueFree after playback is finished.
-        var player = new AudioStreamPlayer
-        {
-            Stream = _noticeSound,
-            VolumeDb = -3f
-        };
-#pragma warning restore CA2000
-        node.AddChild(player);
-        player.Play();
-        player.Finished += player.QueueFree;
+        _soundPlayer?.Play();
     }
 }

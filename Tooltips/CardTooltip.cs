@@ -14,6 +14,15 @@ public sealed class CardTooltip : Tooltip
     public required string ModelIdStr { get; set; }
     public int UpgradeLevel { get; set; }
 
+    public static CardTooltip FromModel(CardModel card)
+    {
+        return new CardTooltip
+        {
+            ModelIdStr = card.Id.Entry,
+            UpgradeLevel = card.CurrentUpgradeLevel
+        };
+    }
+
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);

@@ -25,22 +25,22 @@ public static class ItemInputHandler
         {
             switch (node)
             {
-                case NPower nPower when nPower.Model is { } pm:
+                case NPower { Model: { } pm }:
                     return CreatePowerSegment(pm);
 
-                case NCard nCard when nCard.Model is { } card:
+                case NCard { Model: { } card }:
                     return CreateCardSegment(card);
 
-                case NCardHolder holder when holder.CardModel is { } card:
+                case NCardHolder { CardModel: { } card }:
                     return CreateCardSegment(card);
 
-                case NPotionHolder potionHolder when potionHolder.Potion is { } potion:
+                case NPotionHolder { Potion: { } potion }:
                     return CreatePotionSegment(potion.Model);
 
-                case NRelicInventoryHolder relicHolder when relicHolder.Relic?.Model is { } relic:
+                case NRelicInventoryHolder { Relic.Model: { } relic }:
                     return CreateRelicSegment(relic);
 
-                case NCreature nCreature when nCreature.Entity is { } entity:
+                case NCreature { Entity: { } entity }:
                     return CreateTargetSegment(entity);
             }
 
@@ -52,54 +52,36 @@ public static class ItemInputHandler
 
     private static TooltipSegment CreateCardSegment(CardModel card)
     {
-        var tooltip = new CardTooltip
-        {
-            ModelIdStr = card.Id.Entry,
-            UpgradeLevel = card.CurrentUpgradeLevel
-        };
         return new TooltipSegment
         {
-            Tooltip = tooltip,
+            Tooltip = CardTooltip.FromModel(card),
             DisplayName = card.Title
         };
     }
 
     private static TooltipSegment CreatePowerSegment(PowerModel pm)
     {
-        var tooltip = new PowerTooltip
-        {
-            PowerIdStr = pm.Id.Entry,
-            Amount = pm.Amount
-        };
         return new TooltipSegment
         {
-            Tooltip = tooltip,
+            Tooltip = PowerTooltip.FromModel(pm),
             DisplayName = pm.Title.GetFormattedText()
         };
     }
 
     private static TooltipSegment CreatePotionSegment(PotionModel potion)
     {
-        var tooltip = new PotionTooltip
-        {
-            ModelIdStr = potion.Id.Entry
-        };
         return new TooltipSegment
         {
-            Tooltip = tooltip,
+            Tooltip = PotionTooltip.FromModel(potion),
             DisplayName = potion.HoverTip.Title ?? potion.Id.Entry
         };
     }
 
     private static TooltipSegment CreateRelicSegment(RelicModel relic)
     {
-        var tooltip = new RelicTooltip
-        {
-            ModelIdStr = relic.Id.Entry
-        };
         return new TooltipSegment
         {
-            Tooltip = tooltip,
+            Tooltip = RelicTooltip.FromModel(relic),
             DisplayName = relic.HoverTip.Title ?? relic.Id.Entry
         };
     }

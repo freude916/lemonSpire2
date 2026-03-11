@@ -13,6 +13,14 @@ public sealed class RelicTooltip : Tooltip
 
     public required string ModelIdStr { get; set; }
 
+    public static RelicTooltip FromModel(RelicModel relic)
+    {
+        return new RelicTooltip
+        {
+            ModelIdStr = relic.Id.Entry
+        };
+    }
+
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);

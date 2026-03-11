@@ -16,6 +16,15 @@ public sealed class PowerTooltip : Tooltip
     public bool IsPlayer { get; set; }
     public string ApplierName { get; set; } = "";
 
+    public static PowerTooltip FromModel(PowerModel power)
+    {
+        return new PowerTooltip
+        {
+            PowerIdStr = power.Id.Entry,
+            Amount = power.Amount
+        };
+    }
+
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
