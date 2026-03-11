@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Rewards;
 
 namespace lemonSpire2.util;
 
-public static class Util
+public static class StsUtil
 {
     public static T? ResolveModel<T>(string entry) where T : AbstractModel
     {

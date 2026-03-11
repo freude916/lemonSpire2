@@ -1,4 +1,5 @@
 using System.Reflection;
+using Godot;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
@@ -20,12 +21,12 @@ public sealed class RichTextTooltip : Tooltip
     public string? Title { get; set; }
     public required string Description { get; set; }
     public bool IsDebuff { get; set; }
-        
+
     public override string Render()
     {
         return $"{Title}";
     }
-    
+
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -43,9 +44,9 @@ public sealed class RichTextTooltip : Tooltip
         IsDebuff = reader.ReadBool();
     }
 
-    public override IHoverTip ToHoverTip()
+    public override Control? CreatePreview()
     {
-        // Create HoverTip with empty constructor (record struct default)
+        // Create HoverTip with reflection to set readonly properties
         var tip = new HoverTip
         {
             IsDebuff = IsDebuff,
@@ -54,8 +55,24 @@ public sealed class RichTextTooltip : Tooltip
             Id = $"richtext:{Title ?? "untitled"}"
         };
 
-        // Use reflection to set readonly properties on struct
-        // Must box first, then set, then unbox
+        object boxed = tip;
+        TitleProperty?.SetValue(boxed, Title);
+        DescriptionProperty?.SetValue(boxed, Description);
+        tip = (HoverTip)boxed;
+
+        return BuildHoverTipControl(tip);
+    }
+
+    public override IHoverTip ToHoverTip()
+    {
+        var tip = new HoverTip
+        {
+            IsDebuff = IsDebuff,
+            IsSmart = false,
+            IsInstanced = false,
+            Id = $"richtext:{Title ?? "untitled"}"
+        };
+
         object boxed = tip;
         TitleProperty?.SetValue(boxed, Title);
         DescriptionProperty?.SetValue(boxed, Description);

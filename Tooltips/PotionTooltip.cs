@@ -1,5 +1,6 @@
 using Godot;
 using lemonSpire2.util;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Entities.Potions;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
@@ -22,16 +23,16 @@ public sealed class PotionTooltip : Tooltip
             ModelIdStr = potion.Id.Entry
         };
     }
-    
+
     public static Color GetPotionRarityColor(PotionRarity rarity)
     {
         return rarity switch
-        {   
+        {
             // potion don't have rarity color definations in the game, so we will just use the same colors as cards
             PotionRarity.Common => StsColors.cardTitleOutlineCommon,
             PotionRarity.Uncommon => StsColors.cardTitleOutlineUncommon,
             PotionRarity.Rare => StsColors.cardTitleOutlineRare,
-            PotionRarity.Event => StsColors.cardTitleOutlineSpecial, // 
+            PotionRarity.Event => StsColors.cardTitleOutlineSpecial,
             PotionRarity.Token => StsColors.cardTitleOutlineSpecial,
             PotionRarity.None => StsColors.cream,
             _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null)
@@ -61,6 +62,16 @@ public sealed class PotionTooltip : Tooltip
         ModelIdStr = reader.ReadString();
     }
 
+    public override Control? CreatePreview()
+    {
+        var model = ResolveModel();
+        if (model is null) return null;
+
+        // Use ImagePath for icon since PotionModel doesn't have Icon property
+        var icon = PreloadManager.Cache.GetCompressedTexture2D(model.ImagePath);
+        return BuildHoverTipControl(model.HoverTip, icon);
+    }
+
     public override IHoverTip ToHoverTip()
     {
         var model = ResolveModel();
@@ -72,6 +83,6 @@ public sealed class PotionTooltip : Tooltip
 
     private PotionModel? ResolveModel()
     {
-        return Util.ResolveModel<PotionModel>(ModelIdStr);
+        return StsUtil.ResolveModel<PotionModel>(ModelIdStr);
     }
 }

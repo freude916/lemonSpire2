@@ -62,6 +62,14 @@ public sealed class PowerTooltip : Tooltip
         ApplierName = reader.ReadString();
     }
 
+    public override Control? CreatePreview()
+    {
+        var model = ResolveModel();
+        if (model is null) return null;
+
+        return BuildHoverTipControl(model.DumbHoverTip, model.Icon);
+    }
+
     public override IHoverTip ToHoverTip()
     {
         var model = ResolveModel();
@@ -73,6 +81,6 @@ public sealed class PowerTooltip : Tooltip
 
     private PowerModel? ResolveModel()
     {
-        return Util.ResolveModel<PowerModel>(PowerIdStr);
+        return StsUtil.ResolveModel<PowerModel>(PowerIdStr);
     }
 }

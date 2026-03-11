@@ -1,3 +1,5 @@
+using Godot;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
@@ -6,13 +8,13 @@ namespace lemonSpire2.Tooltips;
 
 /// <summary>
 ///     Base class for serializable tooltips.
-///     Implementations should provide ToHoverTip() for UI rendering.
+///     Implementations should provide CreatePreview() for UI rendering.
 /// </summary>
 public abstract class Tooltip
 {
     private static int _nextRegistryId = 1;
     private static readonly Dictionary<int, WeakReference<Tooltip>> Registry = new();
-    
+
     public static readonly int FontSize = 18;
 
     protected Tooltip()
@@ -29,14 +31,20 @@ public abstract class Tooltip
     public int RegistryId { get; }
 
     public abstract string Render();
-    
+
     public abstract void Serialize(PacketWriter writer);
     public abstract void Deserialize(PacketReader reader);
 
     /// <summary>
-    ///     Converts this tooltip to an IHoverTip for rendering by NHoverTipSet.
+    ///     Creates a preview Control for this tooltip.
+    ///     Returns null if preview cannot be created.
     /// </summary>
-    public abstract IHoverTip ToHoverTip();
+    public abstract Control? CreatePreview();
+
+    /// <summary>
+    ///     Converts this tooltip to an IHoverTip (optional, for NHoverTipSet compatibility).
+    /// </summary>
+    public virtual IHoverTip ToHoverTip() => throw new NotImplementedException();
 
     public static Tooltip? TryResolve(int registryId)
     {
@@ -72,5 +80,41 @@ public abstract class Tooltip
 
         var idSpan = span[(colonIndex + 1)..];
         return !int.TryParse(idSpan, out var id) ? null : TryResolve(id);
+    }
+
+    protected static Control? BuildHoverTipControl(HoverTip tip, Texture2D? icon = null)
+    {
+        var control = PreloadManager.Cache
+            .GetScene("res://scenes/ui/hover_tip.tscn")
+            .Instantiate<Control>();
+
+        var title = control.GetNode<MegaCrit.Sts2.addons.mega_text.MegaLabel>("%Title");
+        if (tip.Title is null)
+            title.Visible = false;
+        else
+            title.SetTextAutoSize(tip.Title);
+
+        control.GetNode<MegaCrit.Sts2.addons.mega_text.MegaRichTextLabel>("%Description").Text = tip.Description;
+        control.GetNode<TextureRect>("%Icon").Texture = icon;
+
+        if (tip.IsDebuff)
+        {
+            var bg = control.GetNode<CanvasItem>("%Bg");
+            bg.Material = PreloadManager.Cache.GetMaterial("res://materials/ui/hover_tip_debuff.tres");
+        }
+
+        control.ResetSize();
+        SetSubtreeMouseIgnore(control);
+        return control;
+    }
+
+    protected static void SetSubtreeMouseIgnore(Node node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (node is Control c)
+            c.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+        foreach (var child in node.GetChildren())
+            SetSubtreeMouseIgnore(child);
     }
 }

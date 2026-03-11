@@ -34,8 +34,7 @@ public sealed class ChatPanel : IDisposable
     private HBoxContainer? _inputContainer;
     private LineEdit? _inputField;
     private bool _isExpanded;
-    private bool _isFadedOut;
-    private double _lastMessageTime;
+    private double _fadeBeginTime;      // 开始fade的时间点
     private RichTextLabel? _messageBuffer;
     private StyleBoxFlat? _panelStyle;
     private StyleBoxFlat? _inputStyle;
@@ -143,7 +142,7 @@ public sealed class ChatPanel : IDisposable
     internal void Initialize()
     {
         _tooltipManager.Initialize(_tooltipParent);
-        ResetFadeOut();
+        DelayFadeOut(FadeOutDelaySeconds);
         UpdateLayout();
         ShowWelcome();
     }
@@ -263,21 +262,32 @@ public sealed class ChatPanel : IDisposable
             _tooltipManager.UpdatePreviewPosition(_container.GetGlobalMousePosition());
         }
 
-        if (_isExpanded || _isFadedOut || _panelStyle == null || _container == null) return;
+        // 展开时不fade
+        if (_isExpanded || _panelStyle == null || _container == null) return;
 
-        var timeSinceLastMessage = Time.GetTicksMsec() / 1000.0 - _lastMessageTime;
-        if (timeSinceLastMessage < FadeOutDelaySeconds) return;
+        var now = Time.GetTicksMsec() / 1000.0;
 
-        var fadeProgress = (timeSinceLastMessage - FadeOutDelaySeconds) / FadeOutDurationSeconds;
-        var alpha = Mathf.Clamp(1f - (float)fadeProgress, 0f, 1f);
-
-        _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.80f * alpha);
-        _container.Modulate = new Color(1f, 1f, 1f, alpha);
-
-        if (alpha <= 0f)
+        if (now < _fadeBeginTime)
         {
-            _isFadedOut = true;
-            _container.Modulate = new Color(1f, 1f, 1f, 0.01f);
+            // 常亮期
+            RestoreVisibility();
+        }
+        else
+        {
+            // fade期
+            var fadeProgress = (now - _fadeBeginTime) / FadeOutDurationSeconds;
+            var alpha = Mathf.Clamp(1f - (float)fadeProgress, 0f, 1f);
+
+            _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.80f * alpha);
+            _container.Modulate = new Color(1f, 1f, 1f, alpha);
+
+            if (alpha <= 0f)
+            {
+                // fade完成，透传鼠标事件
+                _container.Modulate = new Color(1f, 1f, 1f, 0.01f);
+                _container.MouseFilter = Control.MouseFilterEnum.Ignore;
+                _messageBuffer!.MouseFilter = Control.MouseFilterEnum.Ignore;
+            }
         }
     }
 
@@ -286,12 +296,24 @@ public sealed class ChatPanel : IDisposable
         UpdateLayout();
     }
 
-    private void ResetFadeOut()
+    /// <summary>
+    /// 重置计时器，收到消息时调用
+    /// </summary>
+    private void DelayFadeOut(double delaySeconds)
     {
-        _lastMessageTime = Time.GetTicksMsec() / 1000.0;
-        _isFadedOut = false;
+        var now = Time.GetTicksMsec() / 1000.0;
+        _fadeBeginTime = Math.Max(_fadeBeginTime, now + delaySeconds);
+        RestoreVisibility();
+    }
+
+    /// <summary>
+    /// 恢复显示状态，准备 fade
+    /// </summary>
+    private void RestoreVisibility()
+    {
         _panelStyle!.BgColor = new Color(0f, 0f, 0f, 0.80f);
         _container!.Modulate = Colors.White;
+        _messageBuffer!.MouseFilter = Control.MouseFilterEnum.Stop;
     }
 
     private void ToggleExpanded()
@@ -302,7 +324,17 @@ public sealed class ChatPanel : IDisposable
     private void SetExpanded(bool expanded)
     {
         _isExpanded = expanded;
-        ResetFadeOut();
+
+        if (expanded)
+        {
+            // 展开时恢复全亮展示
+            RestoreVisibility();
+        }
+        else
+        {
+            DelayFadeOut(0);
+        }
+
         UpdateLayout();
 
         if (expanded)
@@ -386,7 +418,7 @@ public sealed class ChatPanel : IDisposable
             _hasWelcome = false;
         }
 
-        ResetFadeOut();
+        DelayFadeOut(FadeOutDelaySeconds);
 
         var senderName = message.SenderName ?? $"Player {message.SenderId}";
         var time = message.Timestamp.ToString("HH:mm", CultureInfo.InvariantCulture);

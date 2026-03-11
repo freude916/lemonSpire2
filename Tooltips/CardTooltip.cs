@@ -1,10 +1,12 @@
 using Godot;
 using lemonSpire2.util;
+using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 
 namespace lemonSpire2.Tooltips;
 
@@ -28,27 +30,28 @@ public sealed class CardTooltip : Tooltip
     public static Color GetCardRarityColor(CardRarity rarity)
     {
         return rarity switch
-        {   
-            CardRarity.Basic => StsColors.cardTitleOutlineCommon, // Basic cards use the same color as Common
+        {
+            CardRarity.Basic => StsColors.cardTitleOutlineCommon,
             CardRarity.Common => StsColors.cardTitleOutlineCommon,
             CardRarity.Uncommon => StsColors.cardTitleOutlineUncommon,
             CardRarity.Rare => StsColors.cardTitleOutlineRare,
             CardRarity.Curse => StsColors.cardTitleOutlineCurse,
             CardRarity.Quest => StsColors.cardTitleOutlineQuest,
             CardRarity.Status => StsColors.cardTitleOutlineStatus,
-            CardRarity.Ancient => StsColors.cardTitleOutlineSpecial, // if  
-            CardRarity.Event => StsColors.cardTitleOutlineSpecial, // 
+            CardRarity.Ancient => StsColors.cardTitleOutlineSpecial,
+            CardRarity.Event => StsColors.cardTitleOutlineSpecial,
             CardRarity.Token => StsColors.cardTitleOutlineSpecial,
             CardRarity.None => StsColors.cream,
             _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null)
         };
     }
-    
+
     public static Color GetCardPoolColor(CardModel card)
     {
+        ArgumentNullException.ThrowIfNull(card);
         return card.VisualCardPool.DeckEntryCardColor;
     }
-    
+
     public override string Render()
     {
         var card = ResolveModel();
@@ -74,19 +77,44 @@ public sealed class CardTooltip : Tooltip
         UpgradeLevel = reader.ReadInt();
     }
 
+    public override Control? CreatePreview()
+    {
+        var model = ResolveModel();
+        if (model is null) return null;
+
+
+        var container = PreloadManager.Cache
+            .GetScene("res://scenes/ui/card_hover_tip.tscn")
+            .Instantiate<Control>();
+
+        var nCard = container.GetNode<NCard>("%Card");
+
+        // Must AddChild before UpdateVisuals, use CallDeferred
+        container.TreeEntered += () =>
+        {
+            Callable.From(() =>
+            {
+                nCard.Model = model;
+                nCard.UpdateVisuals(PileType.Deck, CardPreviewMode.Normal);
+            }).CallDeferred();
+        };
+
+        SetSubtreeMouseIgnore(container);
+        return container;
+    }
+
     public override IHoverTip ToHoverTip()
     {
         var model = ResolveModel();
         if (model is null)
             throw new InvalidOperationException($"Cannot resolve card model: {ModelIdStr}");
 
-        // Ensure we have a mutable copy for CardHoverTip
         var mutableCard = model.IsMutable ? model : model.ToMutable();
         return new CardHoverTip(mutableCard);
     }
 
     private CardModel? ResolveModel()
     {
-        return Util.ResolveModel<CardModel>(ModelIdStr);
+        return StsUtil.ResolveModel<CardModel>(ModelIdStr);
     }
 }

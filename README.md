@@ -34,3 +34,4 @@ Includes:
 - - Alt + Right Click can send the "current HoverTip", suitable for sending information about cards that are about to be inserted, relics, or buffs on cards displayed by events.
 - - This feature is accurate when reading cards, but the text of events and cards is stored quite messy, and I'm still being lazy.
 - - Currently implemented in a very crude way by reading the HoverTip Text, which cannot extract object information later, has poor extensibility, and breaks i18n
+

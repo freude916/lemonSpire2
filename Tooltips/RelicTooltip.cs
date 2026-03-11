@@ -22,7 +22,7 @@ public sealed class RelicTooltip : Tooltip
             ModelIdStr = relic.Id.Entry
         };
     }
-    
+
     public static Color GetRelicRarityColor(RelicRarity rarity)
     {
         return rarity switch
@@ -62,6 +62,14 @@ public sealed class RelicTooltip : Tooltip
         ModelIdStr = reader.ReadString();
     }
 
+    public override Control? CreatePreview()
+    {
+        var model = ResolveModel();
+        if (model is null) return null;
+
+        return BuildHoverTipControl(model.HoverTip, model.Icon);
+    }
+
     public override IHoverTip ToHoverTip()
     {
         var model = ResolveModel();
@@ -73,6 +81,6 @@ public sealed class RelicTooltip : Tooltip
 
     private RelicModel? ResolveModel()
     {
-        return Util.ResolveModel<RelicModel>(ModelIdStr);
+        return StsUtil.ResolveModel<RelicModel>(ModelIdStr);
     }
 }
