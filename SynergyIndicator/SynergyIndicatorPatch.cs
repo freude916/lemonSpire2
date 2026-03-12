@@ -1,5 +1,6 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
@@ -11,6 +12,14 @@ namespace lemonSpire2.SynergyIndicator;
 [HarmonyPatch(typeof(NMultiplayerPlayerState))]
 public static class SynergyIndicatorPatch
 {
+    /// <summary>
+    ///     存储每个玩家实例的事件处理程序，用于在 _ExitTree 时取消订阅
+    /// </summary>
+    private static readonly
+        Dictionary<NMultiplayerPlayerState, (Action<CardModel> CardAdded, Action<CardModel> CardRemoved)>
+        _eventHandlers =
+            new();
+
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
     public static void ReadyPostfix(NMultiplayerPlayerState __instance)
@@ -30,10 +39,14 @@ public static class SynergyIndicatorPatch
 
         if (__instance.Player.PlayerCombatState == null) return;
 
-        __instance.Player.PlayerCombatState.Hand.CardAdded +=
-            _ => IndicatorManager.UpdateSynergyStatus(__instance.Player);
-        __instance.Player.PlayerCombatState.Hand.CardRemoved +=
-            _ => IndicatorManager.UpdateSynergyStatus(__instance.Player);
+        // 创建事件处理程序并保存引用，以便后续取消订阅
+        Action<CardModel> cardAddedHandler = _ => IndicatorManager.UpdateSynergyStatus(__instance.Player);
+        Action<CardModel> cardRemovedHandler = _ => IndicatorManager.UpdateSynergyStatus(__instance.Player);
+
+        __instance.Player.PlayerCombatState.Hand.CardAdded += cardAddedHandler;
+        __instance.Player.PlayerCombatState.Hand.CardRemoved += cardRemovedHandler;
+
+        _eventHandlers[__instance] = (cardAddedHandler, cardRemovedHandler);
     }
 
     [HarmonyPostfix]
@@ -50,6 +63,19 @@ public static class SynergyIndicatorPatch
     {
         ArgumentNullException.ThrowIfNull(__instance);
         IndicatorManager.UpdateSynergyStatus(__instance.Player);
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch("_ExitTree")]
+    public static void ExitTreePrefix(NMultiplayerPlayerState __instance)
+    {
+        // 取消订阅事件并清理引用
+        if (_eventHandlers.Remove(__instance, out var handlers))
+            if (__instance.Player?.PlayerCombatState?.Hand != null)
+            {
+                __instance.Player.PlayerCombatState.Hand.CardAdded -= handlers.CardAdded;
+                __instance.Player.PlayerCombatState.Hand.CardRemoved -= handlers.CardRemoved;
+            }
     }
 }
 

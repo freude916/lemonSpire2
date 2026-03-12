@@ -19,7 +19,8 @@ public class IndicatorClickedEventArgs : EventArgs
 public partial class IndicatorPanel : HBoxContainer
 {
     private readonly Dictionary<IndicatorType, IndicatorButton> _buttons = new();
-    private ulong _playerNetId;
+    private readonly bool _isInteractive;
+    private readonly ulong _playerNetId;
 
     public event EventHandler<IndicatorClickedEventArgs>? IndicatorClicked;
 
@@ -28,14 +29,16 @@ public partial class IndicatorPanel : HBoxContainer
         typeof(NMultiplayerPlayerState).GetField("_topContainer", BindingFlags.NonPublic | BindingFlags.Instance);
 
     public ulong PlayerNetId => _playerNetId;
+    public bool IsInteractive => _isInteractive;
 
     public IndicatorPanel()
     {
     }
 
-    private IndicatorPanel(ulong playerNetId)
+    private IndicatorPanel(ulong playerNetId, bool isInteractive)
     {
         _playerNetId = playerNetId;
+        _isInteractive = isInteractive;
     }
 
     public static IndicatorPanel CreateForPlayer(NMultiplayerPlayerState player)
@@ -48,16 +51,17 @@ public partial class IndicatorPanel : HBoxContainer
         }
 
         Debug.Assert(player != null, nameof(player) + " != null");
-        var panel = new IndicatorPanel(player.Player.NetId);
+        var isInteractive = LocalContext.IsMe(player.Player);
+        var panel = new IndicatorPanel(player.Player.NetId, isInteractive);
 
         panel.ZIndex = 100;
-        panel.MouseFilter = LocalContext.IsMe(player.Player)
+        panel.MouseFilter = isInteractive
             ? MouseFilterEnum.Stop
             : MouseFilterEnum.Ignore;
 
         topContainer.AddChild(panel);
         panel.MoveToFront();
-        MainFile.Logger.Debug($"CreateForPlayer: netId={player.Player.NetId} isMe={LocalContext.IsMe(player.Player)} mouseFilter={panel.MouseFilter}");
+        MainFile.Logger.Debug($"CreateForPlayer: netId={player.Player.NetId} isInteractive={isInteractive}");
 
         var topContainerParent = topContainer.GetParent();
         if (topContainerParent != null)
@@ -76,10 +80,8 @@ public partial class IndicatorPanel : HBoxContainer
         if (_buttons.ContainsKey(type)) return;
 
         var button = new IndicatorButton();
-        button.Setup(type, initialStatus);
-        button.MouseFilter = MouseFilter == MouseFilterEnum.Ignore
-            ? MouseFilterEnum.Ignore
-            : MouseFilterEnum.Stop;
+        button.Setup(type, initialStatus, _isInteractive);
+        button.MouseFilter = _isInteractive ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
         AddChild(button);
         button.IndicatorClicked += OnIndicatorClicked;
         _buttons[type] = button;

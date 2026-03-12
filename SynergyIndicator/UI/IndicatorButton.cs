@@ -31,6 +31,20 @@ public partial class IndicatorButton : Button
         { IndicatorType.HandShake, "🤝" }
     };
 
+    private bool _isInteractive;
+    private static readonly StyleBoxFlat InteractiveStyle = new()
+    {
+        BorderColor = new Color(1f, 1f, 1f, 0.5f),
+        BorderWidthLeft = 2,
+        BorderWidthRight = 2,
+        BorderWidthTop = 2,
+        BorderWidthBottom = 2,
+        CornerRadiusTopLeft = 4,
+        CornerRadiusTopRight = 4,
+        CornerRadiusBottomLeft = 4,
+        CornerRadiusBottomRight = 4,
+    };
+
     public override void _Ready()
     {
         base._Ready();
@@ -39,10 +53,11 @@ public partial class IndicatorButton : Button
         CustomMinimumSize = new Vector2(32, 32);
     }
 
-    public void Setup(IndicatorType type, IndicatorStatus status = IndicatorStatus.WillUse)
+    public void Setup(IndicatorType type, IndicatorStatus status = IndicatorStatus.WillUse, bool isInteractive = false)
     {
         Type = type;
         Status = status;
+        _isInteractive = isInteractive;
 
         EmojiLabel?.QueueFree();
         IconTextureRect?.QueueFree();
@@ -58,7 +73,13 @@ public partial class IndicatorButton : Button
 
         Pressed += OnIndicatorClicked;
 
-        // IndicatorHandler.SendMessage(type, status);
+        // 可交互时添加边框样式，并覆盖 focus 样式去掉默认边框
+        if (isInteractive)
+        {
+            AddThemeStyleboxOverride("normal", InteractiveStyle);
+            AddThemeStyleboxOverride("focus", InteractiveStyle);
+        }
+
         UpdateStatusVisual();
         PlayFlashAnimation();
     }
@@ -117,6 +138,9 @@ public partial class IndicatorButton : Button
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
+
+        // 增大 emoji 字体大小以匹配图标
+        EmojiLabel.AddThemeFontSizeOverride("font_size", 24);
 
         // 设置 Label 填充整个按钮
         EmojiLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);

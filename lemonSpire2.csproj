@@ -69,8 +69,6 @@
         <Content Include="lemonSpire2/**"/>
         <Content Include="README.md"/>
         <Content Include="LICENSE"/>
-        <Content Include="SynergyIndicator\UI\IndicatorButton.cs.uid" />
-        <Content Include="SynergyIndicator\UI\IndicatorPanel.cs.uid" />
     </ItemGroup>
 
     <ItemGroup>
@@ -81,7 +79,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Chat\Tooltips\" />
+        <Folder Include="Chat\Tooltips\"/>
     </ItemGroup>
 
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent">

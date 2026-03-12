@@ -2,7 +2,6 @@ using Godot;
 using lemonSpire2.SynergyIndicator.Message;
 using lemonSpire2.SynergyIndicator.Models;
 using lemonSpire2.SynergyIndicator.Ui;
-using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
@@ -11,25 +10,12 @@ using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 namespace lemonSpire2.SynergyIndicator;
 
 /// <summary>
-/// 统一管理器，负责维护所有玩家的指示器 UI 面板
+///     统一管理器，负责维护所有玩家的指示器 UI 面板
 /// </summary>
 public class IndicatorManager
 {
     private static IndicatorManager? _instance;
-    public static IndicatorManager Instance => _instance ??= new IndicatorManager();
 
-    private IndicatorManager()
-    {
-        _noticeSound = GD.Load<AudioStream>("res://lemonSpire2/synergy-notice.mp3");
-    }
-
-    private IndicatorNetworkHandler? _networkHandler;
-    private AudioStream? _noticeSound;
-
-    /// <summary>
-    /// 存储所有玩家的 UI 面板引用，使用 NetId 作为键
-    /// </summary>
-    private readonly Dictionary<ulong, IndicatorPanel> _panels = new();
     private static readonly IReadOnlyList<IIndicatorProvider> Providers = new List<IIndicatorProvider>
     {
         new HandShakeIndicatorProvider(),
@@ -37,6 +23,21 @@ public class IndicatorManager
         new WeakIndicatorProvider(),
         new StrangleIndicatorProvider()
     };
+
+    /// <summary>
+    ///     存储所有玩家的 UI 面板引用，使用 NetId 作为键
+    /// </summary>
+    private readonly Dictionary<ulong, IndicatorPanel> _panels = new();
+
+    private IndicatorNetworkHandler? _networkHandler;
+    private readonly AudioStream? _noticeSound;
+
+    private IndicatorManager()
+    {
+        _noticeSound = GD.Load<AudioStream>("res://lemonSpire2/synergy-notice.mp3");
+    }
+
+    public static IndicatorManager Instance => _instance ??= new IndicatorManager();
 
     public void InitializeNetwork(INetGameService netService)
     {
@@ -51,10 +52,7 @@ public class IndicatorManager
 
     public void ClearPlayerIndicators(ulong playerNetId)
     {
-        if (_panels.TryGetValue(playerNetId, out var panel))
-        {
-            panel.Clear();
-        }
+        if (_panels.TryGetValue(playerNetId, out var panel)) panel.Clear();
     }
 
     public void AddIndicator(ulong playerNetId, IndicatorType type, IndicatorStatus status)
@@ -65,10 +63,7 @@ public class IndicatorManager
 
     public void SetStatus(ulong playerNetId, IndicatorType type, IndicatorStatus status)
     {
-        if (_panels.TryGetValue(playerNetId, out var panel))
-        {
-            panel.SetStatus(type, status);
-        }
+        if (_panels.TryGetValue(playerNetId, out var panel)) panel.SetStatus(type, status);
     }
 
     public void ToggleStatus(ulong playerNetId, IndicatorType type)
@@ -130,10 +125,7 @@ public class IndicatorManager
     public Dictionary<ulong, Dictionary<IndicatorType, IndicatorStatus>> GetAll()
     {
         var result = new Dictionary<ulong, Dictionary<IndicatorType, IndicatorStatus>>();
-        foreach (var kvp in _panels)
-        {
-            result[kvp.Key] = kvp.Value.GetAllStatuses();
-        }
+        foreach (var kvp in _panels) result[kvp.Key] = kvp.Value.GetAllStatuses();
 
         return result;
     }
@@ -141,31 +133,19 @@ public class IndicatorManager
     public static void UpdateSynergyStatus(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
-        ulong netId = player.NetId;
-        if (player.PlayerCombatState?.Hand.Cards == null)
-        {
-            return;
-        }
+        var netId = player.NetId;
+        if (player.PlayerCombatState?.Hand.Cards == null) return;
 
         var cards = player.PlayerCombatState.Hand.Cards;
-        bool hasSynergy = cards.Any(c =>
+        var hasSynergy = cards.Any(c =>
             c.MultiplayerConstraint == CardMultiplayerConstraint.MultiplayerOnly);
 
         Instance.ClearPlayerIndicators(netId);
         foreach (var provider in Providers)
-        {
             if (provider.ShouldShow(cards))
                 Instance.AddIndicator(netId, provider.Type, IndicatorStatus.WillUse);
-        }
 
         MainFile.Logger.Debug(
             $"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
     }
-
-    private void OnTurnStarted(CombatState _)
-    {
-        foreach (var panel in _panels.Values)
-            panel.ResetForNewTurn();
-    }
-
 }
