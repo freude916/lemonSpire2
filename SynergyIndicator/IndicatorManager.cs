@@ -1,8 +1,10 @@
 using Godot;
 using lemonSpire2.SynergyIndicator.Models;
 using lemonSpire2.SynergyIndicator.Ui;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
 namespace lemonSpire2.SynergyIndicator;
 
@@ -25,17 +27,6 @@ public class IndicatorManager
     /// 存储所有玩家的 UI 面板引用，使用 NetId 作为键
     /// </summary>
     private readonly Dictionary<ulong, IndicatorPanel> _panels = new();
-
-    private void RegisterPanel(IndicatorPanel panel)
-    {
-        if (true) _panels[panel.PlayerNetId] = panel;
-    }
-
-    public void UnregisterPanel(ulong netId)
-    {
-        _panels.Remove(netId);
-    }
-
     public void ResetAllIndicators()
     {
         foreach (var panel in _panels.Values)
@@ -54,8 +45,6 @@ public class IndicatorManager
     {
         if (!_panels.TryGetValue(playerNetId, out var panel)) return;
         panel.AddIndicator(type, status);
-        panel.TreeExited += () => _panels.Remove(playerNetId);
-        RegisterPanel(panel);
     }
 
     public void SetStatus(ulong playerNetId, IndicatorType type, IndicatorStatus status)
@@ -77,6 +66,16 @@ public class IndicatorManager
         return _panels.TryGetValue(playerNetId, out var panel)
             ? panel.GetStatus(type)
             : IndicatorStatus.WillUse;
+    }
+
+    public IndicatorPanel? CreatePanel(NMultiplayerPlayerState player)
+    {
+        var panel = IndicatorPanel.CreateForPlayer(player);
+
+        _panels[panel.PlayerNetId] = panel;
+        panel.TreeExited += () => _panels.Remove(panel.PlayerNetId);
+        panel.IndicatorClicked += (netId, type) => ToggleStatus(netId, type);
+        return panel;
     }
 
     public bool HasIndicator(ulong playerNetId, IndicatorType type)
@@ -141,5 +140,11 @@ public class IndicatorManager
 
         MainFile.Logger.Info(
             $"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
+    }
+
+    private void OnTurnStarted(CombatState _)
+    {
+        foreach (var panel in _panels.Values)
+            panel.ResetForNewTurn();
     }
 }

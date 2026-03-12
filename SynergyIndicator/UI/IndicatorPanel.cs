@@ -14,6 +14,9 @@ public partial class IndicatorPanel : HBoxContainer
     private readonly Dictionary<IndicatorType, IndicatorButton> _buttons = new();
     private ulong _playerNetId;
 
+    public event Action<ulong, IndicatorType>? IndicatorClicked;
+
+
     private static readonly FieldInfo? TopContainerField =
         typeof(NMultiplayerPlayerState).GetField("_topContainer", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -26,11 +29,6 @@ public partial class IndicatorPanel : HBoxContainer
     private IndicatorPanel(ulong playerNetId)
     {
         _playerNetId = playerNetId;
-    }
-
-    public override void _ExitTree()
-    {
-        IndicatorManager.Instance.UnregisterPanel(_playerNetId);
     }
 
     public static IndicatorPanel CreateForPlayer(NMultiplayerPlayerState player)
@@ -89,6 +87,11 @@ public partial class IndicatorPanel : HBoxContainer
         _buttons.Clear();
     }
 
+    public void ResetForNewTurn()
+    {
+        Clear();
+    }
+
     /// <summary>
     /// 按钮点击事件：切换指示器状态
     /// </summary>
@@ -140,7 +143,6 @@ public partial class IndicatorPanel : HBoxContainer
 
     private void OnIndicatorClicked(IndicatorType type)
     {
-        // 唯一改变状态的入口
-        ToggleStatus(type);
+        IndicatorClicked?.Invoke(_playerNetId, type); // 只发事件，不调 Manager
     }
 }

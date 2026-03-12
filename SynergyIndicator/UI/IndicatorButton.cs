@@ -52,6 +52,7 @@ public partial class IndicatorButton : Button
 
         // IndicatorHandler.SendMessage(type, status);
         UpdateStatusVisual();
+        PlayFlashAnimation();
     }
 
     /// <summary>
@@ -62,18 +63,6 @@ public partial class IndicatorButton : Button
         Status = status;
         // IndicatorHandler.SendMessage(Type, status);
         UpdateStatusVisual();
-    }
-
-    private void ToggleStatus()
-    {
-        IndicatorStatus status = Status;
-        IndicatorStatus newStatus = status switch
-        {
-            IndicatorStatus.WillUse => IndicatorStatus.WontUse,
-            IndicatorStatus.WontUse => IndicatorStatus.WillUse,
-            _ => status
-        };
-        SetStatus(newStatus);
     }
 
     /// <summary>
@@ -90,10 +79,9 @@ public partial class IndicatorButton : Button
     {
         if (disposing)
         {
-            EmojiLabel?.Dispose();
-            IconTextureRect?.Dispose();
+            EmojiLabel?.QueueFree();
+            IconTextureRect?.QueueFree();
         }
-
         base.Dispose(disposing);
     }
 
