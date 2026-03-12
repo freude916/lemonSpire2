@@ -2,9 +2,16 @@ using System.Diagnostics;
 using System.Reflection;
 using Godot;
 using lemonSpire2.SynergyIndicator.Models;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
 namespace lemonSpire2.SynergyIndicator.Ui;
+
+public class IndicatorClickedEventArgs : EventArgs
+{
+    public ulong PlayerNetId { get; init; }
+    public IndicatorType IndicatorType { get; init; }
+}
 
 /// <summary>
 /// 指示器主面板容器，负责显示和管理所有玩家的指示器图标
@@ -14,7 +21,7 @@ public partial class IndicatorPanel : HBoxContainer
     private readonly Dictionary<IndicatorType, IndicatorButton> _buttons = new();
     private ulong _playerNetId;
 
-    public event Action<ulong, IndicatorType>? IndicatorClicked;
+    public event EventHandler<IndicatorClickedEventArgs>? IndicatorClicked;
 
 
     private static readonly FieldInfo? TopContainerField =
@@ -44,10 +51,13 @@ public partial class IndicatorPanel : HBoxContainer
         var panel = new IndicatorPanel(player.Player.NetId);
 
         panel.ZIndex = 100;
-        panel.MouseFilter = MouseFilterEnum.Stop;
+        panel.MouseFilter = LocalContext.IsMe(player.Player)
+            ? MouseFilterEnum.Stop
+            : MouseFilterEnum.Ignore;
 
         topContainer.AddChild(panel);
         panel.MoveToFront();
+        MainFile.Logger.Debug($"CreateForPlayer: netId={player.Player.NetId} isMe={LocalContext.IsMe(player.Player)} mouseFilter={panel.MouseFilter}");
 
         var topContainerParent = topContainer.GetParent();
         if (topContainerParent != null)
@@ -67,6 +77,9 @@ public partial class IndicatorPanel : HBoxContainer
 
         var button = new IndicatorButton();
         button.Setup(type, initialStatus);
+        button.MouseFilter = MouseFilter == MouseFilterEnum.Ignore
+            ? MouseFilterEnum.Ignore
+            : MouseFilterEnum.Stop;
         AddChild(button);
         button.IndicatorClicked += OnIndicatorClicked;
         _buttons[type] = button;
@@ -143,6 +156,11 @@ public partial class IndicatorPanel : HBoxContainer
 
     private void OnIndicatorClicked(IndicatorType type)
     {
-        IndicatorClicked?.Invoke(_playerNetId, type); // 只发事件，不调 Manager
+        MainFile.Logger.Debug($"IndicatorClicked: panelNetId={_playerNetId} type={type} localNetId={LocalContext.NetId}");
+        IndicatorClicked?.Invoke(this, new IndicatorClickedEventArgs
+        {
+            PlayerNetId = _playerNetId,
+            IndicatorType = type
+        });
     }
 }

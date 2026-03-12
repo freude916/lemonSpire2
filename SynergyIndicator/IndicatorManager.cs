@@ -86,7 +86,7 @@ public class IndicatorManager
 
         _panels[panel.PlayerNetId] = panel;
         panel.TreeExited += () => _panels.Remove(panel.PlayerNetId);
-        panel.IndicatorClicked += (netId, type) => ToggleStatus(netId, type);
+        panel.IndicatorClicked += (_, args) => ToggleStatus(args.PlayerNetId, args.IndicatorType);
         return panel;
     }
 
@@ -150,7 +150,7 @@ public class IndicatorManager
             Instance.AddIndicator(netId, IndicatorType.HandShake, IndicatorStatus.WillUse);
         }
 
-        MainFile.Logger.Info(
+        MainFile.Logger.Debug(
             $"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
     }
 

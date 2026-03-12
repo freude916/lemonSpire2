@@ -9,7 +9,9 @@ namespace lemonSpire2.SynergyIndicator.Ui;
 /// </summary>
 public partial class IndicatorButton : Button
 {
+# pragma warning disable CA1003
     public event Action<IndicatorType>? IndicatorClicked;
+# pragma warning restore CA1003
     public IndicatorType Type { get; private set; }
 
     private Label? EmojiLabel { get; set; }
@@ -82,6 +84,7 @@ public partial class IndicatorButton : Button
             EmojiLabel?.QueueFree();
             IconTextureRect?.QueueFree();
         }
+
         base.Dispose(disposing);
     }
 
@@ -112,7 +115,6 @@ public partial class IndicatorButton : Button
 
         // 设置 Label 填充整个按钮
         EmojiLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        EmojiLabel.MouseFilter = MouseFilterEnum.Ignore; // 让点击事件穿透到 Button
 
         AddChild(EmojiLabel);
     }
@@ -131,7 +133,6 @@ public partial class IndicatorButton : Button
 
         // 设置 TextureRect 填充整个按钮
         IconTextureRect.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        IconTextureRect.MouseFilter = MouseFilterEnum.Ignore;
 
         AddChild(IconTextureRect);
     }
