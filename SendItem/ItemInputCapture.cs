@@ -140,7 +140,7 @@ public partial class ItemInputCapture : Control
             return null;
 
         // 收集所有文本 tooltip 的内容
-        var tips = new List<(string? Title, string Description, bool IsDebuff)>();
+        var tips = new List<(string? Title, string Description, bool IsDebuff, string? IconPath)>();
 
         foreach (var child in textContainer.GetChildren())
         {
@@ -148,9 +148,11 @@ public partial class ItemInputCapture : Control
 
             var titleLabel = tipControl.GetNodeOrNull<Label>("%Title");
             var descLabel = tipControl.GetNodeOrNull<RichTextLabel>("%Description");
+            var iconRect = tipControl.GetNodeOrNull<TextureRect>("%Icon");
 
             var title = titleLabel?.Text;
             var description = descLabel?.Text ?? "";
+            var iconPath = iconRect?.Texture?.ResourcePath;
 
             // 检查是否是 debuff（通过背景材质判断）
             var isDebuff = false;
@@ -163,28 +165,28 @@ public partial class ItemInputCapture : Control
 
             if (!string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(description))
             {
-                tips.Add((string.IsNullOrEmpty(title) ? null : title, description, isDebuff));
+                tips.Add((string.IsNullOrEmpty(title) ? null : title, description, isDebuff, iconPath));
             }
         }
 
         if (tips.Count == 0) return null;
 
         // 如果只有一个 tooltip，直接发送
-
         {
-            var (title, desc, isDebuff) = tips[0];
+            var (title, desc, isDebuff, iconPath) = tips[0];
             return new TooltipSegment
             {
                 Tooltip = new RichTextTooltip
                 {
                     Title = title,
                     Description = desc,
-                    IsDebuff = isDebuff
+                    IsDebuff = isDebuff,
+                    IconPath = iconPath
                 },
                 DisplayName = title ?? "Tooltip"
             };
         }
-        
+
         // TODO: 如果有多个 tooltip，需要重构方案来正确发送，目前所有都只能 Send 一个 Segment，无法表达多个 tooltip 的情况
     }
 

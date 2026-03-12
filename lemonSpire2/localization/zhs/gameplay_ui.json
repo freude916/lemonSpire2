@@ -1,0 +1,15 @@
+{
+  "LEMONSPIRE.stats.title": "统计",
+  "LEMONSPIRE.stats.combat": "本局",
+  "LEMONSPIRE.stats.total": "总计",
+  "LEMONSPIRE.stats.combat.damage": "伤害",
+  "LEMONSPIRE.stats.combat.extra_damage": "被增益伤害",
+  "LEMONSPIRE.stats.combat.buffs_applied": "施加增益",
+  "LEMONSPIRE.stats.combat.debuffs_applied": "施加减益",
+  "LEMONSPIRE.stats.total.damage": "伤害",
+  "LEMONSPIRE.stats.total.extra_damage": "被增益伤害",
+  "LEMONSPIRE.stats.total.buffs_applied": "施加增益",
+  "LEMONSPIRE.stats.total.debuffs_applied": "施加减益",
+  "LEMONSPIRE.chat.placeholder": "输入消息...",
+  "LEMONSPIRE.chat.welcome": "按 [Tab] 打开聊天"
+}

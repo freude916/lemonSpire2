@@ -2,6 +2,7 @@ using System.Globalization;
 using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
+using MegaCrit.Sts2.Core.Localization;
 
 namespace lemonSpire2.Chat.Ui;
 
@@ -118,7 +119,7 @@ public sealed class ChatPanel : IDisposable
         _inputField = new LineEdit
         {
             Name = "InputField",
-            PlaceholderText = "Type a message...",
+            PlaceholderText = new LocString("gameplay_ui", "LEMONSPIRE.chat.placeholder").GetFormattedText(),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             MouseFilter = Control.MouseFilterEnum.Ignore,
             CaretBlink = true
@@ -150,7 +151,8 @@ public sealed class ChatPanel : IDisposable
     private void ShowWelcome()
     {
         if (_messageBuffer == null) return;
-        _messageBuffer.Text = "[color=#888888]Press [Tab] to open chat[/color]";
+        var welcomeText = new LocString("gameplay_ui", "LEMONSPIRE.chat.welcome").GetFormattedText();
+        _messageBuffer.Text = $"[color=#888888]{welcomeText}[/color]";
     }
 
     // ========== Model Events ==========

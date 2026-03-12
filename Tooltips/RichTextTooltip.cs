@@ -21,10 +21,12 @@ public sealed class RichTextTooltip : Tooltip
     public string? Title { get; set; }
     public required string Description { get; set; }
     public bool IsDebuff { get; set; }
+    public string? IconPath { get; set; }
 
     public override string Render()
     {
-        return $"{Title}";
+        var iconPrefix = string.IsNullOrEmpty(IconPath) ? "" : $"[img={16}x{16}]{IconPath}[/img] ";
+        return $"{iconPrefix}{Title}";
     }
 
     public override void Serialize(PacketWriter writer)
@@ -33,6 +35,7 @@ public sealed class RichTextTooltip : Tooltip
         writer.WriteString(Title ?? "");
         writer.WriteString(Description);
         writer.WriteBool(IsDebuff);
+        writer.WriteString(IconPath ?? "");
     }
 
     public override void Deserialize(PacketReader reader)
@@ -42,6 +45,8 @@ public sealed class RichTextTooltip : Tooltip
         Title = string.IsNullOrEmpty(title) ? null : title;
         Description = reader.ReadString();
         IsDebuff = reader.ReadBool();
+        var iconPath = reader.ReadString();
+        IconPath = string.IsNullOrEmpty(iconPath) ? null : iconPath;
     }
 
     public override Control? CreatePreview()
@@ -60,7 +65,13 @@ public sealed class RichTextTooltip : Tooltip
         DescriptionProperty?.SetValue(boxed, Description);
         tip = (HoverTip)boxed;
 
-        return BuildHoverTipControl(tip);
+        Texture2D? icon = null;
+        if (!string.IsNullOrEmpty(IconPath) && ResourceLoader.Exists(IconPath))
+        {
+            icon = ResourceLoader.Load<Texture2D>(IconPath);
+        }
+
+        return BuildHoverTipControl(tip, icon);
     }
 
     public override IHoverTip ToHoverTip()

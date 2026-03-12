@@ -21,6 +21,11 @@ public static class ItemInputHandler
     /// </summary>
     public static TooltipSegment? FindItemToTooltipSegment(Node? node)
     {
+        // 先检查是否点击了附魔标签
+        var enchantmentSegment = TryGetEnchantmentFromTab(node);
+        if (enchantmentSegment != null)
+            return enchantmentSegment;
+
         while (node != null)
         {
             switch (node)
@@ -45,6 +50,39 @@ public static class ItemInputHandler
             }
 
             node = node.GetParent();
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     尝试从附魔标签获取附魔信息
+    /// </summary>
+    private static TooltipSegment? TryGetEnchantmentFromTab(Node? node)
+    {
+        if (node == null) return null;
+
+        // 检查当前节点或其父节点是否是附魔标签
+        var current = node;
+        while (current != null)
+        {
+            // 检查节点名称是否包含 "Enchantment" 或是附魔标签的子节点
+            if (current.Name.ToString().Contains("Enchantment", StringComparison.OrdinalIgnoreCase))
+            {
+                // 向上查找 NCard
+                var parent = current.GetParent();
+                while (parent != null)
+                {
+                    if (parent is NCard { Model: { Enchantment: { } enchantment } })
+                    {
+                        return CreateEnchantmentSegment(enchantment);
+                    }
+
+                    parent = parent.GetParent();
+                }
+            }
+
+            current = current.GetParent();
         }
 
         return null;
@@ -83,6 +121,15 @@ public static class ItemInputHandler
         {
             Tooltip = RelicTooltip.FromModel(relic),
             DisplayName = relic.HoverTip.Title ?? relic.Id.Entry
+        };
+    }
+
+    private static TooltipSegment CreateEnchantmentSegment(EnchantmentModel enchantment)
+    {
+        return new TooltipSegment
+        {
+            Tooltip = EnchantmentTooltip.FromModel(enchantment),
+            DisplayName = enchantment.Title.GetFormattedText()
         };
     }
 

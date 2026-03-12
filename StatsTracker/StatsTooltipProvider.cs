@@ -2,6 +2,7 @@ using System.Reflection;
 using lemonSpire2.PlayerTooltip;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
+using MegaCrit.Sts2.Core.Localization;
 
 namespace lemonSpire2.StatsTracker;
 
@@ -43,7 +44,7 @@ public class StatsTooltipProvider : ITooltipProvider
             return null;
         }
 
-        var title = ModLocalization.Get("stats.title", "Stats");
+        var title = new LocString("gameplay_ui", "LEMONSPIRE.stats.title").GetFormattedText();
         
         // Sorted by key to ensure consistent order, group by prefix (e.g. stats.combat, stats.total)
         var sortedStats = stats.GetAll()
@@ -64,16 +65,17 @@ public class StatsTooltipProvider : ITooltipProvider
                 if (prefix != currentPrefix)
                 {
                     currentPrefix = prefix;
-                    var groupTitle = ModLocalization.Get(prefix, prefix);
+                    var groupTitle = new LocString("gameplay_ui", $"LEMONSPIRE.{prefix}").GetFormattedText();
                     lines.Add($"[{groupTitle}]");
                 }
                 
-                var localizedName = ModLocalization.Get(key, key);
+                var localizedName = new LocString("gameplay_ui", $"LEMONSPIRE.{key}").GetFormattedText();
                 lines.Add($"  {localizedName}: {(int)kv.Value}");
             }
             else
             {
-                lines.Add($"{ModLocalization.Get(key, key)}: {(int)kv.Value}");
+                var localizedName = new LocString("gameplay_ui", $"LEMONSPIRE.{key}").GetFormattedText();
+                lines.Add($"{localizedName}: {(int)kv.Value}");
             }
         }
 

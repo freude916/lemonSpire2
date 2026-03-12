@@ -1,0 +1,15 @@
+{
+  "LEMONSPIRE.stats.title": "Stats",
+  "LEMONSPIRE.stats.combat": "Combat",
+  "LEMONSPIRE.stats.total": "Total",
+  "LEMONSPIRE.stats.combat.damage": "Damage",
+  "LEMONSPIRE.stats.combat.extra_damage": "Buffed Damage",
+  "LEMONSPIRE.stats.combat.buffs_applied": "Buffs Applied",
+  "LEMONSPIRE.stats.combat.debuffs_applied": "Debuffs Applied",
+  "LEMONSPIRE.stats.total.damage": "Damage",
+  "LEMONSPIRE.stats.total.extra_damage": "Buffed Damage",
+  "LEMONSPIRE.stats.total.buffs_applied": "Buffs Applied",
+  "LEMONSPIRE.stats.total.debuffs_applied": "Debuffs Applied",
+  "LEMONSPIRE.chat.placeholder": "Type a message...",
+  "LEMONSPIRE.chat.welcome": "Press [Tab] to open chat"
+}
