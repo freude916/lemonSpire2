@@ -1,5 +1,7 @@
 # Lemon Spire 2
 
+[English](./README.md) / [中文](./README_zh.md)
+
 A mod inspired by Minty Spire, mainly designed to provide Quality of Life (QoL) features for Slay the Spire 2 (especially for multiplayer mode).
 
 Because I used [:Alchyr/BaseLib](https://github.com/Alchyr/BaseLib-StS2/releases) to resolve Linux compatibility issues, it seems this mod cannot function properly without BaseLib installed.
