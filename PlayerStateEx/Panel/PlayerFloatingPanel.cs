@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace lemonSpire2.NPlayerState.Panel;
+namespace lemonSpire2.PlayerStateEx.Panel;
 
 /// <summary>
 ///     玩家悬浮面板
@@ -14,32 +14,33 @@ namespace lemonSpire2.NPlayerState.Panel;
 /// </summary>
 public partial class PlayerFloatingPanel : Control
 {
-    private Player? _player;
-    private PanelContainer? _panel;
-    private VBoxContainer? _mainContainer;
-    private HBoxContainer? _header;
-    private Label? _titleLabel;
-    private Button? _closeButton;
-    private VBoxContainer? _contentContainer;
-    private DraggableHelper? _draggable;
-
     private readonly Dictionary<string, Control> _providerContents = new();
     private readonly List<Action> _unsubscribeActions = new();
 
     // 追踪上次 provider 可见状态
     private readonly HashSet<string> _visibleProviders = new();
+    private VBoxContainer? _contentContainer;
+    private DraggableHeader? _header;
+    private Label? _headerTitle;
+    private VBoxContainer? _mainContainer;
+
+    // 脏标记：仅在事件触发时检查可见性变化
+    private bool _needsVisibilityCheck;
+    private PanelContainer? _panel;
+    private Player? _player;
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always;
         MouseFilter = MouseFilterEnum.Stop;
 
-        CreateUI();
+        CreateUi();
     }
 
     public override void _Process(double delta)
     {
-        // 检查 provider 可见性变化
+        // 仅在事件触发时检查，避免每帧轮询
+        if (!_needsVisibilityCheck) return;
+        _needsVisibilityCheck = false;
         CheckProviderVisibilityChanges();
     }
 
@@ -47,48 +48,24 @@ public partial class PlayerFloatingPanel : Control
     {
         if (_player == null) return;
 
-        var currentVisible = new HashSet<string>();
+        // 检查是否有新增的 provider
+        var needsRebuild = false;
         foreach (var provider in PlayerPanelRegistry.GetProviders())
         {
-            if (provider.ShouldShow(_player))
-            {
-                currentVisible.Add(provider.ProviderId);
-            }
-        }
+            var shouldShow = provider.ShouldShow(_player);
+            var wasVisible = _visibleProviders.Contains(provider.ProviderId);
 
-        // 检查是否有新增的 provider
-        bool needsRebuild = false;
-        foreach (var providerId in currentVisible)
-        {
-            if (!_visibleProviders.Contains(providerId))
+            if (shouldShow != wasVisible)
             {
                 needsRebuild = true;
                 break;
             }
         }
 
-        // 检查是否有消失的 provider
-        if (!needsRebuild)
-        {
-            foreach (var providerId in _visibleProviders)
-            {
-                if (!currentVisible.Contains(providerId))
-                {
-                    needsRebuild = true;
-                    break;
-                }
-            }
-        }
-
-        if (needsRebuild)
-        {
-            _visibleProviders.Clear();
-            foreach (var id in currentVisible) _visibleProviders.Add(id);
-            RebuildProviderContents();
-        }
+        if (needsRebuild) RebuildProviderContents();
     }
 
-    private void CreateUI()
+    private void CreateUi()
     {
         // 主面板
         _panel = new PanelContainer
@@ -102,7 +79,7 @@ public partial class PlayerFloatingPanel : Control
         var style = new StyleBoxFlat
         {
             BgColor = new Color(0.1f, 0.1f, 0.15f, 0.95f),
-            BorderColor = new Color(0.4f, 0.4f, 0.5f, 1f),
+            BorderColor = new Color(0.4f, 0.4f, 0.5f),
             BorderWidthLeft = 2,
             BorderWidthRight = 2,
             BorderWidthTop = 2,
@@ -128,37 +105,15 @@ public partial class PlayerFloatingPanel : Control
         };
         _panel.AddChild(_mainContainer);
 
-        // 标题栏
-        _header = new HBoxContainer
+        // 标题栏（使用 DraggableHeader）
+        _header = new DraggableHeader
         {
-            Name = "Header",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill
+            Name = "Header"
         };
+        _header.SetDragTarget(_panel);
+        _headerTitle = _header.GetTitleLabel(); // 保存标题引用
+        _header.ShowCloseButton(OnCloseButtonPressed);
         _mainContainer.AddChild(_header);
-
-        // 标题
-        _titleLabel = new Label
-        {
-            Name = "TitleLabel",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Pass
-        };
-        _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f));
-        _titleLabel.AddThemeFontSizeOverride("font_size", 14);
-        _header.AddChild(_titleLabel);
-
-        // 关闭按钮
-        _closeButton = new Button
-        {
-            Name = "CloseButton",
-            Text = "X",
-            CustomMinimumSize = new Vector2(20, 20),
-            MouseFilter = MouseFilterEnum.Stop
-        };
-        _closeButton.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f));
-        _closeButton.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f));
-        _closeButton.Pressed += OnCloseButtonPressed;
-        _header.AddChild(_closeButton);
 
         // 分隔线
         var separator = new HSeparator
@@ -176,9 +131,6 @@ public partial class PlayerFloatingPanel : Control
         };
         _contentContainer.AddThemeConstantOverride("separation", 8);
         _mainContainer.AddChild(_contentContainer);
-
-        // 添加拖拽功能
-        _draggable = DraggableHelper.AttachTo(_panel);
     }
 
     /// <summary>
@@ -186,8 +138,8 @@ public partial class PlayerFloatingPanel : Control
     /// </summary>
     public void Initialize(Player player)
     {
-        _player = player;
-        _titleLabel!.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
+        _player = player ?? throw new ArgumentNullException(nameof(player));
+        _headerTitle!.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
 
         // 初始化 Provider 注册表
         PlayerPanelRegistry.Initialize();
@@ -239,11 +191,12 @@ public partial class PlayerFloatingPanel : Control
             provider.UpdateContent(_player, content);
 
             // 订阅事件
-            var unsubscribe = provider.SubscribeEvents(_player, () => UpdateProviderContent(provider));
-            if (unsubscribe != null)
+            var unsubscribe = provider.SubscribeEvents(_player, () =>
             {
-                _unsubscribeActions.Add(unsubscribe);
-            }
+                UpdateProviderContent(provider);
+                _needsVisibilityCheck = true; // 事件触发时检查可见性
+            });
+            if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
         }
     }
 
@@ -258,34 +211,22 @@ public partial class PlayerFloatingPanel : Control
         if (_player == null) return;
 
         if (_providerContents.TryGetValue(provider.ProviderId, out var content))
-        {
             provider.UpdateContent(_player, content);
-        }
     }
 
     private void ClearProviderContents()
     {
         // 取消事件订阅
-        foreach (var unsubscribe in _unsubscribeActions)
-        {
-            unsubscribe();
-        }
+        foreach (var unsubscribe in _unsubscribeActions) unsubscribe();
         _unsubscribeActions.Clear();
 
         // 清除 UI
-        foreach (var content in _providerContents.Values)
-        {
-            content.QueueFree();
-        }
+        foreach (var content in _providerContents.Values) content.QueueFree();
         _providerContents.Clear();
 
         if (_contentContainer != null)
-        {
             foreach (var child in _contentContainer.GetChildren())
-            {
                 child.QueueFree();
-            }
-        }
     }
 
     private void OnCloseButtonPressed()
@@ -304,20 +245,18 @@ public partial class PlayerFloatingPanel : Control
     /// </summary>
     public static PlayerFloatingPanel Show(Player player, Vector2? position = null)
     {
+        ArgumentNullException.ThrowIfNull(player);
         var panel = new PlayerFloatingPanel
         {
             Name = $"PlayerFloatingPanel_{player.NetId}"
         };
 
         // 添加到场景树
-        NRun.Instance?.GlobalUi?.AddChild(panel);
+        NRun.Instance?.GlobalUi.AddChild(panel);
 
         panel.Initialize(player);
 
-        if (position.HasValue)
-        {
-            panel.Position = position.Value;
-        }
+        if (position.HasValue) panel.Position = position.Value;
 
         return panel;
     }

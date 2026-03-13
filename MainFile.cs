@@ -1,11 +1,10 @@
 using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
-using lemonSpire2.NPlayerState;
+using lemonSpire2.PlayerStateEx;
 using lemonSpire2.SendItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SynergyIndicator;
-using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
@@ -46,9 +45,7 @@ public partial class MainFile : Node
         }
 
         if (PlayerTooltipRegistry.HasProviders)
-        {
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
-        }
 
         Logger.Info("lemonSpire2 mod initialized");
     }

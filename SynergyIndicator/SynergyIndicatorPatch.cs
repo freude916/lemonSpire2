@@ -69,6 +69,7 @@ public static class SynergyIndicatorPatch
     [HarmonyPatch("_ExitTree")]
     public static void ExitTreePrefix(NMultiplayerPlayerState __instance)
     {
+        ArgumentNullException.ThrowIfNull(__instance);
         // 取消订阅事件并清理引用
         if (_eventHandlers.Remove(__instance, out var handlers))
             if (__instance.Player?.PlayerCombatState?.Hand != null)

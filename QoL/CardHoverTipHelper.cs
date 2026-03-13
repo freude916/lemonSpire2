@@ -18,18 +18,16 @@ public static class CardHoverTipHelper
     /// <param name="control">要绑定提示的控件</param>
     /// <param name="card">卡牌模型</param>
     /// <param name="alignment">提示对齐方式</param>
-    public static void ShowCardHoverTip(Control control, CardModel card, HoverTipAlignment alignment = HoverTipAlignment.None)
+    public static void ShowCardHoverTip(Control control, CardModel card,
+        HoverTipAlignment alignment = HoverTipAlignment.None)
     {
-        if (control == null || card == null) return;
+        ArgumentNullException.ThrowIfNull(control);
 
         var hoverTip = new CardHoverTip(card);
         var tipSet = NHoverTipSet.CreateAndShow(control, hoverTip, alignment);
-        
+
         // 设置位置偏移，让提示显示在控件下方
-        if (tipSet != null)
-        {
-            tipSet.GlobalPosition = control.GlobalPosition + Vector2.Down * control.Size.Y;
-        }
+        tipSet.GlobalPosition = control.GlobalPosition + Vector2.Down * control.Size.Y;
     }
 
     /// <summary>
@@ -38,7 +36,6 @@ public static class CardHoverTipHelper
     /// <param name="control">要移除提示的控件</param>
     public static void HideCardHoverTip(Control control)
     {
-        if (control == null) return;
         NHoverTipSet.Remove(control);
     }
 
@@ -48,22 +45,16 @@ public static class CardHoverTipHelper
     /// <param name="control">要绑定的控件</param>
     /// <param name="getCard">获取卡牌的函数</param>
     /// <param name="alignment">提示对齐方式</param>
-    public static void BindCardHoverTip(Control control, System.Func<CardModel?> getCard, HoverTipAlignment alignment = HoverTipAlignment.None)
+    public static void BindCardHoverTip(Control control, Func<CardModel?> getCard,
+        HoverTipAlignment alignment = HoverTipAlignment.None)
     {
-        if (control == null || getCard == null) return;
-
+        ArgumentNullException.ThrowIfNull(control);
         control.Connect(Control.SignalName.MouseEntered, Callable.From(() =>
         {
             var card = getCard();
-            if (card != null)
-            {
-                ShowCardHoverTip(control, card, alignment);
-            }
+            if (card != null) ShowCardHoverTip(control, card, alignment);
         }));
 
-        control.Connect(Control.SignalName.MouseExited, Callable.From(() =>
-        {
-            HideCardHoverTip(control);
-        }));
+        control.Connect(Control.SignalName.MouseExited, Callable.From(() => { HideCardHoverTip(control); }));
     }
 }

@@ -1,7 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using lemonSpire2.NPlayerState.Panel;
+using lemonSpire2.PlayerStateEx.Panel;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace lemonSpire2.NPlayerState;
+namespace lemonSpire2.PlayerStateEx;
 
 /// <summary>
 ///     Patch for NMultiplayerPlayerState to:
@@ -23,14 +23,14 @@ namespace lemonSpire2.NPlayerState;
 [HarmonyPatch(typeof(NMultiplayerPlayerState))]
 public static class NMultiplayerPlayerStatePatch
 {
-    private static readonly FieldInfo? NetworkProblemIndicatorField =
-        typeof(NMultiplayerPlayerState).GetField("_networkProblemIndicator",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-
     /// <summary>
     ///     双击阈值（秒）
     /// </summary>
     private const double DoubleClickThreshold = 0.3;
+
+    private static readonly FieldInfo? NetworkProblemIndicatorField =
+        typeof(NMultiplayerPlayerState).GetField("_networkProblemIndicator",
+            BindingFlags.NonPublic | BindingFlags.Instance);
 
     /// <summary>
     ///     当前活跃的悬浮面板（按玩家 NetId 管理）
@@ -54,40 +54,27 @@ public static class NMultiplayerPlayerStatePatch
     public static void UpdateHighlightedStatePostfix(NMultiplayerPlayerState __instance, bool ____isHighlighted)
     {
         ArgumentNullException.ThrowIfNull(__instance);
-        if (!____isHighlighted)
-        {
-            return;
-        }
+        if (!____isHighlighted) return;
 
         var indicator = NetworkProblemIndicatorField?.GetValue(__instance) as NMultiplayerNetworkProblemIndicator;
-        if (indicator != null && indicator.IsShown)
-        {
-            return;
-        }
+        if (indicator != null && indicator.IsShown) return;
 
         ShowTooltips(__instance, __instance.Player);
     }
 
     private static void ShowTooltips(NMultiplayerPlayerState instance, Player player)
     {
-        if (!PlayerTooltipRegistry.HasProviders)
-        {
-            return;
-        }
+        if (!PlayerTooltipRegistry.HasProviders) return;
 
         // 检查是否已存在 tooltip set，避免重复创建
         if (ActiveTipSets.TryGetValue(instance, out var weakRef) &&
             weakRef.TryGetTarget(out var existingSet) &&
             GodotObject.IsInstanceValid(existingSet))
-        {
             return; // 已存在，不重复创建
-        }
 
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
 
-#pragma warning disable CA2000 // NHoverTipSet 所有权转移给场景树管理
         var tipSet = NHoverTipSet.CreateAndShow(instance, hoverTips);
-#pragma warning restore CA2000
         tipSet.GlobalPosition = instance.GlobalPosition + Vector2.Down * 80f;
 
         ActiveTipSets[instance] = new WeakReference<NHoverTipSet>(tipSet);
@@ -185,13 +172,9 @@ public static class NMultiplayerPlayerStatePatch
         {
             // 已存在，切换可见性
             if (existingPanel.Visible)
-            {
                 existingPanel.Hide();
-            }
             else
-            {
                 existingPanel.Show();
-            }
             return;
         }
 
@@ -211,10 +194,8 @@ public static class NMultiplayerPlayerStatePatch
 
         // 检查是否在目标选择模式
         var targetManager = NTargetManager.Instance;
-        if (targetManager.IsInSelection || targetManager.LastTargetingFinishedFrame == instance.GetTree().GetFrame())
-        {
-            return;
-        }
+        if (targetManager.IsInSelection ||
+            targetManager.LastTargetingFinishedFrame == instance.GetTree().GetFrame()) return;
 
         var screen = NMultiplayerPlayerExpandedState.Create(player);
         NCapstoneContainer.Instance.Open(screen);

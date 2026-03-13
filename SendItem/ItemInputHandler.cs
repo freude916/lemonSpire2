@@ -53,8 +53,20 @@ public static class ItemInputHandler
                 case NPotionHolder { Potion: { } potion }:
                     return CreatePotionSegment(potion.Model);
 
+                case NPotion { Model: { } potion }:
+                    // 直接匹配 NPotion 节点，用于 NPlayerState.Panel.PotionProvider 创建的药水
+                    return CreatePotionSegment(potion);
+
                 case NRelicInventoryHolder { Relic.Model: { } relic }:
                     return CreateRelicSegment(relic);
+
+                case NRelicBasicHolder { Relic.Model: { } relic }:
+                    // 用于 NMultiplayerPlayerExpandedState 中的遗物
+                    return CreateRelicSegment(relic);
+
+                case NRelic { Model: { } relicModel }:
+                    // 直接匹配 NRelic 节点
+                    return CreateRelicSegment(relicModel);
 
                 case NCreature { Entity: { } entity }:
                     return CreateTargetSegment(entity);
@@ -78,7 +90,6 @@ public static class ItemInputHandler
         while (current != null)
         {
             if (current is NMerchantSlot { Entry: { } entry })
-            {
                 return entry switch
                 {
                     MerchantCardEntry { CreationResult.Card: { } card } => CreateCardSegment(card),
@@ -86,7 +97,6 @@ public static class ItemInputHandler
                     MerchantRelicEntry { Model: { } relic } => CreateRelicSegment(relic),
                     _ => null
                 };
-            }
 
             current = current.GetParent();
         }
@@ -113,9 +123,7 @@ public static class ItemInputHandler
                 while (parent != null)
                 {
                     if (parent is NCard { Model: { Enchantment: { } enchantment } })
-                    {
                         return CreateEnchantmentSegment(enchantment);
-                    }
 
                     parent = parent.GetParent();
                 }

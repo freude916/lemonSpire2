@@ -13,6 +13,7 @@ public sealed class RichTextTooltip : Tooltip
 {
     private static readonly PropertyInfo? TitleProperty =
         typeof(HoverTip).GetProperty(nameof(HoverTip.Title));
+
     private static readonly PropertyInfo? DescriptionProperty =
         typeof(HoverTip).GetProperty(nameof(HoverTip.Description));
 
@@ -67,9 +68,7 @@ public sealed class RichTextTooltip : Tooltip
 
         Texture2D? icon = null;
         if (!string.IsNullOrEmpty(IconPath) && ResourceLoader.Exists(IconPath))
-        {
             icon = ResourceLoader.Load<Texture2D>(IconPath);
-        }
 
         return BuildHoverTipControl(tip, icon);
     }

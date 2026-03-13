@@ -11,7 +11,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 
-namespace lemonSpire2.NPlayerState.Panel;
+namespace lemonSpire2.PlayerStateEx.Panel;
 
 /// <summary>
 ///     手牌显示提供者
@@ -26,6 +26,7 @@ public class HandCardProvider : IPlayerPanelProvider
 
     public bool ShouldShow(Player player)
     {
+        ArgumentNullException.ThrowIfNull(player);
         return player.PlayerCombatState?.Hand != null;
     }
 
@@ -44,18 +45,16 @@ public class HandCardProvider : IPlayerPanelProvider
 
     public void UpdateContent(Player player, Control content)
     {
+        ArgumentNullException.ThrowIfNull(player);
         if (content is not VBoxContainer container) return;
 
         // 清除现有内容
-        foreach (var child in container.GetChildren())
-        {
-            child.QueueFree();
-        }
+        foreach (var child in container.GetChildren()) child.QueueFree();
 
         var hand = player.PlayerCombatState?.Hand;
         if (hand == null)
         {
-            MainFile.Logger.Debug($"[HandCardProvider] Hand is null for player");
+            MainFile.Logger.Debug("[HandCardProvider] Hand is null for player");
             return;
         }
 
@@ -74,7 +73,8 @@ public class HandCardProvider : IPlayerPanelProvider
             var entry = NDeckHistoryEntry.Create(card, count);
 
             // 使用 Connect 方法订阅点击事件（与游戏源码一致）
-            entry.Connect(NDeckHistoryEntry.SignalName.Clicked, Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e.Card, player)));
+            entry.Connect(NDeckHistoryEntry.SignalName.Clicked,
+                Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e.Card, player)));
 
             // 添加悬浮提示功能
             CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Right);
@@ -85,16 +85,18 @@ public class HandCardProvider : IPlayerPanelProvider
 
     public Action? SubscribeEvents(Player player, Action onUpdate)
     {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(onUpdate);
         var hand = player.PlayerCombatState?.Hand;
         if (hand == null)
         {
-            MainFile.Logger.Debug($"[HandCardProvider] SubscribeEvents: Hand is null");
+            MainFile.Logger.Debug("[HandCardProvider] SubscribeEvents: Hand is null");
             return null;
         }
 
         void OnHandChanged()
         {
-            MainFile.Logger.Debug($"[HandCardProvider] Hand ContentsChanged event triggered");
+            MainFile.Logger.Debug("[HandCardProvider] Hand ContentsChanged event triggered");
             onUpdate();
         }
 
@@ -104,17 +106,14 @@ public class HandCardProvider : IPlayerPanelProvider
 
     public void Cleanup(Control content)
     {
-        foreach (var child in content.GetChildren())
-        {
-            if (child is Node node)
-            {
-                node.QueueFree();
-            }
-        }
+        ArgumentNullException.ThrowIfNull(content);
+        foreach (var child in content.GetChildren()) child?.QueueFree();
     }
 
     private static void OnEntryClicked(CardModel card, Player player)
     {
+        MainFile.Logger.Debug($"[HandCardProvider] OnEntryClicked: {card.Title}, Alt={Input.IsKeyPressed(Key.Alt)}");
+
         // 每次点击时重新获取手牌列表，确保是最新的
         var cards = player.PlayerCombatState?.Hand?.Cards.ToList() ?? new List<CardModel>();
 
@@ -133,10 +132,7 @@ public class HandCardProvider : IPlayerPanelProvider
         {
             // 普通点击: 打开卡牌详情界面
             var index = cards.IndexOf(card);
-            if (index >= 0)
-            {
-                NGame.Instance.GetInspectCardScreen().Open(cards, index);
-            }
+            if (index >= 0) NGame.Instance.GetInspectCardScreen().Open(cards, index);
         }
     }
 
@@ -149,13 +145,11 @@ public class HandCardProvider : IPlayerPanelProvider
             return;
         }
 
-        var msg = new ChatMessage
+        store.Dispatch(new IntentSendSegments
         {
-            SenderId = 0, // Will be filled by ChatStore
-            Segments = new List<IMsgSegment> { segment }
-        };
-
-        store.Dispatch(new IntentSubmit { Message = msg });
+            receiverId = 0,
+            Segments = [segment]
+        });
         MainFile.Logger.Info($"Sent card to chat: {segment.DisplayName}");
     }
 

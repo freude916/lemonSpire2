@@ -11,21 +11,20 @@ namespace lemonSpire2.StatsTracker;
 public static class PowerCmdPatch
 {
     public static void Postfix(PowerModel power, Creature target, decimal amount, Creature? applier,
-        CardModel? cardSource, bool silent) =>
+        CardModel? cardSource, bool silent)
+    {
         // Very unluckily the history are changed before the power apply,
         // So we have to use a ugly async continuation to collect after 1 frame
         ProcessAfterApply(power, target, amount, applier).ContinueWith(_ => { });
-        
+    }
+
 
     private static async Task ProcessAfterApply(PowerModel power, Creature target, decimal amount, Creature? applier)
     {
         // 等待一帧，确保 power.ApplyInternal 已经执行
         await Task.Yield();
 
-        if (power == null || target == null || applier == null || amount <= 0)
-        {
-            return;
-        }
+        if (power == null || target == null || applier == null || amount <= 0) return;
 
         // 获取施加者的玩家
         var applierPlayer = applier.IsPlayer ? applier.Player : applier.PetOwner;

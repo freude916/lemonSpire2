@@ -1,7 +1,7 @@
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
 
-namespace lemonSpire2.NPlayerState;
+namespace lemonSpire2.PlayerStateEx;
 
 /// <summary>
 ///     Provides tooltip content for multiplayer player state display.
@@ -23,7 +23,10 @@ public interface ITooltipProvider
     ///     Whether this provider currently has content to display for the given player.
     ///     Return false to skip this provider.
     /// </summary>
-    bool ShouldShow(Player player) => true;
+    bool ShouldShow(Player player)
+    {
+        return true;
+    }
 
     /// <summary>
     ///     Create the hover tip content for the given player.

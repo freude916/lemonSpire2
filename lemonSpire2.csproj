@@ -7,6 +7,8 @@
         <!-- 在构建时强制运行代码风格分析，让 dotnet build 和 Rider 检查一致 -->
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <AnalysisLevel>latest-all</AnalysisLevel>
+        <!-- Godot 节点由场景树管理，不需要手动 Dispose -->
+        <NoWarn>CA1003,CA1707,CA2000</NoWarn>
     </PropertyGroup>
 
     <!-- OS Detection -->
@@ -63,13 +65,14 @@
 
     <ItemGroup>
         <Content Include=".gitignore"/>
-        <Content Include="AGENTS.md" />
+        <Content Include="AGENTS.md"/>
         <Content Include="localization\**"/>
         <Content Include="mod_manifest.json"/>
         <Content Include="project.godot"/>
         <Content Include="lemonSpire2/**"/>
         <Content Include="README.md"/>
         <Content Include="LICENSE"/>
+        <Content Include="README_zh.md"/>
     </ItemGroup>
 
     <ItemGroup>

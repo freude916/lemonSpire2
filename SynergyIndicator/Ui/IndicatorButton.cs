@@ -3,26 +3,17 @@ using lemonSpire2.SynergyIndicator.Models;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Models.Powers;
 
-namespace lemonSpire2.SynergyIndicator.UI;
+namespace lemonSpire2.SynergyIndicator.Ui;
 
 /// <summary>
-/// 单个指示器按钮，支持 emoji 和图标两种显示方式，响应点击事件并触发状态切换
+///     单个指示器按钮，支持 emoji 和图标两种显示方式，响应点击事件并触发状态切换
 /// </summary>
 public partial class IndicatorButton : Button
 {
-# pragma warning disable CA1003
-    public event Action<IndicatorType>? IndicatorClicked;
-# pragma warning restore CA1003
-    public IndicatorType Type { get; private set; }
-
-    private Label? EmojiLabel { get; set; }
-    private TextureRect? IconTextureRect { get; set; }
-    public IndicatorStatus Status { get; private set; }
-
     private static readonly Dictionary<IndicatorType, Texture2D?> IconCache = new()
     {
         { IndicatorType.Vulnerable, PowerIcon<VulnerablePower>() },
-        { IndicatorType.Weak, PowerIcon<WeakPower>() },
+        { IndicatorType.Weak, PowerIcon<WeakPower>() }
     };
 
     // emoji 映射
@@ -31,7 +22,6 @@ public partial class IndicatorButton : Button
         { IndicatorType.HandShake, "🤝" }
     };
 
-    private bool _isInteractive;
     private static readonly StyleBoxFlat InteractiveStyle = new()
     {
         BorderColor = new Color(1f, 1f, 1f, 0.5f),
@@ -42,8 +32,18 @@ public partial class IndicatorButton : Button
         CornerRadiusTopLeft = 4,
         CornerRadiusTopRight = 4,
         CornerRadiusBottomLeft = 4,
-        CornerRadiusBottomRight = 4,
+        CornerRadiusBottomRight = 4
     };
+
+    private bool _isInteractive;
+    public IndicatorType Type { get; private set; }
+
+    private Label? EmojiLabel { get; set; }
+    private TextureRect? IconTextureRect { get; set; }
+    public IndicatorStatus Status { get; private set; }
+# pragma warning disable CA1003
+    public event Action<IndicatorType>? IndicatorClicked;
+# pragma warning restore CA1003
 
     public override void _Ready()
     {
@@ -63,13 +63,9 @@ public partial class IndicatorButton : Button
         IconTextureRect?.QueueFree();
 
         if (Emojis.TryGetValue(type, out var emoji))
-        {
             SetupEmoji(emoji);
-        }
         else
-        {
             SetupIcon(type);
-        }
 
         Pressed += OnIndicatorClicked;
 
@@ -85,7 +81,7 @@ public partial class IndicatorButton : Button
     }
 
     /// <summary>
-    /// 更新指示器状态并刷新视觉效果
+    ///     更新指示器状态并刷新视觉效果
     /// </summary>
     public void SetStatus(IndicatorStatus status)
     {
@@ -95,7 +91,7 @@ public partial class IndicatorButton : Button
     }
 
     /// <summary>
-    /// 根据当前状态更新视觉效果（WontUse 时半透明）
+    ///     根据当前状态更新视觉效果（WontUse 时半透明）
     /// </summary>
     private void UpdateStatusVisual()
     {
@@ -104,19 +100,9 @@ public partial class IndicatorButton : Button
             : new Color(1, 1, 1); // 完全不透明
     }
 
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            if (IsInstanceValid(EmojiLabel)) EmojiLabel?.QueueFree();
-            if (IsInstanceValid(IconTextureRect)) IconTextureRect?.QueueFree();
-        }
-        base.Dispose(disposing);
-    }
-
     public void PlayFlashAnimation()
     {
-        Control? target = (Control?)EmojiLabel ?? IconTextureRect;
+        var target = (Control?)EmojiLabel ?? IconTextureRect;
         if (target == null) return;
 
         target.PivotOffset = target.Size / 2;
@@ -172,8 +158,12 @@ public partial class IndicatorButton : Button
     }
 
     private static Texture2D? GetIconForIndicatorType(IndicatorType type)
-        => IconCache.GetValueOrDefault(type);
+    {
+        return IconCache.GetValueOrDefault(type);
+    }
 
     private static Texture2D? PowerIcon<T>() where T : PowerModel
-        => ModelDb.AllPowers.FirstOrDefault(p => p is T)?.Icon;
+    {
+        return ModelDb.AllPowers.FirstOrDefault(p => p is T)?.Icon;
+    }
 }

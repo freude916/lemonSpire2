@@ -6,13 +6,13 @@ public class ChatModel
 {
     private List<ChatMessage> Messages { get; } = [];
 
-    public event EventHandler<ChatMessage>? OnMessageAppended;
+    public event Action<ChatMessage>? OnMessageAppended;
 
     public void AppendMessage(ChatMessage message)
     {
         ArgumentNullException.ThrowIfNull(message);
         MainFile.Logger.Debug($"ChatModel.AppendMessage: segments={message.Segments.Count}");
         Messages.Add(message);
-        OnMessageAppended?.Invoke(this, message);
+        OnMessageAppended?.Invoke(message);
     }
 }

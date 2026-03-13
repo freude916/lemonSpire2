@@ -8,21 +8,16 @@ namespace lemonSpire2.Chat.Ui;
 ///     Manages tooltip preview display using custom CreatePreview.
 ///     Positions tooltip with left-center alignment relative to mouse cursor.
 /// </summary>
-public sealed class TooltipManager : IDisposable
+public sealed class TooltipManager
 {
     private string? _currentMeta;
     private Control? _currentPreview;
-    private bool _disposed;
     private Control? _parent;
 
-    public void Dispose()
-    {
-        _currentPreview?.Dispose();
-        if (_disposed) return;
-        _disposed = true;
-        ClearPreview();
-        _parent = null;
-    }
+    /// <summary>
+    ///     是否有活动的 tooltip preview
+    /// </summary>
+    public bool HasPreview => _currentPreview is not null;
 
     public void RegisterHandlers(IntentHandlerRegistry registry)
     {
@@ -64,7 +59,7 @@ public sealed class TooltipManager : IDisposable
 
     private void OnHoverStart(IntentMetaHoverStart intent)
     {
-        if (_disposed || _parent is null) return;
+        if (_parent is null) return;
 
         var mousePosition = intent.GlobalPosition;
 
@@ -97,13 +92,11 @@ public sealed class TooltipManager : IDisposable
 
     private void OnHoverEnd(IntentMetaHoverEnd intent)
     {
-        if (_disposed) return;
         ClearPreview();
     }
 
     private void OnClick(IntentMetaClick intent)
     {
-        if (_disposed) return;
         ClearPreview();
     }
 

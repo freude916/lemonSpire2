@@ -13,37 +13,29 @@ namespace lemonSpire2.Chat.Ui;
 /// </summary>
 public sealed class ChatPanel : IDisposable
 {
-
-    #region ChatConfig
-
-    private const Key ToggleKey = Key.Tab;
-    private const int CollapsedVisibleLines = 4;
-    private const int FontSize = 18;
-    private const float InputHeight = 40f;
-    private const float FadeOutDelaySeconds = 5f;
-    private const float FadeOutDurationSeconds = 5f;
     private readonly Action<IIntent> _dispatch;
     private readonly List<string> _inputHistory = new();
-
-    #endregion
-
     private readonly ChatModel _model;
     private readonly TooltipManager _tooltipManager = new();
+    private readonly Control _tooltipParent;
 
-    private ChatPanelContainer? _container;
+    private ChatPanelContainer _container = null!;
+    private double _fadeBeginTime; // 开始fade的时间点
     private bool _hasWelcome = true;
     private int _historyIndex;
-    private HBoxContainer? _inputContainer;
-    private LineEdit? _inputField;
-    private bool _isExpanded;
-    private double _fadeBeginTime;      // 开始fade的时间点
-    private RichTextLabel? _messageBuffer;
-    private StyleBoxFlat? _panelStyle;
-    private StyleBoxFlat? _inputStyle;
-    private readonly Control _tooltipParent;
-    private DraggableHelper? _draggable;
+    private HBoxContainer _inputContainer = null!;
+    private LineEdit _inputField = null!;
+    private StyleBoxFlat _inputStyle = null!;
 
-    public ChatPanel(ChatModel model, Action<IIntent> dispatch, IntentHandlerRegistry intentRegistry, Control tooltipParent)
+    private bool _isExpanded;
+    private bool _isUpdatingLayout; // 防止 OnResized 递归调用 UpdateLayout
+    private RichTextLabel _messageBuffer = null!;
+    private StyleBoxFlat _panelStyle = null!;
+    private DraggableHeader _titleBar = null!;
+    private VBoxContainer _vboxLayout = null!;
+
+    public ChatPanel(ChatModel model, Action<IIntent> dispatch, IntentHandlerRegistry intentRegistry,
+        Control tooltipParent)
     {
         _model = model;
         _dispatch = dispatch;
@@ -56,15 +48,9 @@ public sealed class ChatPanel : IDisposable
     public void Dispose()
     {
         _model.OnMessageAppended -= OnMessageAppended;
-        _tooltipManager.Dispose();
-        
-        // _container?.Dispose();
-        _panelStyle?.Dispose();
-        _inputStyle?.Dispose();
-        _inputField?.Dispose();
-        _inputContainer?.Dispose();
-        _messageBuffer?.Dispose();
-        _container?.QueueFree();
+        _panelStyle.Dispose();
+        _inputStyle.Dispose();
+        _container.QueueFree();
     }
 
     private void CreateUI()
@@ -73,17 +59,48 @@ public sealed class ChatPanel : IDisposable
         {
             Name = "ChatPanel",
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            AnchorsPreset = (int)Control.LayoutPreset.BottomLeft
+            GrowVertical = Control.GrowDirection.End
         };
 
         _panelStyle = new StyleBoxFlat
         {
-            BgColor = new Color(0f, 0f, 0f, 0.80f),
-            BorderColor = new Color(0.2f, 0.2f, 0.2f),
-            BorderWidthTop = 1,
-            BorderWidthRight = 1
+            BgColor = ChatConfig.PanelBgColor,
+            BorderColor = ChatConfig.PanelBorderColor,
+            BorderWidthTop = ChatConfig.BorderWidth,
+            BorderWidthRight = ChatConfig.BorderWidth
         };
         _container.AddThemeStyleboxOverride("panel", _panelStyle);
+
+        // layout
+        _vboxLayout = new VBoxContainer
+        {
+            Name = "VBoxLayout",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        _container.AddChild(_vboxLayout);
+
+        // 标题栏（拖拽条）- 展开时显示，折叠时隐藏
+        _titleBar = new DraggableHeader
+        {
+            Name = "DragBar",
+            CustomMinimumSize = new Vector2(100, 24)
+        };
+        _titleBar.SetTitle("柠檬聊天", 14);
+        _titleBar.SetDragTarget(_container);
+
+        // 样式：背景色 + padding
+        var titleStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.3f, 0.5f, 0.3f, 0.5f), // 半透明绿色便于调试
+            ContentMarginLeft = 8,
+            ContentMarginRight = 8,
+            ContentMarginTop = 4,
+            ContentMarginBottom = 4
+        };
+        _titleBar.AddThemeStyleboxOverride("panel", titleStyle);
+
+        _vboxLayout.AddChild(_titleBar);
 
         // Message buffer
         _messageBuffer = new RichTextLabel
@@ -97,8 +114,8 @@ public sealed class ChatPanel : IDisposable
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
         _messageBuffer.AddThemeColorOverride("default_color", Colors.White);
-        _messageBuffer.AddThemeFontSizeOverride("normal_font_size", FontSize);
-        _container.AddChild(_messageBuffer);
+        _messageBuffer.AddThemeFontSizeOverride("normal_font_size", ChatConfig.FontSize);
+        _vboxLayout.AddChild(_messageBuffer);
 
         _messageBuffer.MetaClicked += OnMetaClicked;
         _messageBuffer.MetaHoverStarted += OnMetaHoverStarted;
@@ -111,7 +128,7 @@ public sealed class ChatPanel : IDisposable
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
-        _container.AddChild(_inputContainer);
+        _vboxLayout.AddChild(_inputContainer);
 
         // Input field (no prompt label)
         _inputField = new LineEdit
@@ -123,11 +140,11 @@ public sealed class ChatPanel : IDisposable
             CaretBlink = true
         };
         _inputField.AddThemeColorOverride("font_color", Colors.White);
-        _inputField.AddThemeColorOverride("font_placeholder_color", new Color(0.5f, 0.5f, 0.5f));
-        _inputField.AddThemeColorOverride("caret_color", new Color(0f, 0.831f, 1f));
-        _inputField.AddThemeFontSizeOverride("font_size", FontSize);
+        _inputField.AddThemeColorOverride("font_placeholder_color", ChatConfig.PlaceholderColor);
+        _inputField.AddThemeColorOverride("caret_color", ChatConfig.CaretColor);
+        _inputField.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
 
-        _inputStyle = new StyleBoxFlat { BgColor = new Color(0.1f, 0.1f, 0.1f, 0.9f) };
+        _inputStyle = new StyleBoxFlat { BgColor = ChatConfig.InputBgColor };
         _inputField.AddThemeStyleboxOverride("normal", _inputStyle);
         _inputField.AddThemeStyleboxOverride("focus", _inputStyle);
         _inputField.AddThemeStyleboxOverride("read_only", _inputStyle);
@@ -135,38 +152,48 @@ public sealed class ChatPanel : IDisposable
         _inputField.TextSubmitted += OnTextSubmitted;
         _inputContainer.AddChild(_inputField);
 
-        // 添加拖拽功能
-        _draggable = DraggableHelper.AttachTo(_container,
-            onDragStart: () => _container.MouseFilter = Control.MouseFilterEnum.Stop,
-            onDragEnd: () =>
-            {
-                if (!_isExpanded)
-                {
-                    _container.MouseFilter = Control.MouseFilterEnum.Ignore;
-                }
-            });
+        // 初始化时隐藏拖拽条（默认折叠状态）
+        _titleBar.Visible = false;
+        _titleBar.CustomMinimumSize = new Vector2(0, 0);
     }
 
-    public Control? GetControl() => _container;
+    public void ResetPosition()
+    {
+        _container.SetAnchorsPreset(Control.LayoutPreset.BottomLeft, true);
+
+        _container.OffsetLeft = ChatConfig.PositionOffsetX;
+        _container.OffsetBottom = -ChatConfig.PositionOffsetY;
+
+        _titleBar.CustomMinimumSize = new Vector2(_vboxLayout.Size.X, _titleBar.CustomMinimumSize.Y);
+
+        // _container.GrowVertical = Control.GrowDirection.End;
+        // _container.GrowHorizontal = Control.GrowDirection.Begin;
+
+        // This is of no use at all! GrowDirection only affects when size **increases**, but decreasing size won't move it at all
+    }
+
+    public Control GetControl()
+    {
+        return _container;
+    }
 
     internal void Initialize()
     {
         _tooltipManager.Initialize(_tooltipParent);
-        DelayFadeOut(FadeOutDelaySeconds);
+        DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
         UpdateLayout();
         ShowWelcome();
     }
 
     private void ShowWelcome()
     {
-        if (_messageBuffer == null) return;
         var welcomeText = new LocString("gameplay_ui", "LEMONSPIRE.chat.welcome").GetFormattedText();
-        _messageBuffer.Text = $"[color=#888888]{welcomeText}[/color]";
+        _messageBuffer.Text = $"[color=#{ChatConfig.TimeColor.ToHtml()}]{welcomeText}[/color]";
     }
 
     // ========== Model Events ==========
 
-    private void OnMessageAppended(object? sender, ChatMessage message)
+    private void OnMessageAppended(ChatMessage message)
     {
         DisplayMessage(message);
     }
@@ -180,21 +207,13 @@ public sealed class ChatPanel : IDisposable
         text = text.Trim();
 
         _inputHistory.Add(text);
-        if (_inputHistory.Count > 40)
+        if (_inputHistory.Count > ChatConfig.MaxHistoryCount)
             _inputHistory.RemoveAt(0);
 
         _historyIndex = 0;
-        _inputField!.Text = "";
+        _inputField.Text = "";
 
-        // Create message from text
-        var msg = new ChatMessage
-        {
-            SenderId = 0, // Will be filled by ChatStore
-            Timestamp = DateTime.Now,
-            Segments = new List<IMsgSegment> { new RichTextSegment { Text = text } }
-        };
-
-        _dispatch(new IntentSubmit { Message = msg });
+        _dispatch(new IntentTextSubmit { Text = text });
         _inputField.CallDeferred(Control.MethodName.GrabFocus);
     }
 
@@ -205,11 +224,10 @@ public sealed class ChatPanel : IDisposable
 
     private void OnMetaHoverStarted(Variant meta)
     {
-        MainFile.Logger.Debug($"ChatPanel.OnMetaHoverStarted: meta={meta.AsString()}");
         _dispatch(new IntentMetaHoverStart
         {
             Meta = meta.AsString(),
-            GlobalPosition = _container!.GetGlobalMousePosition()
+            GlobalPosition = _container.GetGlobalMousePosition()
         });
     }
 
@@ -225,18 +243,18 @@ public sealed class ChatPanel : IDisposable
         if (@event is not InputEventKey { Pressed: true } keyEvent)
             return false;
 
-        var focusedOwner = _container?.GetViewport()?.GuiGetFocusOwner();
+        var focusedOwner = _container.GetViewport()?.GuiGetFocusOwner();
         if (focusedOwner is LineEdit && focusedOwner != _inputField)
             return false;
 
-        if (keyEvent.Keycode == ToggleKey)
+        if (keyEvent.Keycode == ChatConfig.ToggleKey)
         {
             ToggleExpanded();
             return true;
         }
 
         if (!_isExpanded) return false;
-        
+
         switch (keyEvent.Keycode)
         {
             case Key.Escape:
@@ -245,36 +263,34 @@ public sealed class ChatPanel : IDisposable
 
             case Key.Up when _historyIndex < _inputHistory.Count:
                 _historyIndex++;
-                var olderText = _inputHistory[_inputHistory.Count - _historyIndex];
-                _inputField!.Text = olderText;
+                var olderText = _inputHistory[^_historyIndex];
+                _inputField.Text = olderText;
                 _inputField.CaretColumn = olderText.Length;
                 return true;
 
             case Key.Down when _historyIndex > 0:
                 _historyIndex--;
                 var newerText = _historyIndex > 0
-                    ? _inputHistory[_inputHistory.Count - _historyIndex]
+                    ? _inputHistory[^_historyIndex]
                     : "";
-                _inputField!.Text = newerText;
+                _inputField.Text = newerText;
                 _inputField.CaretColumn = newerText.Length;
                 return true;
+            default:
+                return false;
         }
-
-        return false;
     }
 
     // ========== Layout & State ==========
 
     internal void ProcessFrame(double delta)
     {
-        // Update tooltip position to follow mouse (using global coordinates)
-        if (_container is not null)
-        {
+        // Update tooltip position to follow mouse (only when preview is visible)
+        if (_tooltipManager.HasPreview)
             _tooltipManager.UpdatePreviewPosition(_container.GetGlobalMousePosition());
-        }
 
         // 展开时不fade
-        if (_isExpanded || _panelStyle == null || _container == null) return;
+        if (_isExpanded) return;
 
         var now = Time.GetTicksMsec() / 1000.0;
 
@@ -286,29 +302,30 @@ public sealed class ChatPanel : IDisposable
         else
         {
             // fade期
-            var fadeProgress = (now - _fadeBeginTime) / FadeOutDurationSeconds;
+            var fadeProgress = (now - _fadeBeginTime) / ChatConfig.FadeOutDurationSeconds;
             var alpha = Mathf.Clamp(1f - (float)fadeProgress, 0f, 1f);
 
-            _panelStyle.BgColor = new Color(0f, 0f, 0f, 0.80f * alpha);
-            _container.Modulate = new Color(1f, 1f, 1f, alpha);
+            _panelStyle.BgColor = ChatConfig.GetFadedPanelBg(alpha);
+            _container.Modulate = ChatConfig.GetFadedModulate(alpha);
 
             if (alpha <= 0f)
             {
                 // fade完成，透传鼠标事件
-                _container.Modulate = new Color(1f, 1f, 1f, 0.01f);
+                _container.Modulate = ChatConfig.GetFadedModulate(ChatConfig.FadeMinAlpha);
                 _container.MouseFilter = Control.MouseFilterEnum.Ignore;
-                _messageBuffer!.MouseFilter = Control.MouseFilterEnum.Ignore;
+                _messageBuffer.MouseFilter = Control.MouseFilterEnum.Ignore;
             }
         }
     }
 
     internal void OnResized()
     {
+        if (_isUpdatingLayout) return;
         UpdateLayout();
     }
 
     /// <summary>
-    /// 重置计时器，收到消息时调用
+    ///     推迟 Fade 计时器，在接收到新消息或折叠时调用，淡出效果
     /// </summary>
     private void DelayFadeOut(double delaySeconds)
     {
@@ -317,14 +334,11 @@ public sealed class ChatPanel : IDisposable
         RestoreVisibility();
     }
 
-    /// <summary>
-    /// 恢复显示状态，准备 fade
-    /// </summary>
     private void RestoreVisibility()
     {
-        _panelStyle!.BgColor = new Color(0f, 0f, 0f, 0.80f);
-        _container!.Modulate = Colors.White;
-        _messageBuffer!.MouseFilter = Control.MouseFilterEnum.Stop;
+        _panelStyle.BgColor = ChatConfig.PanelBgColor;
+        _container.Modulate = Colors.White;
+        _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
     }
 
     private void ToggleExpanded()
@@ -337,83 +351,71 @@ public sealed class ChatPanel : IDisposable
         _isExpanded = expanded;
 
         if (expanded)
-        {
             // 展开时恢复全亮展示
             RestoreVisibility();
-        }
         else
-        {
             DelayFadeOut(0);
-        }
 
         UpdateLayout();
 
         if (expanded)
         {
-            if (_hasWelcome && _messageBuffer != null)
+            if (_hasWelcome)
             {
                 _messageBuffer.Clear();
                 _hasWelcome = false;
             }
 
-            _inputField!.MouseFilter = Control.MouseFilterEnum.Stop;
+            _inputField.MouseFilter = Control.MouseFilterEnum.Stop;
             _inputField.CallDeferred(Control.MethodName.GrabFocus);
         }
         else
         {
-            _inputField!.MouseFilter = Control.MouseFilterEnum.Ignore;
+            _inputField.MouseFilter = Control.MouseFilterEnum.Ignore;
             _inputField.ReleaseFocus();
-            _container?.GetViewport()?.GuiReleaseFocus();
+            _container.GetViewport()?.GuiReleaseFocus();
             _historyIndex = 0;
         }
     }
 
     internal void UpdateLayout()
     {
-        if (_container == null || _messageBuffer == null || !_container.IsInsideTree())
+        if (!_container.IsInsideTree() || _isUpdatingLayout)
             return;
 
-        const float Margin = 5f;
+        _isUpdatingLayout = true;
+
         var viewportSize = _container.GetViewportRect().Size;
-        var chatWidth = viewportSize.X * 0.3f;
-
-        // 首次初始化时设置默认位置（底部锚点模式：Position.Y 是距底部的距离）
-        if (_container.Position == Vector2.Zero)
-        {
-            _container.Position = new Vector2(Margin, Margin);
-        }
-
+        var chatWidth = viewportSize.X * ChatConfig.PanelWidthRatio;
         float panelHeight;
+
+        var bottomY = _container.Position.Y + _container.Size.Y;
+
         if (_isExpanded)
         {
-            panelHeight = viewportSize.Y * 0.5f;
+            // 展开状态
+            panelHeight = viewportSize.Y * ChatConfig.PanelHeightRatio;
 
-            var msgHeight = panelHeight - InputHeight;
-            _messageBuffer.Size = new Vector2(chatWidth, msgHeight);
-            _messageBuffer.Position = new Vector2(0, 0);
-            _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
+            _titleBar.Visible = true;
 
-            _inputContainer!.Visible = true;
-            _inputContainer.Size = new Vector2(chatWidth, InputHeight);
-            _inputContainer.Position = new Vector2(0, msgHeight);
+            _inputContainer.Visible = true;
             _inputContainer.MouseFilter = Control.MouseFilterEnum.Stop;
 
-            _inputField!.MouseFilter = Control.MouseFilterEnum.Stop;
-            _container.MouseFilter = Control.MouseFilterEnum.Ignore;
+            _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
+            _inputField.MouseFilter = Control.MouseFilterEnum.Stop;
         }
         else
         {
-            panelHeight = FontSize * CollapsedVisibleLines;
-
-            _messageBuffer.Size = new Vector2(chatWidth, panelHeight);
-            _messageBuffer.Position = new Vector2(0, 0);
-            _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
-
-            _inputContainer!.Visible = false;
-            _container.MouseFilter = Control.MouseFilterEnum.Ignore;
+            panelHeight = ChatConfig.FontSize * ChatConfig.CollapsedVisibleLines;
+            _inputContainer.Visible = false;
+            _titleBar.Visible = false;
         }
 
+        _container.MouseFilter = Control.MouseFilterEnum.Ignore;
         _container.Size = new Vector2(chatWidth, panelHeight);
+
+        _container.Position = new Vector2(_container.Position.X, bottomY - panelHeight); // 保持底部位置不变
+        _isUpdatingLayout = false;
     }
 
     // ========== Message Display ==========
@@ -421,8 +423,6 @@ public sealed class ChatPanel : IDisposable
     private void DisplayMessage(ChatMessage message)
     {
         MainFile.Logger.Debug($"DisplayMessage: segments={message.Segments.Count}, sender={message.SenderName}");
-        
-        if (_messageBuffer == null) return;
 
         if (_hasWelcome)
         {
@@ -430,20 +430,18 @@ public sealed class ChatPanel : IDisposable
             _hasWelcome = false;
         }
 
-        DelayFadeOut(FadeOutDelaySeconds);
+        DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
 
         var senderName = message.SenderName ?? $"Player {message.SenderId}";
         var time = message.Timestamp.ToString("HH:mm", CultureInfo.InvariantCulture);
 
-        var color = new Color(0.8f, 0.8f, 1f); // #ccccff
-
         // [time]
-        _messageBuffer.PushColor(new Color(0.53f, 0.53f, 0.53f)); // #888888
+        _messageBuffer.PushColor(ChatConfig.TimeColor);
         _messageBuffer.AppendText($"[{time}] ");
         _messageBuffer.Pop();
 
         // sender name
-        _messageBuffer.PushColor(color);
+        _messageBuffer.PushColor(ChatConfig.SenderColor);
         _messageBuffer.AppendText($"{senderName}: ");
         _messageBuffer.Pop();
 
@@ -456,7 +454,6 @@ public sealed class ChatPanel : IDisposable
 
     private void RenderSegment(IMsgSegment segment)
     {
-        if (_messageBuffer is null) return;
         segment.RenderTo(_messageBuffer);
     }
 }
@@ -464,33 +461,38 @@ public sealed class ChatPanel : IDisposable
 /// <summary>
 ///     Internal container handling input events and frame updates.
 /// </summary>
-internal sealed partial class ChatPanelContainer(ChatPanel owner) : Panel
+internal sealed partial class ChatPanelContainer(ChatPanel owner) : PanelContainer
 {
+    private readonly WeakReference<ChatPanel> _ownerRef = new(owner);
+
     public override void _Ready()
     {
         ProcessMode = ProcessModeEnum.Always;
-        owner.Initialize();
+        if (_ownerRef.TryGetTarget(out var owner))
+            owner.Initialize();
     }
 
     public override void _ExitTree()
     {
-        owner.Dispose();
+        if (_ownerRef.TryGetTarget(out var owner))
+            owner.Dispose();
     }
 
     public override void _Input(InputEvent @event)
     {
-        if (owner.HandleInput(@event))
+        if (_ownerRef.TryGetTarget(out var owner) && owner.HandleInput(@event))
             GetViewport()?.SetInputAsHandled();
     }
 
     public override void _Process(double delta)
     {
-        owner.ProcessFrame(delta);
+        if (_ownerRef.TryGetTarget(out var owner))
+            owner.ProcessFrame(delta);
     }
 
     public override void _Notification(int what)
     {
-        if (what == NotificationResized)
+        if (what == NotificationResized && _ownerRef.TryGetTarget(out var owner))
             owner.OnResized();
     }
 }

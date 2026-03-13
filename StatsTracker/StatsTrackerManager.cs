@@ -26,14 +26,14 @@ public class StatsTrackerManager
         CombatManager.Instance.CombatEnded += OnCombatEnded;
     }
 
-    private void OnRunStarted(RunState _) => Reset();
+    private void OnRunStarted(RunState _)
+    {
+        Reset();
+    }
 
     private void OnCombatSetUp(CombatState _)
     {
-        foreach (var stats in _playerStats.Values)
-        {
-            stats.ResetCombatStats();
-        }
+        foreach (var stats in _playerStats.Values) stats.ResetCombatStats();
 
         _processedHashes.Clear();
         CombatManager.Instance.History.Changed += OnHistoryChanged;
@@ -52,37 +52,22 @@ public class StatsTrackerManager
         foreach (var entry in entries)
         {
             var hash = entry.GetHashCode();
-            if (!_processedHashes.Add(hash))
-            {
-                continue;
-            }
+            if (!_processedHashes.Add(hash)) continue;
 
-            if (entry is DamageReceivedEntry damageEntry)
-            {
-                ProcessDamageEntry(damageEntry);
-            }
+            if (entry is DamageReceivedEntry damageEntry) ProcessDamageEntry(damageEntry);
         }
     }
 
     private void ProcessDamageEntry(DamageReceivedEntry entry)
     {
         var dealer = entry.Dealer;
-        if (dealer == null)
-        {
-            return;
-        }
+        if (dealer == null) return;
 
         var player = dealer.IsPlayer ? dealer.Player : dealer.PetOwner;
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
         var damage = entry.Result.TotalDamage;
-        if (damage <= 0)
-        {
-            return;
-        }
+        if (damage <= 0) return;
 
         var extraDamage = 0;
         var cardSource = entry.CardSource;
@@ -93,19 +78,12 @@ public class StatsTrackerManager
 
             // Try to get base damage from various possible dynamic vars, prioritize CalculatedDamage for accuracy
             if (vars.TryGetValue("CalculatedDamage", out var calcVar) && calcVar is CalculatedVar calculatedVar)
-            {
                 // `CalculatedDamage.BaseValue` seems to be equal to Damage.BaseValue
                 // But CalculatedDamage.Calculate() gives the correct
                 baseDamage = calculatedVar.Calculate(null);
-            }
             else if (vars.TryGetValue("Damage", out var dmgVar))
-            {
                 baseDamage = dmgVar.BaseValue;
-            }
-            else if (vars.TryGetValue("OstyDamage", out var ostyVar))
-            {
-                baseDamage = ostyVar.BaseValue;
-            }
+            else if (vars.TryGetValue("OstyDamage", out var ostyVar)) baseDamage = ostyVar.BaseValue;
 
             extraDamage = Math.Max(0, damage - (int)baseDamage);
         }
@@ -128,7 +106,10 @@ public class StatsTrackerManager
         return stats;
     }
 
-    public StatsValues? GetStats(ulong netId) => _playerStats.GetValueOrDefault(netId);
+    public StatsValues? GetStats(ulong netId)
+    {
+        return _playerStats.GetValueOrDefault(netId);
+    }
 
     public void Reset()
     {

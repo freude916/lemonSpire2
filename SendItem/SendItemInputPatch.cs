@@ -19,8 +19,9 @@ public static class SendItemInputPatch
     [HarmonyPostfix]
     public static void Postfix(NGlobalUi __instance, RunState runState)
     {
+        ArgumentNullException.ThrowIfNull(__instance);
         var netService = RunManager.Instance.NetService;
-        if (netService == null || !netService.Type.IsMultiplayer())
+        if (!netService.Type.IsMultiplayer())
             return;
 
         var capture = new ItemInputCapture

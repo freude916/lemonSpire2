@@ -13,20 +13,25 @@ public class StatsValues
     public void Add(string key, float amount)
     {
         if (_values.TryGetValue(key, out var existing))
-        {
             _values[key] = existing + amount;
-        }
         else
-        {
             _values[key] = amount;
-        }
     }
 
-    public void Set(string key, float value) => _values[key] = value;
+    public void Set(string key, float value)
+    {
+        _values[key] = value;
+    }
 
-    public float Get(string key) => _values.GetValueOrDefault(key);
+    public float Get(string key)
+    {
+        return _values.GetValueOrDefault(key);
+    }
 
-    public void Reset() => _values.Clear();
+    public void Reset()
+    {
+        _values.Clear();
+    }
 
     /// <summary>
     ///     Reset only combat-specific stats, preserve total stats.
@@ -36,11 +41,11 @@ public class StatsValues
         var combatKeys = _values.Keys
             .Where(k => k.StartsWith("stats.combat.", StringComparison.Ordinal))
             .ToList();
-        foreach (var key in combatKeys)
-        {
-            _values.Remove(key);
-        }
+        foreach (var key in combatKeys) _values.Remove(key);
     }
 
-    public IEnumerable<KeyValuePair<string, float>> GetAll() => _values;
+    public IEnumerable<KeyValuePair<string, float>> GetAll()
+    {
+        return _values;
+    }
 }

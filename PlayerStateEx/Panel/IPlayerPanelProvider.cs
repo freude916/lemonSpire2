@@ -1,7 +1,7 @@
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Players;
 
-namespace lemonSpire2.NPlayerState.Panel;
+namespace lemonSpire2.PlayerStateEx.Panel;
 
 /// <summary>
 ///     玩家悬浮面板内容提供者接口
@@ -40,7 +40,7 @@ public interface IPlayerPanelProvider
     void UpdateContent(Player player, Control content);
 
     /// <summary>
-    ///   订阅玩家事件（返回取消订阅的 Action）
+    ///     订阅玩家事件（返回取消订阅的 Action）
     /// </summary>
     Action? SubscribeEvents(Player player, Action onUpdate);
 

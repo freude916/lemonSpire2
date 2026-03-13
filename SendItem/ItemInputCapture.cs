@@ -20,7 +20,7 @@ public partial class ItemInputCapture : Control
     ///     设为 true 可以防止 Alt+Click 在商店等场景触发购买
     ///     设为 false 允许其他 Mod 处理 Alt+Click
     /// </summary>
-    public static bool BlockAltClickOnNoItem { get; set; } = true;
+    public static bool BlockAltClickOnNoItem { get; set; } = false;
 
     public override void _Ready()
     {
@@ -39,11 +39,10 @@ public partial class ItemInputCapture : Control
         }
 
         // Alt+RightClick: 从当前显示的 HoverTip 发送
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right, AltPressed: true })
-        {
-            HandleAltRightClick();
-            return;
-        }
+        if (@event is InputEventMouseButton
+            {
+                Pressed: true, ButtonIndex: MouseButton.Right, AltPressed: true
+            }) HandleAltRightClick();
     }
 
     private void HandleAltLeftClick()
@@ -169,15 +168,11 @@ public partial class ItemInputCapture : Control
             var isDebuff = false;
             var bg = tipControl.GetNodeOrNull<CanvasItem>("%Bg");
             if (bg?.Material != null)
-            {
                 // debuff tooltip 使用特定材质
                 isDebuff = bg.Material.ResourcePath?.Contains("debuff", StringComparison.OrdinalIgnoreCase) == true;
-            }
 
             if (!string.IsNullOrEmpty(title) || !string.IsNullOrEmpty(description))
-            {
                 tips.Add((string.IsNullOrEmpty(title) ? null : title, description, isDebuff, iconPath));
-            }
         }
 
         if (tips.Count == 0) return null;
@@ -210,13 +205,12 @@ public partial class ItemInputCapture : Control
             return;
         }
 
-        var msg = new ChatMessage
-        {
-            SenderId = 0, // Will be filled by ChatStore
-            Segments = new List<IMsgSegment> { segment }
-        };
 
-        store.Dispatch(new IntentSubmit { Message = msg });
+        store.Dispatch(new IntentSendSegments
+        {
+            receiverId = 0,
+            Segments = [segment]
+        });
     }
 
     private static bool IsInsideChatPanel(Control? control)

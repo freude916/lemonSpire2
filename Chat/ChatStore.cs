@@ -2,17 +2,11 @@ using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Platform;
-using MegaCrit.Sts2.Core.Runs;
 
 namespace lemonSpire2.Chat;
 
 public class ChatStore
 {
-    /// <summary>
-    ///     当前活跃的 ChatStore 实例，供其他模块（如 SendItem）使用
-    /// </summary>
-    public static ChatStore? Instance { get; internal set; }
-
     private readonly INetGameService _netService;
 
     public ChatStore(INetGameService netService)
@@ -24,24 +18,47 @@ public class ChatStore
         _netService.RegisterMessageHandler<ChatMessage>(OnReceiveMessage);
 
         // 注册核心基础意图的处理逻辑
-        IntentRegistry.Register<IntentSubmit>(i =>
+        IntentRegistry.Register<IntentTextSubmit>(i =>
         {
             // Fill sender ID, name, and UTC timestamp
             var senderId = _netService.NetId;
             var senderName = PlatformUtil.GetPlayerName(_netService.Platform, senderId);
-            var msg = i.Message with
+            var msg = new ChatMessage
             {
-                SenderId = senderId,
+                SenderId = senderId, // Will be filled by ChatStore
                 SenderName = senderName,
-                Timestamp = DateTime.UtcNow
+                Timestamp = DateTime.Now,
+                Segments = [new RichTextSegment { Text = i.Text }]
             };
             Dispatch(new IntentSendMessage { Message = msg });
         });
+
+        IntentRegistry.Register<IntentSendSegments>(i =>
+        {
+            var senderId = i.senderId ?? _netService.NetId;
+            var senderName = PlatformUtil.GetPlayerName(_netService.Platform, senderId);
+            var receiverId = i.receiverId ?? 0; // default to broadcast
+            var msg = new ChatMessage
+            {
+                SenderId = senderId,
+                SenderName = senderName,
+                ReceiverId = receiverId,
+                Timestamp = DateTime.Now,
+                Segments = i.Segments
+            };
+            Dispatch(new IntentSendMessage { Message = msg });
+        });
+
         IntentRegistry.Register<IntentSendMessage>(i =>
             OnSendMessage(i.Message)
         );
         IntentRegistry.Register<IntentReceiveMessage>(i => { Model.AppendMessage(i.Message); });
     }
+
+    /// <summary>
+    ///     当前活跃的 ChatStore 实例，供其他模块（如 SendItem）使用
+    /// </summary>
+    public static ChatStore? Instance { get; internal set; }
 
     public ChatModel Model { get; init; }
 
@@ -67,7 +84,7 @@ public class ChatStore
     private void OnReceiveMessage(ChatMessage chatMessage, ulong senderId)
     {
         MainFile.Logger.Debug($"OnReceiveMessage: senderId={senderId}, msgSenderId={chatMessage.SenderId}");
-        
+
         ArgumentNullException.ThrowIfNull(chatMessage);
 
         if (senderId != 0 && chatMessage.SenderId != senderId)
@@ -85,10 +102,10 @@ public class ChatStore
             Message = chatMessage
         };
 
-        MainFile.Logger.Debug($"Dispatching IntentReceiveMessage");
+        MainFile.Logger.Debug("Dispatching IntentReceiveMessage");
         if (Dispatch(intentReceiveMessage))
         {
-            MainFile.Logger.Debug($"IntentReceiveMessage dispatched successfully");
+            MainFile.Logger.Debug("IntentReceiveMessage dispatched successfully");
             return;
         }
 

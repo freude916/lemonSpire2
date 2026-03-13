@@ -1,6 +1,6 @@
-using lemonSpire2.NPlayerState.Panel;
+using lemonSpire2.PlayerStateEx.Panel;
 
-namespace lemonSpire2.NPlayerState;
+namespace lemonSpire2.PlayerStateEx;
 
 /// <summary>
 ///     玩家悬浮面板提供者注册表
@@ -31,6 +31,7 @@ public static class PlayerPanelRegistry
     /// </summary>
     public static void Register(IPlayerPanelProvider provider)
     {
+        ArgumentNullException.ThrowIfNull(provider);
         if (Providers.Any(p => p.ProviderId == provider.ProviderId))
         {
             MainFile.Logger.Warn($"Provider {provider.ProviderId} already registered, skipping");

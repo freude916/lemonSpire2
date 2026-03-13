@@ -1,7 +1,7 @@
 using Godot;
+using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.HoverTips;
-using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
 namespace lemonSpire2.Tooltips;
@@ -44,7 +44,10 @@ public abstract class Tooltip
     /// <summary>
     ///     Converts this tooltip to an IHoverTip (optional, for NHoverTipSet compatibility).
     /// </summary>
-    public virtual IHoverTip ToHoverTip() => throw new NotImplementedException();
+    public virtual IHoverTip ToHoverTip()
+    {
+        throw new NotImplementedException();
+    }
 
     public static Tooltip? TryResolve(int registryId)
     {
@@ -88,13 +91,13 @@ public abstract class Tooltip
             .GetScene("res://scenes/ui/hover_tip.tscn")
             .Instantiate<Control>();
 
-        var title = control.GetNode<MegaCrit.Sts2.addons.mega_text.MegaLabel>("%Title");
+        var title = control.GetNode<MegaLabel>("%Title");
         if (tip.Title is null)
             title.Visible = false;
         else
             title.SetTextAutoSize(tip.Title);
 
-        control.GetNode<MegaCrit.Sts2.addons.mega_text.MegaRichTextLabel>("%Description").Text = tip.Description;
+        control.GetNode<MegaRichTextLabel>("%Description").Text = tip.Description;
         control.GetNode<TextureRect>("%Icon").Texture = icon;
 
         if (tip.IsDebuff)

@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
-using IndicatorPanel = lemonSpire2.SynergyIndicator.UI.IndicatorPanel;
+using IndicatorPanel = lemonSpire2.SynergyIndicator.Ui.IndicatorPanel;
 
 namespace lemonSpire2.SynergyIndicator;
 
@@ -24,13 +24,14 @@ public class IndicatorManager
         new StrangleIndicatorProvider()
     };
 
+    private readonly AudioStream? _noticeSound;
+
     /// <summary>
     ///     存储所有玩家的 UI 面板引用，使用 NetId 作为键
     /// </summary>
     private readonly Dictionary<ulong, IndicatorPanel> _panels = new();
 
     private IndicatorNetworkHandler? _networkHandler;
-    private readonly AudioStream? _noticeSound;
 
     private IndicatorManager()
     {
@@ -104,13 +105,11 @@ public class IndicatorManager
         var parent = _panels.Values.FirstOrDefault();
         if (parent == null) return;
 
-#pragma warning disable CA2000
         var audioPlayer = new AudioStreamPlayer
         {
             Stream = _noticeSound,
             VolumeDb = -3f // 对应原作者的音量设置
         };
-#pragma warning restore CA2000
         parent.AddChild(audioPlayer);
         audioPlayer.Play();
         audioPlayer.Finished += audioPlayer.QueueFree; // 播放完自动销毁
