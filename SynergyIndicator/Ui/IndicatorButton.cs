@@ -85,9 +85,11 @@ public partial class IndicatorButton : Button
     /// </summary>
     public void SetStatus(IndicatorStatus status)
     {
+        if (Status == status) return;
         Status = status;
         // IndicatorHandler.SendMessage(Type, status);
         UpdateStatusVisual();
+        PlayFlashAnimation();
     }
 
     /// <summary>

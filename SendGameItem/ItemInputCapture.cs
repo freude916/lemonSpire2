@@ -75,7 +75,7 @@ public partial class ItemInputCapture : Control
             return;
         }
 
-        MainFile.Logger.Info($"Found item: {segment.DisplayName}");
+        MainFile.Logger.Info($"Found item: {segment.Tooltip.Render()}");
         SendItemSegment(segment);
         GetViewport()?.SetInputAsHandled();
     }
@@ -99,7 +99,7 @@ public partial class ItemInputCapture : Control
             var segment = ExtractSegmentFromHoverTipSet(tipSet);
             if (segment != null)
             {
-                MainFile.Logger.Info($"Captured from HoverTip: {segment.DisplayName}");
+                MainFile.Logger.Info($"Captured from HoverTip: {segment.Tooltip.Render()}");
                 SendItemSegment(segment);
                 GetViewport()?.SetInputAsHandled();
                 return;
@@ -135,8 +135,7 @@ public partial class ItemInputCapture : Control
 
             return new TooltipSegment
             {
-                Tooltip = CardTooltip.FromModel(nCard.Model),
-                DisplayName = nCard.Model.Title
+                Tooltip = CardTooltip.FromModel(nCard.Model)
             };
         }
 
@@ -188,8 +187,7 @@ public partial class ItemInputCapture : Control
                     Description = desc,
                     IsDebuff = isDebuff,
                     IconPath = iconPath
-                },
-                DisplayName = title ?? "Tooltip"
+                }
             };
         }
 

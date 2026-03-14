@@ -128,8 +128,7 @@ public class PotionProvider : IPlayerPanelProvider
             // Alt+Click: 发送药水到聊天
             var segment = new TooltipSegment
             {
-                Tooltip = PotionTooltip.FromModel(potion),
-                DisplayName = potion.HoverTip.Title ?? potion.Id.Entry
+                Tooltip = PotionTooltip.FromModel(potion)
             };
             ProviderUtils.SendToChat(segment);
         }

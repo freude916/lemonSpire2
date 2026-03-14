@@ -35,14 +35,12 @@ public record RichTextSegment : IMsgSegment
 public record TooltipSegment : IMsgSegment
 {
     public required Tooltip Tooltip { get; set; }
-    public required string DisplayName { get; set; }
 
     public void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
         writer.WriteString(Tooltip.GetType().AssemblyQualifiedName!);
         Tooltip.Serialize(writer);
-        writer.WriteString(DisplayName);
     }
 
     public void Deserialize(PacketReader reader)
@@ -55,7 +53,6 @@ public record TooltipSegment : IMsgSegment
 
         Tooltip = (Tooltip)Activator.CreateInstance(type)!;
         Tooltip.Deserialize(reader);
-        DisplayName = reader.ReadString();
     }
 
     public void RenderTo(RichTextLabel label)

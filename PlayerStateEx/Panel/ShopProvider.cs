@@ -292,8 +292,7 @@ public class ShopProvider : IPlayerPanelProvider
         if (!ProviderUtils.IsAltClick()) return;
         var segment = new TooltipSegment
         {
-            Tooltip = CardTooltip.FromModel(card),
-            DisplayName = $"{card.Title} ({entry.Cost}g{(entry.IsOnSale ? " Sale!" : "")})"
+            Tooltip = CardTooltip.FromModel(card)
         };
         ProviderUtils.SendToChat(segment);
         MainFile.Logger.Debug($"[ShopProvider] Sent card to chat: {card.Title}");
@@ -305,8 +304,7 @@ public class ShopProvider : IPlayerPanelProvider
         {
             var segment = new TooltipSegment
             {
-                Tooltip = RelicTooltip.FromModel(relic),
-                DisplayName = $"{relic.Title.GetFormattedText()} ({entry.Cost}g)"
+                Tooltip = RelicTooltip.FromModel(relic)
             };
             ProviderUtils.SendToChat(segment);
             MainFile.Logger.Debug($"[ShopProvider] Sent relic to chat: {relic.Id.Entry}");
@@ -319,8 +317,7 @@ public class ShopProvider : IPlayerPanelProvider
         {
             var segment = new TooltipSegment
             {
-                Tooltip = PotionTooltip.FromModel(potion),
-                DisplayName = $"{potion.Title.GetFormattedText()} ({entry.Cost}g)"
+                Tooltip = PotionTooltip.FromModel(potion)
             };
             ProviderUtils.SendToChat(segment);
             MainFile.Logger.Debug($"[ShopProvider] Sent potion to chat: {potion.Id.Entry}");

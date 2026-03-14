@@ -44,7 +44,7 @@ public static class ProviderUtils
             receiverId = 0,
             Segments = [segment]
         });
-        MainFile.Logger.Info($"[ProviderUtils] Sent to chat: {segment.DisplayName}");
+        MainFile.Logger.Info($"[ProviderUtils] Sent to chat: {segment.Tooltip.Render()}");
     }
 
     /// <summary>

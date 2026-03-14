@@ -12,17 +12,17 @@ namespace lemonSpire2.SynergyIndicator;
 /// <summary>
 ///     统一管理器，负责维护所有玩家的指示器 UI 面板
 /// </summary>
-public class IndicatorManager
+public class IndicatorManager: IDisposable
 {
     private static IndicatorManager? _instance;
 
-    private static readonly IReadOnlyList<IIndicatorProvider> Providers = new List<IIndicatorProvider>
-    {
+    private static readonly IReadOnlyList<IIndicatorProvider> Providers =
+    [
         new HandShakeIndicatorProvider(),
         new VulnerableIndicatorProvider(),
         new WeakIndicatorProvider(),
         new StrangleIndicatorProvider()
-    };
+    ];
 
     private readonly AudioStream? _noticeSound;
 
@@ -146,5 +146,11 @@ public class IndicatorManager
 
         MainFile.Logger.Debug(
             $"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
+    }
+
+    public void Dispose()
+    {
+        _noticeSound?.Dispose();
+        _networkHandler?.Dispose();
     }
 }

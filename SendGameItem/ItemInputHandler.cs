@@ -7,6 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Combat;
+using MegaCrit.Sts2.Core.Nodes.Events;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
@@ -40,6 +41,10 @@ public static class ItemInputHandler
             {
                 case NDeckHistoryEntry { Card: { } card }:
                     return CreateCardSegment(card);
+
+                case NEventOptionButton { Option.Relic: { } relic }:
+                    // Ancient 遗物三选一选项
+                    return CreateRelicSegment(relic);
 
                 case NPower { Model: { } pm }:
                     return CreatePowerSegment(pm);
@@ -139,8 +144,7 @@ public static class ItemInputHandler
     {
         return new TooltipSegment
         {
-            Tooltip = CardTooltip.FromModel(card),
-            DisplayName = card.Title
+            Tooltip = CardTooltip.FromModel(card)
         };
     }
 
@@ -148,8 +152,7 @@ public static class ItemInputHandler
     {
         return new TooltipSegment
         {
-            Tooltip = PowerTooltip.FromModel(pm),
-            DisplayName = pm.Title.GetFormattedText()
+            Tooltip = PowerTooltip.FromModel(pm)
         };
     }
 
@@ -157,8 +160,7 @@ public static class ItemInputHandler
     {
         return new TooltipSegment
         {
-            Tooltip = PotionTooltip.FromModel(potion),
-            DisplayName = potion.HoverTip.Title ?? potion.Id.Entry
+            Tooltip = PotionTooltip.FromModel(potion)
         };
     }
 
@@ -166,8 +168,7 @@ public static class ItemInputHandler
     {
         return new TooltipSegment
         {
-            Tooltip = RelicTooltip.FromModel(relic),
-            DisplayName = relic.HoverTip.Title ?? relic.Id.Entry
+            Tooltip = RelicTooltip.FromModel(relic)
         };
     }
 
@@ -175,8 +176,7 @@ public static class ItemInputHandler
     {
         return new TooltipSegment
         {
-            Tooltip = EnchantmentTooltip.FromModel(enchantment),
-            DisplayName = enchantment.Title.GetFormattedText()
+            Tooltip = EnchantmentTooltip.FromModel(enchantment)
         };
     }
 
@@ -190,8 +190,7 @@ public static class ItemInputHandler
         };
         return new TooltipSegment
         {
-            Tooltip = tooltip,
-            DisplayName = entity.Name
+            Tooltip = tooltip
         };
     }
 }

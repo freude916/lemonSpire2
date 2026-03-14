@@ -137,8 +137,7 @@ public class HandCardProvider : IPlayerPanelProvider
             // Alt+Click: 发送卡牌到聊天
             var segment = new TooltipSegment
             {
-                Tooltip = CardTooltip.FromModel(card),
-                DisplayName = card.Title
+                Tooltip = CardTooltip.FromModel(card)
             };
 
             ProviderUtils.SendToChat(segment);
