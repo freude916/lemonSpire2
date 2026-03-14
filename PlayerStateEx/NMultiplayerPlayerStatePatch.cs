@@ -1,7 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using lemonSpire2.PlayerStateEx.Panel;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
+using PlayerOverlayPanel = lemonSpire2.PlayerStateEx.OverlayPanel.PlayerOverlayPanel;
 
 namespace lemonSpire2.PlayerStateEx;
 
@@ -35,12 +36,7 @@ public static class NMultiplayerPlayerStatePatch
     /// <summary>
     ///     当前活跃的悬浮面板（按玩家 NetId 管理）
     /// </summary>
-    private static readonly Dictionary<ulong, WeakReference<PlayerFloatingPanel>> ActivePanels = new();
-
-    /// <summary>
-    ///     当前活跃的 HoverTipSet（避免重复创建）
-    /// </summary>
-    private static readonly Dictionary<NMultiplayerPlayerState, WeakReference<NHoverTipSet>> ActiveTipSets = new();
+    private static readonly Dictionary<ulong, WeakReference<PlayerOverlayPanel>> ActivePanels = new();
 
     /// <summary>
     ///     上次点击时间（用于检测双击）
@@ -66,18 +62,29 @@ public static class NMultiplayerPlayerStatePatch
     {
         if (!PlayerTooltipRegistry.HasProviders) return;
 
-        // 检查是否已存在 tooltip set，避免重复创建
-        if (ActiveTipSets.TryGetValue(instance, out var weakRef) &&
-            weakRef.TryGetTarget(out var existingSet) &&
-            GodotObject.IsInstanceValid(existingSet))
-            return; // 已存在，不重复创建
+        // 直接检查 NHoverTipSet 内部的 _activeHoverTips 字典
+        // 避免维护自己的缓存导致不同步
+        if (IsTooltipActiveForOwner(instance)) return;
 
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
+        if (!hoverTips.Any())
+        {
+            MainFile.Logger.Debug($"[NMultiplayerPlayerStatePatch] No hover tips for player {player.NetId}");
+            return;
+        }
 
         var tipSet = NHoverTipSet.CreateAndShow(instance, hoverTips);
         tipSet.GlobalPosition = instance.GlobalPosition + Vector2.Down * 80f;
+    }
 
-        ActiveTipSets[instance] = new WeakReference<NHoverTipSet>(tipSet);
+    private static bool IsTooltipActiveForOwner(Control owner)
+    {
+        // 通过反射检查 NHoverTipSet 内部的 _activeHoverTips 字典
+        var activeHoverTipsField = typeof(NHoverTipSet).GetField("_activeHoverTips",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        if (activeHoverTipsField?.GetValue(null) is Dictionary<Control, NHoverTipSet> activeHoverTips)
+            return activeHoverTips.ContainsKey(owner);
+        return false;
     }
 
     #endregion
@@ -110,6 +117,7 @@ public static class NMultiplayerPlayerStatePatch
             {
                 // 双击：打开全屏详情
                 OpenExpandedState(__instance);
+                ShowOverlayPanel(__instance); // Close floating panel if open, since we're showing the expanded state
                 return false; // 阻止原始方法执行
             }
         }
@@ -118,7 +126,7 @@ public static class NMultiplayerPlayerStatePatch
         LastClickTimes[__instance] = currentTime;
 
         // 单击：显示悬浮面板
-        ShowFloatingPanel(__instance);
+        ShowOverlayPanel(__instance);
         return false; // 阻止原始方法执行（不打开全屏状态）
     }
 
@@ -127,7 +135,6 @@ public static class NMultiplayerPlayerStatePatch
     public static void ExitTreePrefix(NMultiplayerPlayerState __instance)
     {
         LastClickTimes.Remove(__instance);
-        ActiveTipSets.Remove(__instance);
     }
 
     #endregion
@@ -158,10 +165,9 @@ public static class NMultiplayerPlayerStatePatch
 
     #region Helper methods
 
-    private static void ShowFloatingPanel(NMultiplayerPlayerState instance)
+    private static void ShowOverlayPanel(NMultiplayerPlayerState instance)
     {
         var player = instance.Player;
-        if (player == null) return;
 
         var playerId = player.NetId;
 
@@ -170,9 +176,9 @@ public static class NMultiplayerPlayerStatePatch
             weakRef.TryGetTarget(out var existingPanel) &&
             GodotObject.IsInstanceValid(existingPanel))
         {
-            // 已存在，切换可见性
+            // 已存在，如果可见则刷新，否则显示
             if (existingPanel.Visible)
-                existingPanel.Hide();
+                existingPanel.Refresh();
             else
                 existingPanel.Show();
             return;
@@ -180,9 +186,9 @@ public static class NMultiplayerPlayerStatePatch
 
         // 创建新面板
         var panelPos = instance.GlobalPosition + new Vector2(instance.Size.X + 10f, 0f);
-        var panel = PlayerFloatingPanel.Show(player, panelPos);
+        var panel = PlayerOverlayPanel.Show(player, panelPos);
 
-        ActivePanels[playerId] = new WeakReference<PlayerFloatingPanel>(panel);
+        ActivePanels[playerId] = new WeakReference<PlayerOverlayPanel>(panel);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
         MainFile.Logger.Info($"Showing floating panel for player {playerName}");
     }
@@ -190,7 +196,6 @@ public static class NMultiplayerPlayerStatePatch
     private static void OpenExpandedState(NMultiplayerPlayerState instance)
     {
         var player = instance.Player;
-        if (player == null) return;
 
         // 检查是否在目标选择模式
         var targetManager = NTargetManager.Instance;
@@ -198,7 +203,7 @@ public static class NMultiplayerPlayerStatePatch
             targetManager.LastTargetingFinishedFrame == instance.GetTree().GetFrame()) return;
 
         var screen = NMultiplayerPlayerExpandedState.Create(player);
-        NCapstoneContainer.Instance.Open(screen);
+        NCapstoneContainer.Instance?.Open(screen);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
         MainFile.Logger.Info($"Opening expanded state for player {playerName}");
     }

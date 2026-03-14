@@ -15,7 +15,10 @@ public static class PowerCmdPatch
     {
         // Very unluckily the history are changed before the power apply,
         // So we have to use a ugly async continuation to collect after 1 frame
-        ProcessAfterApply(power, target, amount, applier).ContinueWith(_ => { });
+
+        // ProcessAfterApply(power, target, amount, applier).ContinueWith(_ => { });
+
+        // check if this is needed
     }
 
 
@@ -24,7 +27,7 @@ public static class PowerCmdPatch
         // 等待一帧，确保 power.ApplyInternal 已经执行
         await Task.Yield();
 
-        if (power == null || target == null || applier == null || amount <= 0) return;
+        if (applier == null || amount <= 0) return;
 
         // 获取施加者的玩家
         var applierPlayer = applier.IsPlayer ? applier.Player : applier.PetOwner;

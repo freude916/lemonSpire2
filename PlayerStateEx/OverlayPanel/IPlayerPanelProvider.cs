@@ -1,11 +1,11 @@
 using Godot;
 using MegaCrit.Sts2.Core.Entities.Players;
 
-namespace lemonSpire2.PlayerStateEx.Panel;
+namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 
 /// <summary>
 ///     玩家悬浮面板内容提供者接口
-///     实现此接口以在 PlayerFloatingPanel 中添加自定义内容
+///     实现此接口以在 PlayerOverlayPanel 中添加自定义内容
 /// </summary>
 public interface IPlayerPanelProvider
 {
@@ -26,6 +26,7 @@ public interface IPlayerPanelProvider
 
     /// <summary>
     ///     判断是否应该为该玩家显示此内容
+    ///     判断为否时，CreateContent 和 UpdateContent 将不会被调用，且如果之前显示过内容也会被移除
     /// </summary>
     bool ShouldShow(Player player);
 

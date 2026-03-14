@@ -1,27 +1,19 @@
-using MegaCrit.Sts2.Core.Logging;
+using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
-using MegaCrit.Sts2.Core.Multiplayer.Transport;
 
 namespace lemonSpire2.Chat.Message;
 
-public record ChatMessage : INetMessage
+public record ChatMessage : BasePlayerMessage
 {
     public required IReadOnlyCollection<IMsgSegment> Segments { get; set; } = [];
 
     public DateTime Timestamp { get; set; } = DateTime.Now;
 
-    public required ulong SenderId { get; set; } // 0 = system
-
     public string? SenderName { get; set; } // Optional display name, for UI convenience
 
     public ulong ReceiverId { get; set; } // 0 = broadcast
-    public NetTransferMode Mode => NetTransferMode.Reliable;
-    public LogLevel LogLevel => LogLevel.Debug;
 
-    public bool ShouldBroadcast =>
-        true; // Sts2 don't allow for Client->Client messages, so we broadcast everything and filter on the receiving end
-
-    public void Serialize(PacketWriter writer)
+    public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
 
@@ -38,7 +30,7 @@ public record ChatMessage : INetMessage
         writer.WriteLong(Timestamp.Ticks);
     }
 
-    public void Deserialize(PacketReader reader)
+    public override void Deserialize(PacketReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
 

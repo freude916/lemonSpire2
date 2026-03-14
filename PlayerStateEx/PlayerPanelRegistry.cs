@@ -1,4 +1,5 @@
-using lemonSpire2.PlayerStateEx.Panel;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
+using lemonSpire2.util;
 
 namespace lemonSpire2.PlayerStateEx;
 
@@ -8,7 +9,7 @@ namespace lemonSpire2.PlayerStateEx;
 /// </summary>
 public static class PlayerPanelRegistry
 {
-    private static readonly List<IPlayerPanelProvider> Providers = new();
+    private static readonly PriorityRegistry<IPlayerPanelProvider> Registry = new();
     private static bool _initialized;
 
     /// <summary>
@@ -22,8 +23,10 @@ public static class PlayerPanelRegistry
         // 注册内置提供者
         Register(new HandCardProvider());
         Register(new PotionProvider());
+        Register(new ShopProvider());
+        Register(new CardRewardProvider());
 
-        MainFile.Logger.Info($"PlayerPanelRegistry initialized with {Providers.Count} providers");
+        MainFile.Logger.Info($"PlayerPanelRegistry initialized with {Registry.Items.Count} providers");
     }
 
     /// <summary>
@@ -32,16 +35,13 @@ public static class PlayerPanelRegistry
     public static void Register(IPlayerPanelProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        if (Providers.Any(p => p.ProviderId == provider.ProviderId))
+        if (Registry.Items.Any(p => p.ProviderId == provider.ProviderId))
         {
             MainFile.Logger.Warn($"Provider {provider.ProviderId} already registered, skipping");
             return;
         }
 
-        Providers.Add(provider);
-        // 按 Priority 排序
-        Providers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-
+        Registry.Register(provider, p => p.Priority, p => p.ProviderId);
         MainFile.Logger.Debug($"Registered player panel provider: {provider.ProviderId}");
     }
 
@@ -51,7 +51,7 @@ public static class PlayerPanelRegistry
     public static IEnumerable<IPlayerPanelProvider> GetProviders()
     {
         if (!_initialized) Initialize();
-        return Providers;
+        return Registry.Items;
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public static class PlayerPanelRegistry
     /// </summary>
     public static IPlayerPanelProvider? GetProvider(string providerId)
     {
-        return Providers.FirstOrDefault(p => p.ProviderId == providerId);
+        return Registry.Items.FirstOrDefault(p => p.ProviderId == providerId);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public static class PlayerPanelRegistry
     /// </summary>
     public static void Clear()
     {
-        Providers.Clear();
+        Registry.Clear();
         _initialized = false;
     }
 }

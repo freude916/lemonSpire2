@@ -1,3 +1,4 @@
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
 
@@ -9,22 +10,19 @@ namespace lemonSpire2.PlayerStateEx;
 /// </summary>
 public static class PlayerTooltipRegistry
 {
-    private static readonly List<ITooltipProvider> _providers = new();
+    private static readonly PriorityRegistry<ITooltipProvider> Registry = new();
 
     /// <summary>
     ///     Check if there are any providers registered.
     /// </summary>
-    public static bool HasProviders => _providers.Count > 0;
+    public static bool HasProviders => Registry.HasItems;
 
     /// <summary>
     ///     Register a tooltip provider.
     /// </summary>
     public static void Register(ITooltipProvider provider)
     {
-        if (_providers.Contains(provider)) return;
-
-        _providers.Add(provider);
-        _providers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+        Registry.Register(provider, p => p.Priority, p => p.Id);
     }
 
     /// <summary>
@@ -32,7 +30,7 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static void Unregister(string providerId)
     {
-        _providers.RemoveAll(p => p.Id == providerId);
+        Registry.UnregisterById(p => p.Id, providerId);
     }
 
     /// <summary>
@@ -40,7 +38,7 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static void Unregister(ITooltipProvider provider)
     {
-        _providers.Remove(provider);
+        Registry.Unregister(provider);
     }
 
     /// <summary>
@@ -48,7 +46,7 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static IEnumerable<IHoverTip> GetHoverTips(Player player)
     {
-        foreach (var provider in _providers)
+        foreach (var provider in Registry.Items)
         {
             if (!provider.ShouldShow(player)) continue;
 
@@ -62,6 +60,6 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static void Clear()
     {
-        _providers.Clear();
+        Registry.Clear();
     }
 }

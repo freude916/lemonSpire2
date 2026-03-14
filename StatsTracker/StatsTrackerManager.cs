@@ -1,5 +1,6 @@
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Combat.History.Entries;
+using MegaCrit.Sts2.Core.Entities.Powers;
 using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
@@ -54,7 +55,73 @@ public class StatsTrackerManager
             var hash = entry.GetHashCode();
             if (!_processedHashes.Add(hash)) continue;
 
-            if (entry is DamageReceivedEntry damageEntry) ProcessDamageEntry(damageEntry);
+            switch (entry)
+            {
+                case DamageReceivedEntry damageEntry:
+                    ProcessDamageEntry(damageEntry);
+                    break;
+                case PowerReceivedEntry powerEntry:
+                    ProcessPowerEntry(powerEntry);
+                    break;
+            }
+        }
+    }
+
+    private void ProcessPowerEntry(PowerReceivedEntry entry)
+    {
+        var applier = entry.Applier;
+        if (applier == null)
+        {
+            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: Applier is null");
+            return;
+        }
+
+        var player = applier.IsPlayer ? applier.Player : applier.PetOwner;
+        if (player == null)
+        {
+            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: player is null");
+            return;
+        }
+
+        var power = entry.Power;
+        var amount = (int)entry.Amount;
+        if (amount <= 0) return;
+
+        // 使用 entry.Actor 代替 power.Owner，避免 AssertMutable() 问题
+        // Actor 是在创建 PowerReceivedEntry 时从 power.Owner 传入的
+        var target = entry.Actor;
+        if (target == null)
+        {
+            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: target (Actor) is null");
+            return;
+        }
+
+        var isTargetPlayer = target.IsPlayer || target.PetOwner != null;
+
+        var stats = GetOrCreateStats(player.NetId);
+
+        // 施加者和目标是同一人 → 自身能力，暂不统计
+        if (applier == target) return;
+
+        if (isTargetPlayer)
+        {
+            // 给队友上 buff
+            if (power.Type == PowerType.Buff)
+            {
+                MainFile.Logger.Debug($"[StatsTracker] ProcessPowerEntry: buff {amount} from player {player.NetId}");
+                stats.Add("stats.combat.buffs_applied", amount);
+                stats.Add("stats.total.buffs_applied", amount);
+            }
+        }
+        else
+        {
+            // 给敌人上 debuff
+            if (power.Type == PowerType.Debuff)
+            {
+                MainFile.Logger.Debug($"[StatsTracker] ProcessPowerEntry: debuff {amount} from player {player.NetId}");
+                stats.Add("stats.combat.debuffs_applied", amount);
+                stats.Add("stats.total.debuffs_applied", amount);
+            }
         }
     }
 

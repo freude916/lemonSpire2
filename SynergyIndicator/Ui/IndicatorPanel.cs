@@ -73,6 +73,7 @@ public partial class IndicatorPanel : HBoxContainer
 
         var button = new IndicatorButton();
         button.Setup(type, initialStatus, IsInteractive);
+        button.PlayFlashAnimation();
         button.MouseFilter = IsInteractive ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
         AddChild(button);
         button.IndicatorClicked += OnIndicatorClicked;

@@ -26,8 +26,8 @@ public static class CardHoverTipHelper
         var hoverTip = new CardHoverTip(card);
         var tipSet = NHoverTipSet.CreateAndShow(control, hoverTip, alignment);
 
-        // 设置位置偏移，让提示显示在控件下方
-        tipSet.GlobalPosition = control.GlobalPosition + Vector2.Down * control.Size.Y;
+        // 使用 SetFollowOwner 让 tooltip 跟随控件移动
+        tipSet.SetFollowOwner();
     }
 
     /// <summary>

@@ -40,7 +40,7 @@ internal sealed class WeakNodeRegistry<T> where T : GodotObject
                 continue;
             }
 
-            action(node);
+            if (node != null) action(node);
         }
     }
 
