@@ -2,7 +2,8 @@ using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
 using lemonSpire2.PlayerStateEx;
-using lemonSpire2.SendItem;
+using lemonSpire2.PlayerStateEx.Shop;
+using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SynergyIndicator;
 using MegaCrit.Sts2.Core.Logging;
@@ -44,6 +45,12 @@ public partial class MainFile : Node
             PlayerTooltipRegistry.Register(new StatsTooltipProvider());
         }
 
+        if (EnableShopSync)
+        {
+            harmony.CreateClassProcessor(typeof(ShopNetworkInitPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
+        }
+
         if (PlayerTooltipRegistry.HasProviders)
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
@@ -61,6 +68,9 @@ public partial class MainFile : Node
 
     /// <summary> Stastics Tracker </summary>
     public static bool EnableStatsTracker { get; set; } = true;
+
+    /// <summary> Shop Inventory Sync </summary>
+    public static bool EnableShopSync { get; set; } = true;
 
     #endregion
 }

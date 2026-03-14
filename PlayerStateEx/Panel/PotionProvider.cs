@@ -1,9 +1,10 @@
 using Godot;
-using lemonSpire2.Chat;
-using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.Tooltips;
+using lemonSpire2.util;
+using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Potions;
@@ -21,7 +22,7 @@ public class PotionProvider : IPlayerPanelProvider
 
     public string ProviderId => "potions";
     public int Priority => 20;
-    public string DisplayName => "Potions";
+    public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.potions").GetFormattedText();
 
     public bool ShouldShow(Player player)
     {
@@ -51,7 +52,7 @@ public class PotionProvider : IPlayerPanelProvider
         if (content is not HBoxContainer container) return;
 
         // 清除现有内容
-        foreach (var child in container.GetChildren()) child.QueueFree();
+        ProviderUtils.ClearChildren(container);
 
         MainFile.Logger.Info($"[PotionProvider] Updating content, player has {player.Potions.Count()} potions");
 
@@ -67,21 +68,25 @@ public class PotionProvider : IPlayerPanelProvider
             }
 
             var holder = NPotionHolder.Create(false);
+
             // 订阅点击事件，支持 Alt+Click 发送药水到聊天
             holder.Connect(NClickableControl.SignalName.Released,
                 Callable.From(() => OnPotionHolderReleased(holder, potion)));
 
-            holder.Scale = new Vector2(PotionScale, PotionScale);
             container.AddChild(holder);
             holder.AddPotion(nPotion);
             nPotion.Position = Vector2.Zero; // 关键：重置位置，否则会出现偏移
+            ProviderUtils.SetPotionScale(holder, PotionScale);
+            nPotion.Scale = Vector2.One * PotionScale;
+            // 关键：设置 holder 的最小尺寸为缩小后的大小，否则 holder 仍占用原始大小
+            holder.CustomMinimumSize = nPotion.Size * PotionScale;
 
             MainFile.Logger.Info(
                 $"[PotionProvider] Added potion {potion.Id.Entry} to holder, MouseFilter={holder.MouseFilter}");
         }
     }
 
-    public Action? SubscribeEvents(Player player, Action onUpdate)
+    public Action SubscribeEvents(Player player, Action onUpdate)
     {
         ArgumentNullException.ThrowIfNull(player);
         ArgumentNullException.ThrowIfNull(onUpdate);
@@ -110,15 +115,15 @@ public class PotionProvider : IPlayerPanelProvider
     public void Cleanup(Control content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        foreach (var child in content.GetChildren()) child?.QueueFree();
+        ProviderUtils.ClearChildren(content);
     }
 
     private static void OnPotionHolderReleased(NPotionHolder holder, PotionModel potion)
     {
         MainFile.Logger.Debug(
-            $"[PotionProvider] PotionHolder released: {potion.Id.Entry}, Alt={Input.IsKeyPressed(Key.Alt)}");
+            $"[PotionProvider] PotionHolder released: {potion.Id.Entry}, Alt={ProviderUtils.IsAltClick()}");
 
-        if (Input.IsKeyPressed(Key.Alt))
+        if (ProviderUtils.IsAltClick())
         {
             // Alt+Click: 发送药水到聊天
             var segment = new TooltipSegment
@@ -126,25 +131,8 @@ public class PotionProvider : IPlayerPanelProvider
                 Tooltip = PotionTooltip.FromModel(potion),
                 DisplayName = potion.HoverTip.Title ?? potion.Id.Entry
             };
-            SendItemSegment(segment);
+            ProviderUtils.SendToChat(segment);
         }
         // 普通点击：不处理（holder 创建时 isUsable=false，不会打开使用弹窗）
-    }
-
-    private static void SendItemSegment(TooltipSegment segment)
-    {
-        var store = ChatStore.Instance;
-        if (store == null)
-        {
-            MainFile.Logger.Warn("[PotionProvider] ChatStore.Instance is null");
-            return;
-        }
-
-        store.Dispatch(new IntentSendSegments
-        {
-            receiverId = 0,
-            Segments = [segment]
-        });
-        MainFile.Logger.Info($"[PotionProvider] Sent potion to chat: {segment.DisplayName}");
     }
 }

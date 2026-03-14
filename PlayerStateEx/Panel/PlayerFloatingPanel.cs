@@ -1,9 +1,14 @@
 using Godot;
 using lemonSpire2.util;
+using lemonSpire2.util.Ui;
+using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
+using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
 
 namespace lemonSpire2.PlayerStateEx.Panel;
 
@@ -20,7 +25,7 @@ public partial class PlayerFloatingPanel : Control
     // 追踪上次 provider 可见状态
     private readonly HashSet<string> _visibleProviders = new();
     private VBoxContainer? _contentContainer;
-    private DraggableHeader? _header;
+    private DraggableTitleBar? _header;
     private Label? _headerTitle;
     private VBoxContainer? _mainContainer;
 
@@ -34,6 +39,14 @@ public partial class PlayerFloatingPanel : Control
         MouseFilter = MouseFilterEnum.Stop;
 
         CreateUi();
+
+        // 订阅窗口大小变化事件
+        ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
+    }
+
+    private void OnViewportResized(Vector2 _)
+    {
+        PanelPositionHelper.ClampToViewport(_panel);
     }
 
     public override void _Process(double delta)
@@ -62,7 +75,11 @@ public partial class PlayerFloatingPanel : Control
             }
         }
 
-        if (needsRebuild) RebuildProviderContents();
+        if (needsRebuild)
+        {
+            MainFile.Logger.Debug("[PlayerFloatingPanel] Provider visibility changed, rebuilding contents");
+            RebuildProviderContents();
+        }
     }
 
     private void CreateUi()
@@ -80,18 +97,10 @@ public partial class PlayerFloatingPanel : Control
         {
             BgColor = new Color(0.1f, 0.1f, 0.15f, 0.95f),
             BorderColor = new Color(0.4f, 0.4f, 0.5f),
-            BorderWidthLeft = 2,
-            BorderWidthRight = 2,
-            BorderWidthTop = 2,
-            BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 8,
-            CornerRadiusTopRight = 8,
-            CornerRadiusBottomLeft = 8,
-            CornerRadiusBottomRight = 8,
-            ContentMarginLeft = 8,
-            ContentMarginRight = 8,
-            ContentMarginTop = 6,
-            ContentMarginBottom = 6
+            ContentMarginLeft = 4,
+            ContentMarginRight = 4,
+            ContentMarginTop = 4,
+            ContentMarginBottom = 4
         };
         _panel.AddThemeStyleboxOverride("panel", style);
 
@@ -106,11 +115,12 @@ public partial class PlayerFloatingPanel : Control
         _panel.AddChild(_mainContainer);
 
         // 标题栏（使用 DraggableHeader）
-        _header = new DraggableHeader
+        _header = new DraggableTitleBar
         {
             Name = "Header"
         };
         _header.SetDragTarget(_panel);
+        _header.SetDragCallbacks(onDragEnd: () => PanelPositionHelper.ClampToViewport(_panel));
         _headerTitle = _header.GetTitleLabel(); // 保存标题引用
         _header.ShowCloseButton(OnCloseButtonPressed);
         _mainContainer.AddChild(_header);
@@ -143,6 +153,10 @@ public partial class PlayerFloatingPanel : Control
 
         // 初始化 Provider 注册表
         PlayerPanelRegistry.Initialize();
+
+        // 订阅战斗状态变化事件
+        CombatManager.Instance.CombatSetUp += OnCombatSetUp;
+        CombatManager.Instance.CombatEnded += OnCombatEnded;
 
         // 创建内容
         CreateProviderContents();
@@ -202,13 +216,34 @@ public partial class PlayerFloatingPanel : Control
 
     private void RebuildProviderContents()
     {
+        _panel!.Size = new Vector2(280, 100);
+        _panel!.CustomMinimumSize = new Vector2(280, 100);
+
         // 重新构建所有内容
         CreateProviderContents();
+
+        // 重新 clamp 到视口
+        PanelPositionHelper.ClampToViewport(_panel);
+    }
+
+    /// <summary>
+    ///     刷新面板内容（用于手动刷新）
+    /// </summary>
+    public void Refresh()
+    {
+        RebuildProviderContents();
     }
 
     private void UpdateProviderContent(IPlayerPanelProvider provider)
     {
         if (_player == null) return;
+
+        // 重置最小尺寸，让内容重新计算大小
+        if (_panel != null)
+        {
+            _panel.Size = Vector2.Zero;
+            _panel.CustomMinimumSize = Vector2.Zero;
+        }
 
         if (_providerContents.TryGetValue(provider.ProviderId, out var content))
             provider.UpdateContent(_player, content);
@@ -237,7 +272,27 @@ public partial class PlayerFloatingPanel : Control
 
     public override void _ExitTree()
     {
+        // 取消窗口大小变化事件订阅
+        ViewportResizeNotifier.Instance.OnViewportResized -= OnViewportResized;
+
+        // 取消战斗事件订阅
+        CombatManager.Instance.CombatSetUp -= OnCombatSetUp;
+        CombatManager.Instance.CombatEnded -= OnCombatEnded;
         ClearProviderContents();
+    }
+
+    private void OnCombatSetUp(CombatState _)
+    {
+        // 战斗开始时重新创建内容（重新订阅事件）
+        MainFile.Logger.Debug("[PlayerFloatingPanel] CombatSetUp, rebuilding provider contents");
+        RebuildProviderContents();
+    }
+
+    private void OnCombatEnded(CombatRoom _)
+    {
+        // 战斗结束时重新创建内容
+        MainFile.Logger.Debug("[PlayerFloatingPanel] CombatEnded, rebuilding provider contents");
+        RebuildProviderContents();
     }
 
     /// <summary>

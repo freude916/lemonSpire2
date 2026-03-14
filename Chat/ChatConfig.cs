@@ -30,7 +30,7 @@ public static class ChatConfig
 
     // ========== Fade Behavior ==========
     public const float FadeOutDelaySeconds = 10f;
-    public const float FadeOutDurationSeconds = 2f;
+    public const float FadeOutDurationSeconds = 1f;
     public const float FadeMinAlpha = 0.01f;
     public const float PanelBgAlpha = 0.80f;
 

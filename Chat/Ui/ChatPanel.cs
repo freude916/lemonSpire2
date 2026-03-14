@@ -3,7 +3,10 @@ using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.util;
+using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
+using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
+using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
 
 namespace lemonSpire2.Chat.Ui;
 
@@ -31,7 +34,7 @@ public sealed class ChatPanel : IDisposable
     private bool _isUpdatingLayout; // 防止 OnResized 递归调用 UpdateLayout
     private RichTextLabel _messageBuffer = null!;
     private StyleBoxFlat _panelStyle = null!;
-    private DraggableHeader _titleBar = null!;
+    private DraggableTitleBar _titleBar = null!;
     private VBoxContainer _vboxLayout = null!;
 
     public ChatPanel(ChatModel model, Action<IIntent> dispatch, IntentHandlerRegistry intentRegistry,
@@ -47,6 +50,9 @@ public sealed class ChatPanel : IDisposable
 
     public void Dispose()
     {
+        // 取消窗口大小变化事件订阅
+        ViewportResizeNotifier.Instance.OnViewportResized -= OnViewportResized;
+
         _model.OnMessageAppended -= OnMessageAppended;
         _panelStyle.Dispose();
         _inputStyle.Dispose();
@@ -76,18 +82,20 @@ public sealed class ChatPanel : IDisposable
         {
             Name = "VBoxLayout",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
         };
         _container.AddChild(_vboxLayout);
 
         // 标题栏（拖拽条）- 展开时显示，折叠时隐藏
-        _titleBar = new DraggableHeader
+        _titleBar = new DraggableTitleBar
         {
             Name = "DragBar",
             CustomMinimumSize = new Vector2(100, 24)
         };
-        _titleBar.SetTitle("柠檬聊天", 14);
+        _titleBar.SetTitle(new LocString("gameplay_ui", "LEMONSPIRE.chat.title").GetFormattedText());
         _titleBar.SetDragTarget(_container);
+        _titleBar.SetDragCallbacks(onDragEnd: () => PanelPositionHelper.ClampToViewport(_container));
 
         // 样式：背景色 + padding
         var titleStyle = new StyleBoxFlat
@@ -183,6 +191,14 @@ public sealed class ChatPanel : IDisposable
         DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
         UpdateLayout();
         ShowWelcome();
+
+        // 订阅窗口大小变化事件
+        ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
+    }
+
+    private void OnViewportResized(Vector2 _)
+    {
+        PanelPositionHelper.ClampToViewport(_container);
     }
 
     private void ShowWelcome()
@@ -308,11 +324,12 @@ public sealed class ChatPanel : IDisposable
             _panelStyle.BgColor = ChatConfig.GetFadedPanelBg(alpha);
             _container.Modulate = ChatConfig.GetFadedModulate(alpha);
 
-            if (alpha <= 0f)
+            if (alpha <= 0.05f)
             {
                 // fade完成，透传鼠标事件
                 _container.Modulate = ChatConfig.GetFadedModulate(ChatConfig.FadeMinAlpha);
                 _container.MouseFilter = Control.MouseFilterEnum.Ignore;
+                _vboxLayout.MouseFilter = Control.MouseFilterEnum.Ignore;
                 _messageBuffer.MouseFilter = Control.MouseFilterEnum.Ignore;
             }
         }
@@ -403,6 +420,8 @@ public sealed class ChatPanel : IDisposable
 
             _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
             _inputField.MouseFilter = Control.MouseFilterEnum.Stop;
+
+            _inputContainer.CallDeferred(Control.MethodName.GrabFocus); // TODO: Grab Focus Test
         }
         else
         {

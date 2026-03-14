@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 
-namespace lemonSpire2.SendItem;
+namespace lemonSpire2.SendGameItem;
 
 /// <summary>
 ///     全局输入捕获节点 — 拦截 Alt+Click 发送物品链接

@@ -1,12 +1,13 @@
 using Godot;
-using lemonSpire2.Chat;
-using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.QoL;
 using lemonSpire2.Tooltips;
+using lemonSpire2.util;
+using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
+using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
@@ -22,7 +23,7 @@ public class HandCardProvider : IPlayerPanelProvider
 {
     public string ProviderId => "hand_cards";
     public int Priority => 10;
-    public string DisplayName => "Hand";
+    public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.hand").GetFormattedText();
 
     public bool ShouldShow(Player player)
     {
@@ -43,13 +44,15 @@ public class HandCardProvider : IPlayerPanelProvider
         return container;
     }
 
+    private const int MaxHandSize = 10;
+
     public void UpdateContent(Player player, Control content)
     {
         ArgumentNullException.ThrowIfNull(player);
         if (content is not VBoxContainer container) return;
 
         // 清除现有内容
-        foreach (var child in container.GetChildren()) child.QueueFree();
+        ProviderUtils.ClearChildren(container);
 
         var hand = player.PlayerCombatState?.Hand;
         if (hand == null)
@@ -58,7 +61,19 @@ public class HandCardProvider : IPlayerPanelProvider
             return;
         }
 
-        MainFile.Logger.Debug($"[HandCardProvider] Updating content, hand has {hand.Cards.Count} cards");
+        var cardCount = hand.Cards.Count;
+        MainFile.Logger.Debug($"[HandCardProvider] Updating content, hand has {cardCount} cards");
+
+        // 添加手牌数量显示
+        var handLabel = new LocString("gameplay_ui", "LEMONSPIRE.panel.hand").GetFormattedText();
+        var countLabel = new Label
+        {
+            Text = $"{handLabel}: {cardCount}/{MaxHandSize}",
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        countLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.75f));
+        countLabel.AddThemeFontSizeOverride("font_size", 11);
+        container.AddChild(countLabel);
 
         // 分组：相同卡牌合并显示
         var groups = hand.Cards
@@ -107,17 +122,17 @@ public class HandCardProvider : IPlayerPanelProvider
     public void Cleanup(Control content)
     {
         ArgumentNullException.ThrowIfNull(content);
-        foreach (var child in content.GetChildren()) child?.QueueFree();
+        ProviderUtils.ClearChildren(content);
     }
 
     private static void OnEntryClicked(CardModel card, Player player)
     {
-        MainFile.Logger.Debug($"[HandCardProvider] OnEntryClicked: {card.Title}, Alt={Input.IsKeyPressed(Key.Alt)}");
+        MainFile.Logger.Debug($"[HandCardProvider] OnEntryClicked: {card.Title}, Alt={ProviderUtils.IsAltClick()}");
 
         // 每次点击时重新获取手牌列表，确保是最新的
         var cards = player.PlayerCombatState?.Hand?.Cards.ToList() ?? new List<CardModel>();
 
-        if (Input.IsKeyPressed(Key.Alt))
+        if (ProviderUtils.IsAltClick())
         {
             // Alt+Click: 发送卡牌到聊天
             var segment = new TooltipSegment
@@ -126,31 +141,14 @@ public class HandCardProvider : IPlayerPanelProvider
                 DisplayName = card.Title
             };
 
-            SendItemSegment(segment);
+            ProviderUtils.SendToChat(segment);
         }
         else
         {
             // 普通点击: 打开卡牌详情界面
             var index = cards.IndexOf(card);
-            if (index >= 0) NGame.Instance.GetInspectCardScreen().Open(cards, index);
+            if (index >= 0) NGame.Instance?.GetInspectCardScreen().Open(cards, index);
         }
-    }
-
-    private static void SendItemSegment(TooltipSegment segment)
-    {
-        var store = ChatStore.Instance;
-        if (store == null)
-        {
-            MainFile.Logger.Warn("ChatStore.Instance is null");
-            return;
-        }
-
-        store.Dispatch(new IntentSendSegments
-        {
-            receiverId = 0,
-            Segments = [segment]
-        });
-        MainFile.Logger.Info($"Sent card to chat: {segment.DisplayName}");
     }
 
     /// <summary>

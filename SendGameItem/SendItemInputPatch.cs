@@ -5,7 +5,7 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace lemonSpire2.SendItem;
+namespace lemonSpire2.SendGameItem;
 
 /// <summary>
 ///     注入 ItemInputCapture 到场景树

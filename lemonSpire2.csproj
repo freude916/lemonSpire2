@@ -9,6 +9,8 @@
         <AnalysisLevel>latest-all</AnalysisLevel>
         <!-- Godot 节点由场景树管理，不需要手动 Dispose -->
         <NoWarn>CA1003,CA1707,CA2000</NoWarn>
+        <!-- 不要展示诊断链接，可以让 LLM 上下文更少消耗 -->
+        <IncludeDiagnosticRuleLink>false</IncludeDiagnosticRuleLink>
     </PropertyGroup>
 
     <!-- OS Detection -->
@@ -82,13 +84,13 @@
         </PackageReference>
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Chat\Tooltips\"/>
-    </ItemGroup>
-
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent">
-        <Message Text="Copying .dll to mods folder." Importance="high"/>
-        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(Sts2Path)\mods\$(MSBuildProjectName)\"/>
+        <Message Text="Copying .dll and .pdb to mods folder." Importance="high"/>
+        <ItemGroup>
+            <ModOutputFiles Include="$(TargetPath)"/>
+            <ModOutputFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')"/>
+        </ItemGroup>
+        <Copy SourceFiles="@(ModOutputFiles)" DestinationFolder="$(Sts2Path)\mods\$(MSBuildProjectName)\"/>
     </Target>
 
     <Target Name="GodotPublish" AfterTargets="Publish" Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">

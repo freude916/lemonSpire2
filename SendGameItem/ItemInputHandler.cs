@@ -12,7 +12,7 @@ using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 
-namespace lemonSpire2.SendItem;
+namespace lemonSpire2.SendGameItem;
 
 /// <summary>
 ///     物品输入处理器 — 检测 Alt+点击物品并发送消息

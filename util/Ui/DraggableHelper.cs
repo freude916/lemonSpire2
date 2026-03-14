@@ -1,18 +1,18 @@
 using Godot;
 
-namespace lemonSpire2.util;
+namespace lemonSpire2.util.Ui;
 
 /// <summary>
 ///     可拖拽标题栏组件 - PanelContainer 实现
 ///     作为通用标题栏使用，内置拖拽功能、标题和可选关闭按钮
 ///     支持背景样式和 padding
 /// </summary>
-public partial class DraggableHeader : PanelContainer
+public partial class DraggableTitleBar : PanelContainer
 {
     private readonly Button _closeButton = new()
     {
         Text = "X",
-        CustomMinimumSize = new Vector2(20, 20),
+        CustomMinimumSize = new Vector2(15, 15),
         MouseFilter = MouseFilterEnum.Stop,
         Visible = false
     };
@@ -82,7 +82,8 @@ public partial class DraggableHeader : PanelContainer
         var deltaMove = mousePos - _lastMousePos;
         _lastMousePos = mousePos;
 
-        _dragTarget.Position += deltaMove;
+        // 使用 GlobalPosition 确保坐标一致性
+        _dragTarget.GlobalPosition += deltaMove;
     }
 
     private void StartDrag(Vector2 mousePos)
@@ -102,7 +103,7 @@ public partial class DraggableHeader : PanelContainer
     /// <summary>
     ///     设置拖拽目标（默认为父控件）
     /// </summary>
-    public DraggableHeader SetDragTarget(Control target)
+    public DraggableTitleBar SetDragTarget(Control target)
     {
         _dragTarget = target;
         return this;
@@ -111,7 +112,7 @@ public partial class DraggableHeader : PanelContainer
     /// <summary>
     ///     设置拖拽回调
     /// </summary>
-    public DraggableHeader SetDragCallbacks(Action? onDragStart = null, Action? onDragEnd = null)
+    public DraggableTitleBar SetDragCallbacks(Action? onDragStart = null, Action? onDragEnd = null)
     {
         _onDragStart = onDragStart;
         _onDragEnd = onDragEnd;
@@ -121,7 +122,7 @@ public partial class DraggableHeader : PanelContainer
     /// <summary>
     ///     设置标题文本
     /// </summary>
-    public DraggableHeader SetTitle(string text, int fontSize = 14, Color? color = null)
+    public DraggableTitleBar SetTitle(string text, int fontSize = 14, Color? color = null)
     {
         _titleLabel.Text = text;
         _titleLabel.AddThemeFontSizeOverride("font_size", fontSize);
@@ -133,12 +134,15 @@ public partial class DraggableHeader : PanelContainer
     /// <summary>
     ///     获取标题 Label
     /// </summary>
-    public Label GetTitleLabel() => _titleLabel;
+    public Label GetTitleLabel()
+    {
+        return _titleLabel;
+    }
 
     /// <summary>
     ///     显示关闭按钮并绑定回调
     /// </summary>
-    public DraggableHeader ShowCloseButton(Action? onPressed = null)
+    public DraggableTitleBar ShowCloseButton(Action? onPressed = null)
     {
         _closeButton.Visible = true;
         if (onPressed != null)
@@ -148,13 +152,14 @@ public partial class DraggableHeader : PanelContainer
             _onClosePressed = onPressed;
             _closeButton.Pressed += onPressed;
         }
+
         return this;
     }
 
     /// <summary>
     ///     隐藏关闭按钮
     /// </summary>
-    public DraggableHeader HideCloseButton()
+    public DraggableTitleBar HideCloseButton()
     {
         _closeButton.Visible = false;
         return this;
@@ -163,12 +168,15 @@ public partial class DraggableHeader : PanelContainer
     /// <summary>
     ///     获取关闭按钮
     /// </summary>
-    public Button GetCloseButton() => _closeButton;
+    public Button GetCloseButton()
+    {
+        return _closeButton;
+    }
 
     /// <summary>
     ///     完成初始化，自动设置父控件为拖拽目标
     /// </summary>
-    public DraggableHeader Build()
+    public DraggableTitleBar Build()
     {
         _dragTarget ??= GetParent<Control>();
         return this;
