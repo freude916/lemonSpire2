@@ -35,9 +35,9 @@ public class ChatStore
 
         IntentRegistry.Register<IntentSendSegments>(i =>
         {
-            var senderId = i.senderId ?? _netService.NetId;
+            var senderId = i.SenderId ?? _netService.NetId;
             var senderName = PlatformUtil.GetPlayerName(_netService.Platform, senderId);
-            var receiverId = i.receiverId ?? 0; // default to broadcast
+            var receiverId = i.ReceiverId ?? 0; // default to broadcast
             var msg = new ChatMessage
             {
                 SenderId = senderId,

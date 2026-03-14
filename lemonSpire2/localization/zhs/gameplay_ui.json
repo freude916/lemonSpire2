@@ -17,6 +17,10 @@
   "LEMONSPIRE.panel.hand_count": "手牌: {0, number}/{1, number}",
   "LEMONSPIRE.panel.potions": "药水",
   "LEMONSPIRE.panel.shop": "商店",
+  "LEMONSPIRE.panel.cardRewards": "卡牌奖励",
   "LEMONSPIRE.shop.empty": "暂无商品",
-  "LEMONSPIRE.shop.gold": "金币"
+  "LEMONSPIRE.shop.gold": "金币",
+  "LEMONSPIRE.cardRewards.empty": "暂无奖励",
+  "LEMONSPIRE.cardRewards.normal": "奖励",
+  "LEMONSPIRE.cardRewards.special": "特殊"
 }

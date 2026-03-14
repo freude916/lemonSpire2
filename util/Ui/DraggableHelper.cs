@@ -48,7 +48,7 @@ public partial class DraggableTitleBar : PanelContainer
 
         // 内部 HBoxContainer 布局
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f));
-        _titleLabel.AddThemeFontSizeOverride("font_size", 14);
+        _titleLabel.AddThemeFontSizeOverride("font_size", 20);
         _hbox.AddChild(_titleLabel);
 
         _closeButton.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f));

@@ -2,7 +2,6 @@ using Godot;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.QoL;
 using lemonSpire2.Tooltips;
-using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -12,7 +11,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 
-namespace lemonSpire2.PlayerStateEx.Panel;
+namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 
 /// <summary>
 ///     手牌显示提供者
@@ -72,7 +71,7 @@ public class HandCardProvider : IPlayerPanelProvider
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
         countLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.75f));
-        countLabel.AddThemeFontSizeOverride("font_size", 11);
+        countLabel.AddThemeFontSizeOverride("font_size", 16);
         container.AddChild(countLabel);
 
         // 分组：相同卡牌合并显示
@@ -130,7 +129,7 @@ public class HandCardProvider : IPlayerPanelProvider
         MainFile.Logger.Debug($"[HandCardProvider] OnEntryClicked: {card.Title}, Alt={ProviderUtils.IsAltClick()}");
 
         // 每次点击时重新获取手牌列表，确保是最新的
-        var cards = player.PlayerCombatState?.Hand?.Cards.ToList() ?? new List<CardModel>();
+        var cards = player.PlayerCombatState?.Hand.Cards.ToList() ?? new List<CardModel>();
 
         if (ProviderUtils.IsAltClick())
         {

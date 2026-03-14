@@ -1,7 +1,6 @@
 using Godot;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.Tooltips;
-using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Localization;
@@ -9,7 +8,7 @@ using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 
-namespace lemonSpire2.PlayerStateEx.Panel;
+namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 
 /// <summary>
 ///     药水显示提供者
@@ -28,8 +27,8 @@ public class PotionProvider : IPlayerPanelProvider
     {
         ArgumentNullException.ThrowIfNull(player);
         // 只显示有药水的玩家
-        // player.Potions.Any()
-        return true; // 即使没有药水也显示，保持界面一致性
+        return player.Potions.Any();
+        // return true; // 即使没有药水也显示，保持界面一致性
     }
 
     public Control CreateContent(Player player)

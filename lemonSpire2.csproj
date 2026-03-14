@@ -88,7 +88,6 @@
         <Message Text="Copying .dll and .pdb to mods folder." Importance="high"/>
         <ItemGroup>
             <ModOutputFiles Include="$(TargetPath)"/>
-            <ModOutputFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')"/>
         </ItemGroup>
         <Copy SourceFiles="@(ModOutputFiles)" DestinationFolder="$(Sts2Path)\mods\$(MSBuildProjectName)\"/>
     </Target>

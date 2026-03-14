@@ -1,4 +1,3 @@
-using lemonSpire2.util;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 

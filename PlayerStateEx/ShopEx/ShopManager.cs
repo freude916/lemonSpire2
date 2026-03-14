@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 
-namespace lemonSpire2.PlayerStateEx.Shop;
+namespace lemonSpire2.PlayerStateEx.ShopEx;
 
 /// <summary>
 ///     商店数据管理器
@@ -33,6 +33,7 @@ public class ShopManager
     public void UpdateInventory(ulong playerNetId, Collection<ShopItemEntry> items)
     {
         _shopInventories[playerNetId] = items;
+        MainFile.Logger.Debug($"[ShopManager] UpdateInventory: player={playerNetId}, items={items.Count}");
         InventoryUpdated?.Invoke(playerNetId);
     }
 
@@ -42,6 +43,7 @@ public class ShopManager
     public void ClearInventory(ulong playerNetId)
     {
         _shopInventories.TryRemove(playerNetId, out _);
+        MainFile.Logger.Debug($"[ShopManager] ClearInventory: player={playerNetId}");
         InventoryUpdated?.Invoke(playerNetId);
     }
 
@@ -123,10 +125,11 @@ public class ShopManager
     }
 
     /// <summary>
-    ///     重置单例（用于测试）
+    ///     重置数据（只清除数据，不创建新实例，保留事件订阅者）
     /// </summary>
     public static void Reset()
     {
-        Instance = new ShopManager();
+        Instance._shopInventories.Clear();
+        MainFile.Logger.Debug("[ShopManager] Reset: cleared all inventories");
     }
 }

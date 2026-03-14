@@ -1,5 +1,5 @@
 using Godot;
-using lemonSpire2.util;
+using lemonSpire2.PlayerStateEx.ShopEx;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -10,20 +10,20 @@ using MegaCrit.Sts2.Core.Runs;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
 using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
 
-namespace lemonSpire2.PlayerStateEx.Panel;
+namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 
 /// <summary>
 ///     玩家悬浮面板
 ///     显示其他玩家的手牌、药水等信息
 ///     支持拖拽、Alt+Click 发送物品
 /// </summary>
-public partial class PlayerFloatingPanel : Control
+public partial class PlayerOverlayPanel : Control
 {
-    private readonly Dictionary<string, Control> _providerContents = new();
-    private readonly List<Action> _unsubscribeActions = new();
+    private readonly Dictionary<string, Control> _providerContents = [];
+    private readonly List<Action> _unsubscribeActions = [];
 
     // 追踪上次 provider 可见状态
-    private readonly HashSet<string> _visibleProviders = new();
+    private readonly HashSet<string> _visibleProviders = [];
     private VBoxContainer? _contentContainer;
     private DraggableTitleBar? _header;
     private Label? _headerTitle;
@@ -33,6 +33,7 @@ public partial class PlayerFloatingPanel : Control
     private bool _needsVisibilityCheck;
     private PanelContainer? _panel;
     private Player? _player;
+    private ScrollContainer? _scrollContainer;
 
     public override void _Ready()
     {
@@ -54,32 +55,19 @@ public partial class PlayerFloatingPanel : Control
         // 仅在事件触发时检查，避免每帧轮询
         if (!_needsVisibilityCheck) return;
         _needsVisibilityCheck = false;
-        CheckProviderVisibilityChanges();
-    }
 
-    private void CheckProviderVisibilityChanges()
-    {
         if (_player == null) return;
 
         // 检查是否有新增的 provider
-        var needsRebuild = false;
-        foreach (var provider in PlayerPanelRegistry.GetProviders())
-        {
-            var shouldShow = provider.ShouldShow(_player);
-            var wasVisible = _visibleProviders.Contains(provider.ProviderId);
+        var needsRebuild = (from provider in PlayerPanelRegistry.GetProviders()
+            let shouldShow = provider.ShouldShow(_player)
+            let wasVisible = _visibleProviders.Contains(provider.ProviderId)
+            where shouldShow != wasVisible select shouldShow).Any();
 
-            if (shouldShow != wasVisible)
-            {
-                needsRebuild = true;
-                break;
-            }
-        }
+        if (!needsRebuild) return;
 
-        if (needsRebuild)
-        {
-            MainFile.Logger.Debug("[PlayerFloatingPanel] Provider visibility changed, rebuilding contents");
-            RebuildProviderContents();
-        }
+        MainFile.Logger.Debug("[PlayerOverlayPanel] Provider visibility changed, rebuilding contents");
+        RebuildProviderContents();
     }
 
     private void CreateUi()
@@ -89,7 +77,7 @@ public partial class PlayerFloatingPanel : Control
         {
             Name = "Panel",
             AnchorsPreset = (int)LayoutPreset.TopLeft,
-            CustomMinimumSize = new Vector2(280, 100)
+            CustomMinimumSize = new Vector2(280, 0)  // 只设置最小宽度，高度自适应
         };
 
         // 添加样式
@@ -97,6 +85,10 @@ public partial class PlayerFloatingPanel : Control
         {
             BgColor = new Color(0.1f, 0.1f, 0.15f, 0.95f),
             BorderColor = new Color(0.4f, 0.4f, 0.5f),
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
             ContentMarginLeft = 4,
             ContentMarginRight = 4,
             ContentMarginTop = 4,
@@ -140,6 +132,79 @@ public partial class PlayerFloatingPanel : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill
         };
         _contentContainer.AddThemeConstantOverride("separation", 8);
+        _mainContainer.AddChild(_contentContainer);
+    }
+
+    private float GetMaxContentHeight()
+    {
+        var viewportHeight = GetViewport()?.GetVisibleRect().Size.Y ?? 1080f;
+        return viewportHeight * 0.5f;
+    }
+
+    private void ApplyHeightLimit()
+    {
+        if (_panel == null || _contentContainer == null) return;
+
+        var maxHeight = GetMaxContentHeight();
+        var contentHeight = _contentContainer.Size.Y;
+
+        // 计算标题栏和分隔线的高度
+        var headerHeight = _header?.Size.Y ?? 0;
+        const float separatorHeight = 10f; // 分隔线大概高度
+        var totalHeight = contentHeight + headerHeight + separatorHeight + 8f; // 8 是 padding
+
+        if (totalHeight > maxHeight)
+        {
+            // 内容超出限制，需要包装成 ScrollContainer
+            WrapInScrollContainer(maxHeight - headerHeight - separatorHeight - 8f);
+        }
+        else
+        {
+            // 内容未超出限制，确保不使用 ScrollContainer
+            UnwrapFromScrollContainer();
+        }
+    }
+
+    private void WrapInScrollContainer(float maxHeight)
+    {
+        if (_contentContainer == null || _mainContainer == null) return;
+
+        // 检查是否已经包装
+        if (_scrollContainer != null && _scrollContainer.GetParent() == _mainContainer) return;
+
+        // 从 mainContainer 移除 contentContainer
+        _mainContainer.RemoveChild(_contentContainer);
+
+        // 创建 ScrollContainer
+        _scrollContainer = new ScrollContainer
+        {
+            Name = "ScrollContainer",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            CustomMinimumSize = new Vector2(0, maxHeight)
+        };
+
+        _scrollContainer.AddChild(_contentContainer);
+        _mainContainer.AddChild(_scrollContainer);
+    }
+
+    private void UnwrapFromScrollContainer()
+    {
+        if (_contentContainer == null || _mainContainer == null) return;
+
+        // 检查是否在 ScrollContainer 中
+        if (_scrollContainer == null || _scrollContainer.GetParent() != _mainContainer) return;
+
+        // 从 ScrollContainer 移除 contentContainer
+        _scrollContainer.RemoveChild(_contentContainer);
+
+        // 移除并销毁 ScrollContainer
+        _mainContainer.RemoveChild(_scrollContainer);
+        _scrollContainer.QueueFree();
+        _scrollContainer = null;
+
+        // 直接添加回 mainContainer
         _mainContainer.AddChild(_contentContainer);
     }
 
@@ -190,7 +255,7 @@ public partial class PlayerFloatingPanel : Control
                 MouseFilter = MouseFilterEnum.Ignore
             };
             sectionTitle.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.7f));
-            sectionTitle.AddThemeFontSizeOverride("font_size", 11);
+            sectionTitle.AddThemeFontSizeOverride("font_size", 20);
             sectionContainer.AddChild(sectionTitle);
 
             // 先添加到场景树，这样后续创建的内容才能正确触发 _Ready
@@ -212,15 +277,32 @@ public partial class PlayerFloatingPanel : Control
             });
             if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
         }
+
+        // 订阅 ShopManager 事件，确保即使 ShopProvider 未创建也能检测到数据变化
+        ShopManager.Instance.InventoryUpdated += OnShopInventoryUpdated;
+    }
+
+    private void OnShopInventoryUpdated(ulong netId)
+    {
+        // 当商店数据更新时，检查是否有新 Provider 需要显示
+        if (_player != null && netId == _player.NetId)
+        {
+            MainFile.Logger.Debug($"[PlayerOverlayPanel] OnShopInventoryUpdated for player {_player.NetId}");
+            _needsVisibilityCheck = true;
+        }
     }
 
     private void RebuildProviderContents()
     {
-        _panel!.Size = new Vector2(280, 100);
-        _panel!.CustomMinimumSize = new Vector2(280, 100);
+        // 只重置宽度，让高度自适应内容
+        _panel!.Size = new Vector2(400, 40);
+        _panel!.CustomMinimumSize = new Vector2(280, 40);
 
         // 重新构建所有内容
         CreateProviderContents();
+
+        // 延迟应用高度限制，让布局系统先计算
+        CallDeferred(nameof(ApplyHeightLimit));
 
         // 重新 clamp 到视口
         PanelPositionHelper.ClampToViewport(_panel);
@@ -238,15 +320,36 @@ public partial class PlayerFloatingPanel : Control
     {
         if (_player == null) return;
 
-        // 重置最小尺寸，让内容重新计算大小
+        if (_providerContents.TryGetValue(provider.ProviderId, out var content))
+            provider.UpdateContent(_player, content);
+
+        // 延迟重置面板大小，让布局系统先更新
+        CallDeferred(nameof(ResetPanelSize));
+    }
+
+    private void ResetPanelSize()
+    {
+        // 重置整个容器链的大小，让布局系统重新计算
+        if (_contentContainer != null)
+        {
+            _contentContainer.Size = Vector2.Zero;
+            _contentContainer.CustomMinimumSize = Vector2.Zero;
+        }
+
+        if (_mainContainer != null)
+        {
+            _mainContainer.Size = Vector2.Zero;
+            _mainContainer.CustomMinimumSize = Vector2.Zero;
+        }
+
         if (_panel != null)
         {
             _panel.Size = Vector2.Zero;
             _panel.CustomMinimumSize = Vector2.Zero;
         }
 
-        if (_providerContents.TryGetValue(provider.ProviderId, out var content))
-            provider.UpdateContent(_player, content);
+        // 延迟应用高度限制
+        CallDeferred(nameof(ApplyHeightLimit));
     }
 
     private void ClearProviderContents()
@@ -255,13 +358,22 @@ public partial class PlayerFloatingPanel : Control
         foreach (var unsubscribe in _unsubscribeActions) unsubscribe();
         _unsubscribeActions.Clear();
 
+        // 取消 ShopManager 事件订阅
+        ShopManager.Instance.InventoryUpdated -= OnShopInventoryUpdated;
+
         // 清除 UI
         foreach (var content in _providerContents.Values) content.QueueFree();
         _providerContents.Clear();
+        _visibleProviders.Clear();  // 清空可见 provider 状态
 
         if (_contentContainer != null)
+        {
             foreach (var child in _contentContainer.GetChildren())
                 child.QueueFree();
+            // 重置容器大小
+            _contentContainer.Size = Vector2.Zero;
+            _contentContainer.CustomMinimumSize = Vector2.Zero;
+        }
     }
 
     private void OnCloseButtonPressed()
@@ -284,26 +396,26 @@ public partial class PlayerFloatingPanel : Control
     private void OnCombatSetUp(CombatState _)
     {
         // 战斗开始时重新创建内容（重新订阅事件）
-        MainFile.Logger.Debug("[PlayerFloatingPanel] CombatSetUp, rebuilding provider contents");
+        MainFile.Logger.Debug("[PlayerOverlayPanel] CombatSetUp, rebuilding provider contents");
         RebuildProviderContents();
     }
 
     private void OnCombatEnded(CombatRoom _)
     {
         // 战斗结束时重新创建内容
-        MainFile.Logger.Debug("[PlayerFloatingPanel] CombatEnded, rebuilding provider contents");
+        MainFile.Logger.Debug("[PlayerOverlayPanel] CombatEnded, rebuilding provider contents");
         RebuildProviderContents();
     }
 
     /// <summary>
     ///     创建并显示悬浮面板
     /// </summary>
-    public static PlayerFloatingPanel Show(Player player, Vector2? position = null)
+    public static PlayerOverlayPanel Show(Player player, Vector2? position = null)
     {
         ArgumentNullException.ThrowIfNull(player);
-        var panel = new PlayerFloatingPanel
+        var panel = new PlayerOverlayPanel
         {
-            Name = $"PlayerFloatingPanel_{player.NetId}"
+            Name = $"PlayerOverlayPanel_{player.NetId}"
         };
 
         // 添加到场景树

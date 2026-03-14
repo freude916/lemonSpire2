@@ -12,7 +12,7 @@ namespace lemonSpire2.SynergyIndicator;
 /// <summary>
 ///     统一管理器，负责维护所有玩家的指示器 UI 面板
 /// </summary>
-public class IndicatorManager: IDisposable
+public sealed class IndicatorManager: IDisposable
 {
     private static IndicatorManager? _instance;
 
@@ -113,12 +113,6 @@ public class IndicatorManager: IDisposable
         parent.AddChild(audioPlayer);
         audioPlayer.Play();
         audioPlayer.Finished += audioPlayer.QueueFree; // 播放完自动销毁
-    }
-
-    public void FlashButton(ulong playerNetId, IndicatorType type)
-    {
-        if (_panels.TryGetValue(playerNetId, out var panel))
-            panel.GetButton(type)?.PlayFlashAnimation();
     }
 
     public Dictionary<ulong, Dictionary<IndicatorType, IndicatorStatus>> GetAll()

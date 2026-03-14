@@ -1,9 +1,8 @@
 using System.Collections.ObjectModel;
-using lemonSpire2.util;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
-namespace lemonSpire2.PlayerStateEx.Shop;
+namespace lemonSpire2.PlayerStateEx.ShopEx;
 
 /// <summary>
 ///     商店库存同步消息

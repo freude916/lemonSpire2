@@ -2,6 +2,6 @@
   "pck_name": "lemonSpire2",
   "name": "LemonSpire2",
   "author": "freude916",
-  "description": "A collection of multiplayer QoL: Chat, Damage Display, Damage Tracker",
-  "version": "v0.5.2"
+  "description": "A collection of multiplayer QoL: Chat, State, Damage Tracker",
+  "version": "v0.5.4"
 }

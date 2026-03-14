@@ -1,4 +1,4 @@
-using lemonSpire2.PlayerStateEx.Panel;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.util;
 
 namespace lemonSpire2.PlayerStateEx;
@@ -24,6 +24,7 @@ public static class PlayerPanelRegistry
         Register(new HandCardProvider());
         Register(new PotionProvider());
         Register(new ShopProvider());
+        Register(new CardRewardProvider());
 
         MainFile.Logger.Info($"PlayerPanelRegistry initialized with {Registry.Items.Count} providers");
     }

@@ -1,5 +1,4 @@
 using lemonSpire2.SynergyIndicator.Models;
-using lemonSpire2.util;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 

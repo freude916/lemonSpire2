@@ -1,7 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using lemonSpire2.PlayerStateEx.Panel;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -10,6 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
+using PlayerOverlayPanel = lemonSpire2.PlayerStateEx.OverlayPanel.PlayerOverlayPanel;
 
 namespace lemonSpire2.PlayerStateEx;
 
@@ -35,7 +36,7 @@ public static class NMultiplayerPlayerStatePatch
     /// <summary>
     ///     当前活跃的悬浮面板（按玩家 NetId 管理）
     /// </summary>
-    private static readonly Dictionary<ulong, WeakReference<PlayerFloatingPanel>> ActivePanels = new();
+    private static readonly Dictionary<ulong, WeakReference<PlayerOverlayPanel>> ActivePanels = new();
 
     /// <summary>
     ///     上次点击时间（用于检测双击）
@@ -116,7 +117,7 @@ public static class NMultiplayerPlayerStatePatch
             {
                 // 双击：打开全屏详情
                 OpenExpandedState(__instance);
-                ShowFloatingPanel(__instance); // Close floating panel if open, since we're showing the expanded state
+                ShowOverlayPanel(__instance); // Close floating panel if open, since we're showing the expanded state
                 return false; // 阻止原始方法执行
             }
         }
@@ -125,7 +126,7 @@ public static class NMultiplayerPlayerStatePatch
         LastClickTimes[__instance] = currentTime;
 
         // 单击：显示悬浮面板
-        ShowFloatingPanel(__instance);
+        ShowOverlayPanel(__instance);
         return false; // 阻止原始方法执行（不打开全屏状态）
     }
 
@@ -164,7 +165,7 @@ public static class NMultiplayerPlayerStatePatch
 
     #region Helper methods
 
-    private static void ShowFloatingPanel(NMultiplayerPlayerState instance)
+    private static void ShowOverlayPanel(NMultiplayerPlayerState instance)
     {
         var player = instance.Player;
         if (player == null) return;
@@ -186,9 +187,9 @@ public static class NMultiplayerPlayerStatePatch
 
         // 创建新面板
         var panelPos = instance.GlobalPosition + new Vector2(instance.Size.X + 10f, 0f);
-        var panel = PlayerFloatingPanel.Show(player, panelPos);
+        var panel = PlayerOverlayPanel.Show(player, panelPos);
 
-        ActivePanels[playerId] = new WeakReference<PlayerFloatingPanel>(panel);
+        ActivePanels[playerId] = new WeakReference<PlayerOverlayPanel>(panel);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
         MainFile.Logger.Info($"Showing floating panel for player {playerName}");
     }

@@ -2,7 +2,8 @@ using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
 using lemonSpire2.PlayerStateEx;
-using lemonSpire2.PlayerStateEx.Shop;
+using lemonSpire2.PlayerStateEx.RewardEx;
+using lemonSpire2.PlayerStateEx.ShopEx;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SynergyIndicator;
@@ -51,6 +52,13 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
         }
 
+        if (EnableCardRewardSync)
+        {
+            harmony.CreateClassProcessor(typeof(CardRewardNetworkInitPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(RewardsScreenPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(RunManagerPatch)).Patch();
+        }
+
         if (PlayerTooltipRegistry.HasProviders)
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
@@ -71,6 +79,9 @@ public partial class MainFile : Node
 
     /// <summary> Shop Inventory Sync </summary>
     public static bool EnableShopSync { get; set; } = true;
+
+    /// <summary> Card Reward Sync </summary>
+    public static bool EnableCardRewardSync { get; set; } = true;
 
     #endregion
 }

@@ -17,6 +17,10 @@
   "LEMONSPIRE.panel.hand_count": "Hand: {0, number}/{1, number}",
   "LEMONSPIRE.panel.potions": "Potions",
   "LEMONSPIRE.panel.shop": "Shop",
+  "LEMONSPIRE.panel.cardRewards": "Card Rewards",
   "LEMONSPIRE.shop.empty": "No items",
-  "LEMONSPIRE.shop.gold": "Gold"
+  "LEMONSPIRE.shop.gold": "Gold",
+  "LEMONSPIRE.cardRewards.empty": "No rewards",
+  "LEMONSPIRE.cardRewards.normal": "Reward",
+  "LEMONSPIRE.cardRewards.special": "Special"
 }

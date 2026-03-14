@@ -206,7 +206,7 @@ public partial class ItemInputCapture : Control
 
         store.Dispatch(new IntentSendSegments
         {
-            receiverId = 0,
+            ReceiverId = 0,
             Segments = [segment]
         });
     }

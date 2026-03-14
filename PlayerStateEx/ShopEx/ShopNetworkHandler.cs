@@ -1,13 +1,8 @@
-using lemonSpire2.util;
 using lemonSpire2.util.Net;
-using MegaCrit.Sts2.Core.Combat;
-using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
-using MegaCrit.Sts2.Core.Rooms;
-using MegaCrit.Sts2.Core.Runs;
 
-namespace lemonSpire2.PlayerStateEx.Shop;
+namespace lemonSpire2.PlayerStateEx.ShopEx;
 
 /// <summary>
 ///     商店网络同步处理器

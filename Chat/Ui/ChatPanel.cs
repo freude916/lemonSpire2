@@ -2,7 +2,6 @@ using System.Globalization;
 using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
-using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
@@ -45,8 +44,9 @@ public sealed class ChatPanel : IDisposable
         _tooltipParent = tooltipParent;
         _model.OnMessageAppended += OnMessageAppended;
         _tooltipManager.RegisterHandlers(intentRegistry);
-        CreateUI();
+        CreateUi();
     }
+
 
     public void Dispose()
     {
@@ -59,7 +59,8 @@ public sealed class ChatPanel : IDisposable
         _container.QueueFree();
     }
 
-    private void CreateUI()
+    #region Ui Base
+    private void CreateUi()
     {
         _container = new ChatPanelContainer(this)
         {
@@ -165,6 +166,11 @@ public sealed class ChatPanel : IDisposable
         _titleBar.CustomMinimumSize = new Vector2(0, 0);
     }
 
+    public Control GetControl()
+    {
+        return _container;
+    }
+
     public void ResetPosition()
     {
         _container.SetAnchorsPreset(Control.LayoutPreset.BottomLeft, true);
@@ -178,11 +184,6 @@ public sealed class ChatPanel : IDisposable
         // _container.GrowHorizontal = Control.GrowDirection.Begin;
 
         // This is of no use at all! GrowDirection only affects when size **increases**, but decreasing size won't move it at all
-    }
-
-    public Control GetControl()
-    {
-        return _container;
     }
 
     internal void Initialize()
@@ -207,14 +208,18 @@ public sealed class ChatPanel : IDisposable
         _messageBuffer.Text = $"[color=#{ChatConfig.TimeColor.ToHtml()}]{welcomeText}[/color]";
     }
 
-    // ========== Model Events ==========
+    #endregion
+
+    #region Model Events: Message Update Source
 
     private void OnMessageAppended(ChatMessage message)
     {
         DisplayMessage(message);
     }
 
-    // ========== UI Events ==========
+    #endregion
+
+    #region Ui Intents
 
     private void OnTextSubmitted(string text)
     {
@@ -251,6 +256,8 @@ public sealed class ChatPanel : IDisposable
     {
         _dispatch(new IntentMetaHoverEnd { Meta = meta.AsString() });
     }
+
+    #endregion
 
     // ========== Input Handling ==========
 
@@ -477,6 +484,8 @@ public sealed class ChatPanel : IDisposable
     }
 }
 
+#region ChatPanelContainer
+
 /// <summary>
 ///     Internal container handling input events and frame updates.
 /// </summary>
@@ -515,3 +524,5 @@ internal sealed partial class ChatPanelContainer(ChatPanel owner) : PanelContain
             owner.OnResized();
     }
 }
+
+#endregion

@@ -10,8 +10,8 @@ public record IntentTextSubmit : IIntent
 
 public record IntentSendSegments : IIntent
 {
-    public ulong? senderId { get; init; } // 0 for system, null to autofill, (also can be specified ? but shouldn't?
-    public ulong? receiverId { get; init; } // 0 for broadcast, null to autofill
+    public ulong? SenderId { get; init; } // 0 for system, null to autofill, (also can be specified ? but shouldn't?
+    public ulong? ReceiverId { get; init; } // 0 for broadcast, null to autofill
     public required IReadOnlyCollection<IMsgSegment> Segments { get; init; }
 }
 
