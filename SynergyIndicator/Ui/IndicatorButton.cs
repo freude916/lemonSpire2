@@ -24,7 +24,8 @@ public partial class IndicatorButton : Button
 
     private static readonly StyleBoxFlat InteractiveStyle = new()
     {
-        BorderColor = new Color(1f, 1f, 1f, 0.5f),
+        BgColor = new Color(1, 1, 1, 0), // 透明背景
+        BorderColor = new Color(1, 1, 1, 0), // 透明边框
         BorderWidthLeft = 2,
         BorderWidthRight = 2,
         BorderWidthTop = 2,
@@ -86,10 +87,13 @@ public partial class IndicatorButton : Button
     public void SetStatus(IndicatorStatus status)
     {
         if (Status == status) return;
+
+        var previousStatus = Status;
         Status = status;
-        // IndicatorHandler.SendMessage(Type, status);
         UpdateStatusVisual();
-        PlayFlashAnimation();
+
+        if (previousStatus == IndicatorStatus.WontUse && status == IndicatorStatus.WillUse)
+            PlayFlashAnimation();
     }
 
     /// <summary>

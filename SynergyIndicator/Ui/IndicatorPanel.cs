@@ -73,11 +73,22 @@ public partial class IndicatorPanel : HBoxContainer
 
         var button = new IndicatorButton();
         button.Setup(type, initialStatus, IsInteractive);
-        button.PlayFlashAnimation();
         button.MouseFilter = IsInteractive ? MouseFilterEnum.Stop : MouseFilterEnum.Ignore;
         AddChild(button);
         button.IndicatorClicked += OnIndicatorClicked;
         _buttons[type] = button;
+    }
+
+    /// <summary>
+    ///     移除指定类型的指示器按钮
+    /// </summary>
+    public void RemoveIndicator(IndicatorType type)
+    {
+        if (!_buttons.TryGetValue(type, out var button)) return;
+
+        RemoveChild(button);
+        button.QueueFree();
+        _buttons.Remove(type);
     }
 
     /// <summary>
@@ -134,6 +145,14 @@ public partial class IndicatorPanel : HBoxContainer
     public bool HasIndicator(IndicatorType type)
     {
         return _buttons.ContainsKey(type);
+    }
+
+    /// <summary>
+    ///     获取当前显示的所有指示器类型
+    /// </summary>
+    public IEnumerable<IndicatorType> GetIndicatorTypes()
+    {
+        return _buttons.Keys;
     }
 
     public IndicatorButton? GetButton(IndicatorType type)
