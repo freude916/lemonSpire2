@@ -59,202 +59,11 @@ public sealed class ChatPanel : IDisposable
         _container.QueueFree();
     }
 
-    #region Ui Base
-    private void CreateUi()
-    {
-        _container = new ChatPanelContainer(this)
-        {
-            Name = "ChatPanel",
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            GrowVertical = Control.GrowDirection.End
-        };
-
-        _panelStyle = new StyleBoxFlat
-        {
-            BgColor = ChatConfig.PanelBgColor,
-            BorderColor = ChatConfig.PanelBorderColor,
-            BorderWidthTop = ChatConfig.BorderWidth,
-            BorderWidthRight = ChatConfig.BorderWidth
-        };
-        _container.AddThemeStyleboxOverride("panel", _panelStyle);
-
-        // layout
-        _vboxLayout = new VBoxContainer
-        {
-            Name = "VBoxLayout",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Ignore
-        };
-        _container.AddChild(_vboxLayout);
-
-        // 标题栏（拖拽条）- 展开时显示，折叠时隐藏
-        _titleBar = new DraggableTitleBar
-        {
-            Name = "DragBar",
-            CustomMinimumSize = new Vector2(100, 24)
-        };
-        _titleBar.SetTitle(new LocString("gameplay_ui", "LEMONSPIRE.chat.title").GetFormattedText());
-        _titleBar.SetDragTarget(_container);
-        _titleBar.SetDragCallbacks(onDragEnd: () => PanelPositionHelper.ClampToViewport(_container));
-
-        // 样式：背景色 + padding
-        var titleStyle = new StyleBoxFlat
-        {
-            BgColor = new Color(0.3f, 0.5f, 0.3f, 0.5f), // 半透明绿色便于调试
-            ContentMarginLeft = 8,
-            ContentMarginRight = 8,
-            ContentMarginTop = 4,
-            ContentMarginBottom = 4
-        };
-        _titleBar.AddThemeStyleboxOverride("panel", titleStyle);
-
-        _vboxLayout.AddChild(_titleBar);
-
-        // Message buffer
-        _messageBuffer = new RichTextLabel
-        {
-            Name = "MessageBuffer",
-            BbcodeEnabled = true,
-            ScrollActive = true,
-            ScrollFollowing = true,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Ignore
-        };
-        _messageBuffer.AddThemeColorOverride("default_color", Colors.White);
-        _messageBuffer.AddThemeFontSizeOverride("normal_font_size", ChatConfig.FontSize);
-        _vboxLayout.AddChild(_messageBuffer);
-
-        _messageBuffer.MetaClicked += OnMetaClicked;
-        _messageBuffer.MetaHoverStarted += OnMetaHoverStarted;
-        _messageBuffer.MetaHoverEnded += OnMetaHoverEnded;
-
-        // Input container
-        _inputContainer = new HBoxContainer
-        {
-            Name = "InputContainer",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Ignore
-        };
-        _vboxLayout.AddChild(_inputContainer);
-
-        // Input field (no prompt label)
-        _inputField = new LineEdit
-        {
-            Name = "InputField",
-            PlaceholderText = new LocString("gameplay_ui", "LEMONSPIRE.chat.placeholder").GetFormattedText(),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            CaretBlink = true
-        };
-        _inputField.AddThemeColorOverride("font_color", Colors.White);
-        _inputField.AddThemeColorOverride("font_placeholder_color", ChatConfig.PlaceholderColor);
-        _inputField.AddThemeColorOverride("caret_color", ChatConfig.CaretColor);
-        _inputField.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
-
-        _inputStyle = new StyleBoxFlat { BgColor = ChatConfig.InputBgColor };
-        _inputField.AddThemeStyleboxOverride("normal", _inputStyle);
-        _inputField.AddThemeStyleboxOverride("focus", _inputStyle);
-        _inputField.AddThemeStyleboxOverride("read_only", _inputStyle);
-
-        _inputField.TextSubmitted += OnTextSubmitted;
-        _inputContainer.AddChild(_inputField);
-
-        // 初始化时隐藏拖拽条（默认折叠状态）
-        _titleBar.Visible = false;
-        _titleBar.CustomMinimumSize = new Vector2(0, 0);
-    }
-
-    public Control GetControl()
-    {
-        return _container;
-    }
-
-    public void ResetPosition()
-    {
-        _container.SetAnchorsPreset(Control.LayoutPreset.BottomLeft, true);
-
-        _container.OffsetLeft = ChatConfig.PositionOffsetX;
-        _container.OffsetBottom = -ChatConfig.PositionOffsetY;
-
-        _titleBar.CustomMinimumSize = new Vector2(_vboxLayout.Size.X, _titleBar.CustomMinimumSize.Y);
-
-        // _container.GrowVertical = Control.GrowDirection.End;
-        // _container.GrowHorizontal = Control.GrowDirection.Begin;
-
-        // This is of no use at all! GrowDirection only affects when size **increases**, but decreasing size won't move it at all
-    }
-
-    internal void Initialize()
-    {
-        _tooltipManager.Initialize(_tooltipParent);
-        DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
-        UpdateLayout();
-        ShowWelcome();
-
-        // 订阅窗口大小变化事件
-        ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
-    }
-
-    private void OnViewportResized(Vector2 _)
-    {
-        PanelPositionHelper.ClampToViewport(_container);
-    }
-
-    private void ShowWelcome()
-    {
-        var welcomeText = new LocString("gameplay_ui", "LEMONSPIRE.chat.welcome").GetFormattedText();
-        _messageBuffer.Text = $"[color=#{ChatConfig.TimeColor.ToHtml()}]{welcomeText}[/color]";
-    }
-
-    #endregion
-
     #region Model Events: Message Update Source
 
     private void OnMessageAppended(ChatMessage message)
     {
         DisplayMessage(message);
-    }
-
-    #endregion
-
-    #region Ui Intents
-
-    private void OnTextSubmitted(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return;
-
-        text = text.Trim();
-
-        _inputHistory.Add(text);
-        if (_inputHistory.Count > ChatConfig.MaxHistoryCount)
-            _inputHistory.RemoveAt(0);
-
-        _historyIndex = 0;
-        _inputField.Text = "";
-
-        _dispatch(new IntentTextSubmit { Text = text });
-        _inputField.CallDeferred(Control.MethodName.GrabFocus);
-    }
-
-    private void OnMetaClicked(Variant meta)
-    {
-        _dispatch(new IntentMetaClick { Meta = meta.AsString() });
-    }
-
-    private void OnMetaHoverStarted(Variant meta)
-    {
-        _dispatch(new IntentMetaHoverStart
-        {
-            Meta = meta.AsString(),
-            GlobalPosition = _container.GetGlobalMousePosition()
-        });
-    }
-
-    private void OnMetaHoverEnded(Variant meta)
-    {
-        _dispatch(new IntentMetaHoverEnd { Meta = meta.AsString() });
     }
 
     #endregion
@@ -448,7 +257,7 @@ public sealed class ChatPanel : IDisposable
 
     private void DisplayMessage(ChatMessage message)
     {
-        MainFile.Logger.Debug($"DisplayMessage: segments={message.Segments.Count}, sender={message.SenderName}");
+        ChatUiPatch.Log.Debug($"DisplayMessage: segments={message.Segments.Count}, sender={message.SenderName}");
 
         if (_hasWelcome)
         {
@@ -459,7 +268,7 @@ public sealed class ChatPanel : IDisposable
         DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
 
         var senderName = message.SenderName ?? $"Player {message.SenderId}";
-        var time = message.Timestamp.ToString("HH:mm", CultureInfo.InvariantCulture);
+        var time = message.Timestamp.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
         // [time]
         _messageBuffer.PushColor(ChatConfig.TimeColor);
@@ -482,47 +291,200 @@ public sealed class ChatPanel : IDisposable
     {
         segment.RenderTo(_messageBuffer);
     }
+
+    #region Ui Base
+
+    private void CreateUi()
+    {
+        _container = new ChatPanelContainer(this)
+        {
+            Name = "ChatPanel",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            GrowVertical = Control.GrowDirection.End
+        };
+
+        _panelStyle = new StyleBoxFlat
+        {
+            BgColor = ChatConfig.PanelBgColor,
+            BorderColor = ChatConfig.PanelBorderColor,
+            BorderWidthTop = ChatConfig.BorderWidth,
+            BorderWidthRight = ChatConfig.BorderWidth
+        };
+        _container.AddThemeStyleboxOverride("panel", _panelStyle);
+
+        // layout
+        _vboxLayout = new VBoxContainer
+        {
+            Name = "VBoxLayout",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _container.AddChild(_vboxLayout);
+
+        // 标题栏（拖拽条）- 展开时显示，折叠时隐藏
+        _titleBar = new DraggableTitleBar
+        {
+            Name = "DragBar",
+            CustomMinimumSize = new Vector2(100, 24)
+        };
+        _titleBar.SetTitle(new LocString("gameplay_ui", "LEMONSPIRE.chat.title").GetFormattedText());
+        _titleBar.SetDragTarget(_container);
+        _titleBar.SetDragCallbacks(onDragEnd: () => PanelPositionHelper.ClampToViewport(_container));
+
+        // 样式：背景色 + padding
+        var titleStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.3f, 0.5f, 0.3f, 0.5f), // 半透明绿色便于调试
+            ContentMarginLeft = 8,
+            ContentMarginRight = 8,
+            ContentMarginTop = 4,
+            ContentMarginBottom = 4
+        };
+        _titleBar.AddThemeStyleboxOverride("panel", titleStyle);
+
+        _vboxLayout.AddChild(_titleBar);
+
+        // Message buffer
+        _messageBuffer = new RichTextLabel
+        {
+            Name = "MessageBuffer",
+            BbcodeEnabled = true,
+            ScrollActive = true,
+            ScrollFollowing = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _messageBuffer.AddThemeColorOverride("default_color", Colors.White);
+        _messageBuffer.AddThemeFontSizeOverride("normal_font_size", ChatConfig.FontSize);
+        _vboxLayout.AddChild(_messageBuffer);
+
+        _messageBuffer.MetaClicked += OnMetaClicked;
+        _messageBuffer.MetaHoverStarted += OnMetaHoverStarted;
+        _messageBuffer.MetaHoverEnded += OnMetaHoverEnded;
+
+        // Input container
+        _inputContainer = new HBoxContainer
+        {
+            Name = "InputContainer",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _vboxLayout.AddChild(_inputContainer);
+
+        // Input field (no prompt label)
+        _inputField = new LineEdit
+        {
+            Name = "InputField",
+            PlaceholderText = new LocString("gameplay_ui", "LEMONSPIRE.chat.placeholder").GetFormattedText(),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            CaretBlink = true
+        };
+        _inputField.AddThemeColorOverride("font_color", Colors.White);
+        _inputField.AddThemeColorOverride("font_placeholder_color", ChatConfig.PlaceholderColor);
+        _inputField.AddThemeColorOverride("caret_color", ChatConfig.CaretColor);
+        _inputField.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
+
+        _inputStyle = new StyleBoxFlat { BgColor = ChatConfig.InputBgColor };
+        _inputField.AddThemeStyleboxOverride("normal", _inputStyle);
+        _inputField.AddThemeStyleboxOverride("focus", _inputStyle);
+        _inputField.AddThemeStyleboxOverride("read_only", _inputStyle);
+
+        _inputField.TextSubmitted += OnTextSubmitted;
+        _inputContainer.AddChild(_inputField);
+
+        // 初始化时隐藏拖拽条（默认折叠状态）
+        _titleBar.Visible = false;
+        _titleBar.CustomMinimumSize = new Vector2(0, 0);
+    }
+
+    public Control GetControl()
+    {
+        return _container;
+    }
+
+    public void ResetPosition()
+    {
+        _container.SetAnchorsPreset(Control.LayoutPreset.BottomLeft, true);
+
+        _container.OffsetLeft = ChatConfig.PositionOffsetX;
+        _container.OffsetBottom = -ChatConfig.PositionOffsetY;
+
+        _titleBar.CustomMinimumSize = new Vector2(_vboxLayout.Size.X, _titleBar.CustomMinimumSize.Y);
+
+        // _container.GrowVertical = Control.GrowDirection.End;
+        // _container.GrowHorizontal = Control.GrowDirection.Begin;
+
+        // This is of no use at all! GrowDirection only affects when size **increases**, but decreasing size won't move it at all
+    }
+
+    internal void Initialize()
+    {
+        _tooltipManager.Initialize(_tooltipParent);
+        DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
+        UpdateLayout();
+        ShowWelcome();
+
+        // 订阅窗口大小变化事件
+        ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
+    }
+
+    private void OnViewportResized(Vector2 _)
+    {
+        PanelPositionHelper.ClampToViewport(_container);
+    }
+
+    private void ShowWelcome()
+    {
+        var welcomeText = new LocString("gameplay_ui", "LEMONSPIRE.chat.welcome").GetFormattedText();
+        _messageBuffer.Text = $"[color=#{ChatConfig.TimeColor.ToHtml()}]{welcomeText}[/color]";
+    }
+
+    #endregion
+
+    #region Ui Intents
+
+    private void OnTextSubmitted(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            ChatUiPatch.Log.VeryDebug("should not send blank message");
+            return;
+        }
+
+        text = text.Trim();
+
+        _inputHistory.Add(text);
+        if (_inputHistory.Count > ChatConfig.MaxHistoryCount)
+            _inputHistory.RemoveAt(0);
+
+        _historyIndex = 0;
+        _inputField.Text = "";
+
+        _dispatch(new IntentTextSubmit { Text = text });
+        _inputField.CallDeferred(Control.MethodName.GrabFocus);
+    }
+
+    private void OnMetaClicked(Variant meta)
+    {
+        _dispatch(new IntentMetaClick { Meta = meta.AsString() });
+    }
+
+    private void OnMetaHoverStarted(Variant meta)
+    {
+        _dispatch(new IntentMetaHoverStart
+        {
+            Meta = meta.AsString(),
+            GlobalPosition = _container.GetGlobalMousePosition()
+        });
+    }
+
+    private void OnMetaHoverEnded(Variant meta)
+    {
+        _dispatch(new IntentMetaHoverEnd { Meta = meta.AsString() });
+    }
+
+    #endregion
 }
-
-#region ChatPanelContainer
-
-/// <summary>
-///     Internal container handling input events and frame updates.
-/// </summary>
-internal sealed partial class ChatPanelContainer(ChatPanel owner) : PanelContainer
-{
-    private readonly WeakReference<ChatPanel> _ownerRef = new(owner);
-
-    public override void _Ready()
-    {
-        ProcessMode = ProcessModeEnum.Always;
-        if (_ownerRef.TryGetTarget(out var owner))
-            owner.Initialize();
-    }
-
-    public override void _ExitTree()
-    {
-        if (_ownerRef.TryGetTarget(out var owner))
-            owner.Dispose();
-    }
-
-    public override void _Input(InputEvent @event)
-    {
-        if (_ownerRef.TryGetTarget(out var owner) && owner.HandleInput(@event))
-            GetViewport()?.SetInputAsHandled();
-    }
-
-    public override void _Process(double delta)
-    {
-        if (_ownerRef.TryGetTarget(out var owner))
-            owner.ProcessFrame(delta);
-    }
-
-    public override void _Notification(int what)
-    {
-        if (what == NotificationResized && _ownerRef.TryGetTarget(out var owner))
-            owner.OnResized();
-    }
-}
-
-#endregion

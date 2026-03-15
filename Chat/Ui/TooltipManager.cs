@@ -59,7 +59,11 @@ public sealed class TooltipManager
 
     private void OnHoverStart(IntentMetaHoverStart intent)
     {
-        if (_parent is null) return;
+        if (_parent is null)
+        {
+            ChatUiPatch.Log.Error("execute hover start without parent defined??? skipped.");
+            return;
+        }
 
         var mousePosition = intent.GlobalPosition;
 
@@ -72,14 +76,14 @@ public sealed class TooltipManager
         var tooltip = Tooltip.FromMetaString(intent.Meta);
         if (tooltip is null)
         {
-            MainFile.Logger.Warn($"Failed to resolve tooltip from meta: {intent.Meta}");
+            ChatUiPatch.Log.Warn($"Failed to resolve tooltip from meta: {intent.Meta}");
             return;
         }
 
         var preview = tooltip.CreatePreview();
         if (preview is null)
         {
-            MainFile.Logger.Warn($"CreatePreview returned null for {tooltip.GetType().Name}");
+            ChatUiPatch.Log.Warn($"CreatePreview returned null for {tooltip.GetType().Name}");
             return;
         }
 

@@ -1,7 +1,6 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using lemonSpire2.PlayerStateEx.OverlayPanel;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
@@ -11,6 +10,7 @@ using MegaCrit.Sts2.Core.Nodes.Screens.Capstones;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 using PlayerOverlayPanel = lemonSpire2.PlayerStateEx.OverlayPanel.PlayerOverlayPanel;
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace lemonSpire2.PlayerStateEx;
 
@@ -43,6 +43,8 @@ public static class NMultiplayerPlayerStatePatch
     /// </summary>
     private static readonly Dictionary<NMultiplayerPlayerState, double> LastClickTimes = [];
 
+    private static Logger Log => PlayerPanelRegistry.Log;
+
     #region Tooltip on hover
 
     [HarmonyPostfix]
@@ -69,7 +71,7 @@ public static class NMultiplayerPlayerStatePatch
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
         if (!hoverTips.Any())
         {
-            MainFile.Logger.Debug($"[NMultiplayerPlayerStatePatch] No hover tips for player {player.NetId}");
+            Log.Debug($"No hover tips for player {player.NetId}");
             return;
         }
 
@@ -190,7 +192,7 @@ public static class NMultiplayerPlayerStatePatch
 
         ActivePanels[playerId] = new WeakReference<PlayerOverlayPanel>(panel);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
-        MainFile.Logger.Info($"Showing floating panel for player {playerName}");
+        Log.Info($"Showing floating panel for player {playerName}");
     }
 
     private static void OpenExpandedState(NMultiplayerPlayerState instance)
@@ -205,7 +207,7 @@ public static class NMultiplayerPlayerStatePatch
         var screen = NMultiplayerPlayerExpandedState.Create(player);
         NCapstoneContainer.Instance?.Open(screen);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
-        MainFile.Logger.Info($"Opening expanded state for player {playerName}");
+        Log.Info($"Opening expanded state for player {playerName}");
     }
 
     #endregion

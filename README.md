@@ -70,10 +70,12 @@ Therefore, we changed the "click character status" function to bring up a small 
 teammates' hand for the current turn and their available potions.
 (The original full-screen panel can now be opened via **Double-Click** or **Right-Click**).
 
+In shop, hover panel will show the gold amount and the shop items.
+
 This feature also supports extensions, please check `lemonSpire2.NPlayerState.Panel` to learn how to shove new
 information into the panel.
 
-By the way, items inside this hover panel also support `Alt + Click` to send to chat.
+By the way, items mentioned above inside this hover panel also support `Alt + Click` to send to chat.
 
 ## TODOs
 

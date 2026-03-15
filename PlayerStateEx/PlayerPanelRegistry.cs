@@ -1,5 +1,7 @@
-using lemonSpire2.PlayerStateEx.OverlayPanel;
+using lemonSpire2.PlayerStateEx.PanelProvider;
 using lemonSpire2.util;
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+using LogType = MegaCrit.Sts2.Core.Logging.LogType;
 
 namespace lemonSpire2.PlayerStateEx;
 
@@ -11,6 +13,7 @@ public static class PlayerPanelRegistry
 {
     private static readonly PriorityRegistry<IPlayerPanelProvider> Registry = new();
     private static bool _initialized;
+    internal static Logger Log { get; } = new("lemon.player", LogType.Generic);
 
     /// <summary>
     ///     初始化注册表，注册内置提供者
@@ -26,7 +29,7 @@ public static class PlayerPanelRegistry
         Register(new ShopProvider());
         Register(new CardRewardProvider());
 
-        MainFile.Logger.Info($"PlayerPanelRegistry initialized with {Registry.Items.Count} providers");
+        Log.Info($"PlayerPanelRegistry initialized with {Registry.Items.Count} providers");
     }
 
     /// <summary>
@@ -37,12 +40,12 @@ public static class PlayerPanelRegistry
         ArgumentNullException.ThrowIfNull(provider);
         if (Registry.Items.Any(p => p.ProviderId == provider.ProviderId))
         {
-            MainFile.Logger.Warn($"Provider {provider.ProviderId} already registered, skipping");
+            Log.Warn($"Provider {provider.ProviderId} already registered, skipping");
             return;
         }
 
         Registry.Register(provider, p => p.Priority, p => p.ProviderId);
-        MainFile.Logger.Debug($"Registered player panel provider: {provider.ProviderId}");
+        Log.Debug($"Registered player panel provider: {provider.ProviderId}");
     }
 
     /// <summary>

@@ -1,7 +1,6 @@
 using Godot;
 using lemonSpire2.SynergyIndicator.Message;
 using lemonSpire2.SynergyIndicator.Models;
-using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
@@ -39,6 +38,12 @@ public sealed class IndicatorManager : IDisposable
     }
 
     public static IndicatorManager Instance => _instance ??= new IndicatorManager();
+
+    public void Dispose()
+    {
+        _noticeSound?.Dispose();
+        _networkHandler?.Dispose();
+    }
 
     public void InitializeNetwork(INetGameService netService)
     {
@@ -169,19 +174,9 @@ public sealed class IndicatorManager : IDisposable
         ulong netId)
     {
         foreach (var type in shouldShowTypes.Where(type => !currentTypes.Contains(type)))
-        {
             Instance.AddIndicator(netId, type, IndicatorStatus.WillUse);
-        }
 
         foreach (var type in currentTypes.Where(type => !shouldShowTypes.Contains(type)))
-        {
             Instance.RemoveIndicator(netId, type);
-        }
-    }
-
-    public void Dispose()
-    {
-        _noticeSound?.Dispose();
-        _networkHandler?.Dispose();
     }
 }

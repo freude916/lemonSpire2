@@ -24,21 +24,6 @@ public abstract class NetworkHandlerBase<TMessage> : IDisposable where TMessage 
     /// </summary>
     protected ulong LocalPlayerId => _netService.NetId;
 
-    /// <summary>
-    ///     检测是否为自己发送的消息
-    /// </summary>
-    protected bool IsSelf(ulong senderId) => senderId == LocalPlayerId;
-
-    /// <summary>
-    ///     发送消息
-    /// </summary>
-    protected void SendMessage(TMessage message) => _netService.SendMessage(message);
-
-    /// <summary>
-    ///     接收消息处理（子类实现）
-    /// </summary>
-    protected abstract void OnReceiveMessage(TMessage message, ulong senderId);
-
     public void Dispose()
     {
         if (_disposed) return;
@@ -46,4 +31,25 @@ public abstract class NetworkHandlerBase<TMessage> : IDisposable where TMessage 
         _netService.UnregisterMessageHandler<TMessage>(OnReceiveMessage);
         GC.SuppressFinalize(this);
     }
+
+    /// <summary>
+    ///     检测是否为自己发送的消息
+    /// </summary>
+    protected bool IsSelf(ulong senderId)
+    {
+        return senderId == LocalPlayerId;
+    }
+
+    /// <summary>
+    ///     发送消息
+    /// </summary>
+    protected void SendMessage(TMessage message)
+    {
+        _netService.SendMessage(message);
+    }
+
+    /// <summary>
+    ///     接收消息处理（子类实现）
+    /// </summary>
+    protected abstract void OnReceiveMessage(TMessage message, ulong senderId);
 }

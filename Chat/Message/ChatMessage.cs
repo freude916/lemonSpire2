@@ -7,7 +7,7 @@ public record ChatMessage : BasePlayerMessage
 {
     public required IReadOnlyCollection<IMsgSegment> Segments { get; set; } = [];
 
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
     public string? SenderName { get; set; } // Optional display name, for UI convenience
 
@@ -27,7 +27,7 @@ public record ChatMessage : BasePlayerMessage
         writer.WriteULong(SenderId);
         writer.WriteString(SenderName ?? "");
         writer.WriteULong(ReceiverId);
-        writer.WriteLong(Timestamp.Ticks);
+        writer.WriteLong(Timestamp.ToUnixTimeSeconds());
     }
 
     public override void Deserialize(PacketReader reader)
@@ -52,6 +52,6 @@ public record ChatMessage : BasePlayerMessage
         var name = reader.ReadString();
         SenderName = string.IsNullOrEmpty(name) ? null : name;
         ReceiverId = reader.ReadULong();
-        Timestamp = new DateTime(reader.ReadLong());
+        Timestamp = DateTimeOffset.FromUnixTimeSeconds(reader.ReadLong());
     }
 }

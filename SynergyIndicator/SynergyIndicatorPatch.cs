@@ -1,10 +1,8 @@
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Multiplayer.Game;
-using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
-using MegaCrit.Sts2.Core.Runs;
 
 namespace lemonSpire2.SynergyIndicator;
 
@@ -19,6 +17,8 @@ public static class SynergyIndicatorPatch
         Dictionary<NMultiplayerPlayerState, (Action<CardModel> CardAdded, Action<CardModel> CardRemoved)>
         _eventHandlers =
             new();
+
+    internal static Logger Log { get; } = new("lemon.synergy", LogType.GameSync);
 
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
@@ -77,20 +77,5 @@ public static class SynergyIndicatorPatch
                 __instance.Player.PlayerCombatState.Hand.CardAdded -= handlers.CardAdded;
                 __instance.Player.PlayerCombatState.Hand.CardRemoved -= handlers.CardRemoved;
             }
-    }
-}
-
-[HarmonyPatchCategory("HandshakeIndicator")]
-[HarmonyPatch(typeof(NGlobalUi), "Initialize")]
-public static class SynergyIndicatorNetworkPatch
-{
-    [HarmonyPostfix]
-    public static void Postfix(NGlobalUi __instance, RunState runState)
-    {
-        var netService = RunManager.Instance.NetService;
-        if (!netService.Type.IsMultiplayer()) return;
-
-        IndicatorManager.Instance.InitializeNetwork(netService);
-        MainFile.Logger.Info("IndicatorManager network initialized");
     }
 }

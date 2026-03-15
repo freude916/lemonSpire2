@@ -29,17 +29,19 @@ public static class PanelPositionHelper
         var minX = margin;
         var maxX = viewportSize.X - panelSize.X - margin;
         if (clampX)
-        {
-            x = maxX < minX ? minX : Mathf.Clamp(x, minX, maxX); // Control too wide... but close button is at right ?? how to solve this...
-        }
+            x = maxX < minX
+                ? minX
+                : Mathf.Clamp(x, minX,
+                    maxX); // Control too wide... but close button is at right ?? how to solve this...
 
         // Y 方向 Clamp
         var minY = margin;
         var maxY = viewportSize.Y - panelSize.Y - margin;
         if (clampY)
-        {
-            y = maxY < minY ? minY : Mathf.Clamp(y, minY, maxY); // Control too high! since title bar is at top for drag, we have to keep that
-        }
+            y = maxY < minY
+                ? minY
+                : Mathf.Clamp(y, minY,
+                    maxY); // Control too high! since title bar is at top for drag, we have to keep that
 
         panel.GlobalPosition = new Vector2(x, y);
     }

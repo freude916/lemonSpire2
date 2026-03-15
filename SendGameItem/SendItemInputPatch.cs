@@ -1,9 +1,10 @@
 using HarmonyLib;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Runs;
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+using LogType = MegaCrit.Sts2.Core.Logging.LogType;
 
 namespace lemonSpire2.SendGameItem;
 
@@ -15,6 +16,7 @@ namespace lemonSpire2.SendGameItem;
 public static class SendItemInputPatch
 {
     internal static readonly WeakNodeRegistry<ItemInputCapture> Captures = new();
+    internal static Logger Log { get; } = new("lemon.item", LogType.Network);
 
     [HarmonyPostfix]
     public static void Postfix(NGlobalUi __instance, RunState runState)
@@ -22,7 +24,10 @@ public static class SendItemInputPatch
         ArgumentNullException.ThrowIfNull(__instance);
         var netService = RunManager.Instance.NetService;
         if (!netService.Type.IsMultiplayer())
+        {
+            Log.Debug("Not multiplayer, skipping ItemInputCapture injection");
             return;
+        }
 
         var capture = new ItemInputCapture
         {
@@ -31,18 +36,6 @@ public static class SendItemInputPatch
 
         __instance.AddChild(capture);
         Captures.Register(capture);
-        MainFile.Logger.Info("ItemInputCapture injected");
-    }
-}
-
-[HarmonyPatchCategory("Chat")]
-[HarmonyPatch(typeof(NGame), "_ExitTree")]
-public static class ItemInputCaptureCleanupPatch
-{
-    [HarmonyPrefix]
-    public static void Prefix()
-    {
-        SendItemInputPatch.Captures.ForEachLive(c => c.QueueFree());
-        MainFile.Logger.Debug("ItemInputCapture instances cleaned up");
+        Log.Info("ItemInputCapture injected");
     }
 }

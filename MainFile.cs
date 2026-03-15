@@ -2,10 +2,10 @@ using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
 using lemonSpire2.PlayerStateEx;
-using lemonSpire2.PlayerStateEx.RewardEx;
-using lemonSpire2.PlayerStateEx.ShopEx;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;
+using lemonSpire2.SyncReward;
+using lemonSpire2.SyncShop;
 using lemonSpire2.SynergyIndicator;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
@@ -18,12 +18,16 @@ public partial class MainFile : Node
 {
     internal const string ModId = "lemonSpire2";
 
-    public static Logger Logger { get; } =
-        new(ModId, LogType.Generic);
+    public static Logger Log { get; } = new(ModId, LogType.Generic);
 
     public static void Initialize()
     {
+        // 设置日志级别为 Debug，启用所有模块的调试日志
+        SetupLogLevels();
+
         Harmony harmony = new(ModId);
+
+        if (EnableQoL) harmony.CreateClassProcessor(typeof(NMultiplayerPlayerExpandedStatePatch)).Patch();
 
         if (EnableChat)
         {
@@ -46,14 +50,10 @@ public partial class MainFile : Node
             PlayerTooltipRegistry.Register(new StatsTooltipProvider());
         }
 
-        if (EnableShopSync)
+        if (EnableSync)
         {
             harmony.CreateClassProcessor(typeof(ShopNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
-        }
-
-        if (EnableCardRewardSync)
-        {
             harmony.CreateClassProcessor(typeof(CardRewardNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RewardsScreenPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RunManagerPatch)).Patch();
@@ -62,10 +62,28 @@ public partial class MainFile : Node
         if (PlayerTooltipRegistry.HasProviders)
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
-        Logger.Info("lemonSpire2 mod initialized");
+        Log.Info("lemonSpire2 mod initialized");
+    }
+
+    private static void SetupLogLevels()
+    {
+        // 为所有 LogType 设置 Debug 级别，启用调试日志
+        if (false)
+        {
+            Logger.SetLogLevelForType(LogType.Generic, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.Network, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.Actions, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.GameSync, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.VisualSync, LogLevel.Debug);
+        }
     }
 
     #region Feature Flags
+
+    /// <summary>
+    ///     Multiplayer QoL System:
+    /// </summary>
+    public static bool EnableQoL { get; set; } = true;
 
     /// <summary> Multiplayer Chat System</summary>
     public static bool EnableChat { get; set; } = true;
@@ -77,11 +95,8 @@ public partial class MainFile : Node
     /// <summary> Stastics Tracker </summary>
     public static bool EnableStatsTracker { get; set; } = true;
 
-    /// <summary> Shop Inventory Sync </summary>
-    public static bool EnableShopSync { get; set; } = true;
-
-    /// <summary> Card Reward Sync </summary>
-    public static bool EnableCardRewardSync { get; set; } = true;
+    /// <summary> Extra Sync </summary>
+    public static bool EnableSync { get; set; } = true;
 
     #endregion
 }
