@@ -266,7 +266,6 @@ public class ShopProvider : IPlayerPanelProvider
         if (nPotion == null) return;
 
         var holder = NPotionHolder.Create(false);
-        if (holder == null) return;
 
         var container = new VBoxContainer
         {

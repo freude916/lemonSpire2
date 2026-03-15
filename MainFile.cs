@@ -27,6 +27,11 @@ public partial class MainFile : Node
 
         Harmony harmony = new(ModId);
 
+        if (EnableQoL)
+        {
+            harmony.CreateClassProcessor(typeof(NMultiplayerPlayerExpandedStatePatch)).Patch();
+        }
+
         if (EnableChat)
         {
             harmony.CreateClassProcessor(typeof(ChatUiPatch)).Patch();
@@ -48,14 +53,10 @@ public partial class MainFile : Node
             PlayerTooltipRegistry.Register(new StatsTooltipProvider());
         }
 
-        if (EnableShopSync)
+        if (EnableSync)
         {
             harmony.CreateClassProcessor(typeof(ShopNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
-        }
-
-        if (EnableCardRewardSync)
-        {
             harmony.CreateClassProcessor(typeof(CardRewardNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RewardsScreenPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RunManagerPatch)).Patch();
@@ -70,14 +71,21 @@ public partial class MainFile : Node
     private static void SetupLogLevels()
     {
         // 为所有 LogType 设置 Debug 级别，启用调试日志
-        Logger.SetLogLevelForType(LogType.Generic, LogLevel.Debug);
-        Logger.SetLogLevelForType(LogType.Network, LogLevel.Debug);
-        Logger.SetLogLevelForType(LogType.Actions, LogLevel.Debug);
-        Logger.SetLogLevelForType(LogType.GameSync, LogLevel.Debug);
-        Logger.SetLogLevelForType(LogType.VisualSync, LogLevel.Debug);
+        if(false){
+            Logger.SetLogLevelForType(LogType.Generic, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.Network, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.Actions, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.GameSync, LogLevel.Debug);
+            Logger.SetLogLevelForType(LogType.VisualSync, LogLevel.Debug);
+        }
     }
 
     #region Feature Flags
+
+    /// <summary>
+    /// Multiplayer QoL System:
+    /// </summary>
+    public static bool EnableQoL { get; set; } = true;
 
     /// <summary> Multiplayer Chat System</summary>
     public static bool EnableChat { get; set; } = true;
@@ -89,11 +97,9 @@ public partial class MainFile : Node
     /// <summary> Stastics Tracker </summary>
     public static bool EnableStatsTracker { get; set; } = true;
 
-    /// <summary> Shop Inventory Sync </summary>
-    public static bool EnableShopSync { get; set; } = true;
-
-    /// <summary> Card Reward Sync </summary>
-    public static bool EnableCardRewardSync { get; set; } = true;
+    /// <summary> Extra Sync </summary>
+    public static bool EnableSync { get; set; } = true;
 
     #endregion
+
 }

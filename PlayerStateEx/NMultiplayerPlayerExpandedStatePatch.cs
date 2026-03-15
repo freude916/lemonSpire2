@@ -15,7 +15,7 @@ namespace lemonSpire2.PlayerStateEx;
 [HarmonyPatch(typeof(NMultiplayerPlayerExpandedState))]
 public static class NMultiplayerPlayerExpandedStatePatch
 {
-    // Godot 方法通过字符串名称调用，不能用 nameof()
+    // 私有方法通过字符串名称调用，不能用 nameof()
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
     public static void ReadyPostfix(NMultiplayerPlayerExpandedState __instance)

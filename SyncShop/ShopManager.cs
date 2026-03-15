@@ -36,7 +36,7 @@ public class ShopManager
     /// </summary>
     public void UpdateInventory(ulong playerNetId, Collection<ShopItemEntry> items)
     {
-        _shopInventories[playerNetId] = items;
+        _shopInventories[playerNetId] = items ?? throw new ArgumentNullException(nameof(items));
         Log.Debug($"UpdateInventory: player={playerNetId}, items={items.Count}");
         InventoryUpdated?.Invoke(playerNetId);
     }

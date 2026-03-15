@@ -24,6 +24,7 @@ public sealed class CardRewardNetworkHandler : NetworkHandlerBase<CardRewardMess
     /// </summary>
     public void BroadcastCardReward(CardRewardGroup group)
     {
+        ArgumentNullException.ThrowIfNull(group);
         var message = new CardRewardMessage
         {
             SenderId = LocalPlayerId,

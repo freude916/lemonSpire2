@@ -1,3 +1,4 @@
+using System.Numerics;
 using Godot;
 using lemonSpire2.PlayerStateEx.PanelProvider;
 using lemonSpire2.SyncShop;
@@ -7,10 +8,12 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
+using lemonSpire2.SyncReward;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
 using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
 
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+using Vector2 = Godot.Vector2;
 
 namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 
@@ -23,17 +26,18 @@ public partial class PlayerOverlayPanel : Control
 {
     private static Logger Log => PlayerPanelRegistry.Log;
     private const float MinContentHeight = 80f;
-    private const float PanelWidth = 400f;
+    private const float PanelWidth = 280f;
     private readonly Dictionary<string, Control> _providerContents = [];
     private readonly List<Action> _unsubscribeActions = [];
 
-    private VBoxContainer? _contentContainer;
-    private DraggableTitleBar? _header;
-    private Label? _headerTitle;
-    private VBoxContainer? _mainContainer;
-    private PanelContainer? _panel;
     private Player? _player;
-    private ScrollContainer? _scrollContainer;
+
+    private VBoxContainer _contentContainer = null!;
+    private DraggableTitleBar _header = null!;
+    private Label _headerTitle = null!;
+    private VBoxContainer _mainContainer = null!;
+    private PanelContainer _panel = null!;
+    private ScrollContainer _scrollContainer = null!;
 
     private bool _needsRefresh;
 
@@ -49,10 +53,13 @@ public partial class PlayerOverlayPanel : Control
         if (_needsRefresh)
         {
             _needsRefresh = false;
-            if (_player != null) RefreshAllProviders();
+            _panel.Size = Vector2.Zero;
+            _mainContainer.Size = Vector2.Zero;
+            _contentContainer.Size = Vector2.Zero;
+            RefreshAllProviders();
         }
 
-        // 每帧更新面板尺寸
+        // 每帧更新面板尺寸（很奇怪，call deferred 也不能正常刷新高度？？？）
         UpdatePanelSize();
     }
 
@@ -121,21 +128,12 @@ public partial class PlayerOverlayPanel : Control
     /// </summary>
     private void UpdatePanelSize()
     {
-        if (_scrollContainer == null || _contentContainer == null || _panel == null || _mainContainer == null)
-            return;
-
         var contentHeight = _contentContainer.GetMinimumSize().Y;
-        var currentHeight = _scrollContainer.Size.Y;
         var maxHeight = GetMaxContentHeight();
         var targetHeight = Mathf.Clamp(contentHeight, MinContentHeight, maxHeight);
 
-        // 如果内容变少了，需要重置让容器收缩
-        if (contentHeight < currentHeight)
-        {
-            _scrollContainer.Size = new Vector2(PanelWidth, 0);
-        }
-
-        _scrollContainer.CustomMinimumSize = new Vector2(0, targetHeight);
+        _contentContainer.Size = Vector2.Zero;
+        _scrollContainer.CustomMinimumSize = new Vector2(PanelWidth, targetHeight);
     }
 
     private float GetMaxContentHeight()
@@ -201,17 +199,35 @@ public partial class PlayerOverlayPanel : Control
 
             var unsubscribe = provider.SubscribeEvents(_player, () =>
             {
-                if (_providerContents.TryGetValue(provider.ProviderId, out var c))
+                // 检查 ShouldShow 是否变化，如果变化则触发完整刷新
+                var shouldShow = provider.ShouldShow(_player);
+                var hasContent = _providerContents.ContainsKey(provider.ProviderId);
+
+                if (shouldShow != hasContent)
+                {
+                    // 可见性变化，需要重建所有 providers
+                    _needsRefresh = true;
+                    return;
+                }
+
+                // 可见性没变，只更新内容
+                if (shouldShow && _providerContents.TryGetValue(provider.ProviderId, out var c))
                     provider.UpdateContent(_player, c);
-                // 不需要手动触发高度更新，_Process 会每帧处理
             });
             if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
         }
 
         ShopManager.Instance.InventoryUpdated += OnShopInventoryUpdated;
+        CardRewardManager.Instance.RewardsUpdated += OnRewardsUpdated;
     }
 
     private void OnShopInventoryUpdated(ulong netId)
+    {
+        if (_player != null && netId == _player.NetId)
+            _needsRefresh = true;
+    }
+
+    private void OnRewardsUpdated(ulong netId)
     {
         if (_player != null && netId == _player.NetId)
             _needsRefresh = true;
@@ -223,6 +239,7 @@ public partial class PlayerOverlayPanel : Control
         _unsubscribeActions.Clear();
 
         ShopManager.Instance.InventoryUpdated -= OnShopInventoryUpdated;
+        CardRewardManager.Instance.RewardsUpdated -= OnRewardsUpdated;
 
         foreach (var content in _providerContents.Values) content.QueueFree();
         _providerContents.Clear();
