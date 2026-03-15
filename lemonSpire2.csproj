@@ -67,6 +67,7 @@
 
     <ItemGroup>
         <Content Include=".gitignore"/>
+        <Content Include="0out.log" />
         <Content Include="AGENTS.md"/>
         <Content Include="localization\**"/>
         <Content Include="mod_manifest.json"/>

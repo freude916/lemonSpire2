@@ -7,6 +7,8 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using IndicatorPanel = lemonSpire2.SynergyIndicator.Ui.IndicatorPanel;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.SynergyIndicator;
 
 /// <summary>
@@ -14,6 +16,7 @@ namespace lemonSpire2.SynergyIndicator;
 /// </summary>
 public sealed class IndicatorManager: IDisposable
 {
+    private static Logger Log => SynergyIndicatorPatch.Log;
     private static IndicatorManager? _instance;
 
     private static readonly IReadOnlyList<IIndicatorProvider> Providers =
@@ -138,8 +141,7 @@ public sealed class IndicatorManager: IDisposable
             if (provider.ShouldShow(cards))
                 Instance.AddIndicator(netId, provider.Type, IndicatorStatus.WillUse);
 
-        MainFile.Logger.Debug(
-            $"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
+        Log.Debug($"Updated synergy status for player {netId}: {(hasSynergy ? "Has synergy cards" : "No synergy cards")}");
     }
 
     public void Dispose()

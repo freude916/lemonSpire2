@@ -83,17 +83,15 @@ public class ChatStore
 
     private void OnReceiveMessage(ChatMessage chatMessage, ulong senderId)
     {
-        MainFile.Logger.Debug($"OnReceiveMessage: senderId={senderId}, msgSenderId={chatMessage.SenderId}");
+        ChatUiPatch.Log.Debug($"OnReceiveMessage: senderId={senderId}, msgSenderId={chatMessage.SenderId}");
 
         ArgumentNullException.ThrowIfNull(chatMessage);
 
-        if (senderId != 0 && chatMessage.SenderId != senderId)
-            MainFile.Logger.Warn(
-                $"Received chat message with mismatched sender ID! SenderId: {senderId}, Message.SenderId: {chatMessage.SenderId}");
+        if (senderId != 0 && chatMessage.SenderId != senderId)  ChatUiPatch.Log.Warn($"Received chat message with mismatched sender ID! SenderId: {senderId}, Message.SenderId: {chatMessage.SenderId}");
 
         if (chatMessage.ReceiverId != 0 && chatMessage.ReceiverId != _netService.NetId)
         {
-            MainFile.Logger.Debug($"Message not for me: receiverId={chatMessage.ReceiverId}, myId={_netService.NetId}");
+            ChatUiPatch.Log.Debug($"Message not for me: receiverId={chatMessage.ReceiverId}, myId={_netService.NetId}");
             return; // 不是发给我的消息，忽略
         }
 
@@ -102,13 +100,12 @@ public class ChatStore
             Message = chatMessage
         };
 
-        MainFile.Logger.Debug("Dispatching IntentReceiveMessage");
         if (Dispatch(intentReceiveMessage))
         {
-            MainFile.Logger.Debug("IntentReceiveMessage dispatched successfully");
+            ChatUiPatch.Log.Debug("IntentReceiveMessage dispatched.");
             return;
         }
 
-        MainFile.Logger.Error("Basic intent registered, should not happen! ");
+        ChatUiPatch.Log.Error("Basic intent registered, should not happen! ");
     }
 }

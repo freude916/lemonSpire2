@@ -14,6 +14,12 @@
 
 INetMessage 的 broadcast 实际上是提交到 host ，然后 host 执行广播，意味着 host 自己 broadcast 的时候 host 收不到（client 广播 client 能）。
 
+永远不要更新本地。永远在发送之后立刻执行 OnReceiveMessage
+
+### Log
+
+Sts2 Mod 的 Log 没有
+
 ## Godot 开发经验
 
 ### 节点 `_Ready()` 时序

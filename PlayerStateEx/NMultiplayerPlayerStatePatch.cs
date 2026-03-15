@@ -12,6 +12,8 @@ using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 using PlayerOverlayPanel = lemonSpire2.PlayerStateEx.OverlayPanel.PlayerOverlayPanel;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.PlayerStateEx;
 
 /// <summary>
@@ -24,6 +26,8 @@ namespace lemonSpire2.PlayerStateEx;
 [HarmonyPatch(typeof(NMultiplayerPlayerState))]
 public static class NMultiplayerPlayerStatePatch
 {
+    private static Logger Log => PlayerPanelRegistry.Log;
+
     /// <summary>
     ///     双击阈值（秒）
     /// </summary>
@@ -69,7 +73,7 @@ public static class NMultiplayerPlayerStatePatch
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
         if (!hoverTips.Any())
         {
-            MainFile.Logger.Debug($"[NMultiplayerPlayerStatePatch] No hover tips for player {player.NetId}");
+            Log.Debug($"No hover tips for player {player.NetId}");
             return;
         }
 
@@ -190,7 +194,7 @@ public static class NMultiplayerPlayerStatePatch
 
         ActivePanels[playerId] = new WeakReference<PlayerOverlayPanel>(panel);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
-        MainFile.Logger.Info($"Showing floating panel for player {playerName}");
+        Log.Info($"Showing floating panel for player {playerName}");
     }
 
     private static void OpenExpandedState(NMultiplayerPlayerState instance)
@@ -205,7 +209,7 @@ public static class NMultiplayerPlayerStatePatch
         var screen = NMultiplayerPlayerExpandedState.Create(player);
         NCapstoneContainer.Instance?.Open(screen);
         var playerName = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
-        MainFile.Logger.Info($"Opening expanded state for player {playerName}");
+        Log.Info($"Opening expanded state for player {playerName}");
     }
 
     #endregion

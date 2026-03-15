@@ -7,6 +7,8 @@ using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.SendGameItem;
 
 /// <summary>
@@ -15,6 +17,8 @@ namespace lemonSpire2.SendGameItem;
 /// </summary>
 public partial class ItemInputCapture : Control
 {
+    private static Logger Log => SendItemInputPatch.Log;
+
     /// <summary>
     ///     调试用：当 Alt+Click 找不到物品时，是否阻止事件传播
     ///     设为 true 可以防止 Alt+Click 在商店等场景触发购买
@@ -26,7 +30,7 @@ public partial class ItemInputCapture : Control
     {
         ProcessMode = ProcessModeEnum.Always;
         MouseFilter = MouseFilterEnum.Ignore;
-        MainFile.Logger.Info("ItemInputCapture ready");
+        Log.Info("ItemInputCapture ready");
     }
 
     public override void _Input(InputEvent @event)
@@ -47,47 +51,47 @@ public partial class ItemInputCapture : Control
 
     private void HandleAltLeftClick()
     {
-        MainFile.Logger.Debug("Alt+LeftClick detected");
+        Log.Debug("Alt+LeftClick detected");
 
         var hovered = GetViewport()?.GuiGetHoveredControl();
         if (hovered == null)
         {
-            MainFile.Logger.Debug("No hovered control");
+            Log.Debug("No hovered control");
             if (BlockAltClickOnNoItem)
                 GetViewport()?.SetInputAsHandled();
             return;
         }
 
-        MainFile.Logger.Debug($"Hovered: {hovered.Name} ({hovered.GetType().Name})");
+        Log.Debug($"Hovered: {hovered.Name} ({hovered.GetType().Name})");
 
         if (IsInsideChatPanel(hovered))
         {
-            MainFile.Logger.Debug("Inside chat panel, ignoring");
+            Log.Debug("Inside chat panel, ignoring");
             return;
         }
 
         var segment = ItemInputHandler.FindItemToTooltipSegment(hovered);
         if (segment == null)
         {
-            MainFile.Logger.Debug("No item segment found");
+            Log.Debug("No item segment found");
             if (BlockAltClickOnNoItem)
                 GetViewport()?.SetInputAsHandled();
             return;
         }
 
-        MainFile.Logger.Info($"Found item: {segment.Tooltip.Render()}");
+        Log.Info($"Found item: {segment.Tooltip.Render()}");
         SendItemSegment(segment);
         GetViewport()?.SetInputAsHandled();
     }
 
     private void HandleAltRightClick()
     {
-        MainFile.Logger.Debug("Alt+RightClick detected - trying to capture visible HoverTip");
+        Log.Debug("Alt+RightClick detected - trying to capture visible HoverTip");
 
         var container = NGame.Instance?.HoverTipsContainer;
         if (container == null)
         {
-            MainFile.Logger.Debug("No HoverTipsContainer found");
+            Log.Debug("No HoverTipsContainer found");
             return;
         }
 
@@ -99,14 +103,14 @@ public partial class ItemInputCapture : Control
             var segment = ExtractSegmentFromHoverTipSet(tipSet);
             if (segment != null)
             {
-                MainFile.Logger.Info($"Captured from HoverTip: {segment.Tooltip.Render()}");
+                Log.Info($"Captured from HoverTip: {segment.Tooltip.Render()}");
                 SendItemSegment(segment);
                 GetViewport()?.SetInputAsHandled();
                 return;
             }
         }
 
-        MainFile.Logger.Debug("No visible HoverTip with sendable content");
+        Log.Debug("No visible HoverTip with sendable content");
     }
 
     private static TooltipSegment? ExtractSegmentFromHoverTipSet(NHoverTipSet tipSet)
@@ -199,7 +203,7 @@ public partial class ItemInputCapture : Control
         var store = ChatStore.Instance;
         if (store == null)
         {
-            MainFile.Logger.Warn("ChatStore.Instance is null");
+            Log.Warn("ChatStore.Instance is null");
             return;
         }
 

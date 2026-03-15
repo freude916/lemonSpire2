@@ -5,11 +5,15 @@ using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+using LogType = MegaCrit.Sts2.Core.Logging.LogType;
+
 namespace lemonSpire2.StatsTracker;
 
 public class StatsTrackerManager
 {
     private static StatsTrackerManager? _instance;
+    internal static Logger Log { get; } = new("lemon.stats", LogType.Actions);
 
     private readonly Dictionary<ulong, StatsValues> _playerStats = new();
     private readonly HashSet<int> _processedHashes = new();
@@ -25,6 +29,7 @@ public class StatsTrackerManager
         RunManager.Instance.RunStarted += OnRunStarted;
         CombatManager.Instance.CombatSetUp += OnCombatSetUp;
         CombatManager.Instance.CombatEnded += OnCombatEnded;
+        Log.Info("StatsTrackerManager initialized");
     }
 
     private void OnRunStarted(RunState _)
@@ -72,14 +77,14 @@ public class StatsTrackerManager
         var applier = entry.Applier;
         if (applier == null)
         {
-            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: Applier is null");
+            Log.Debug("ProcessPowerEntry: Applier is null");
             return;
         }
 
         var player = applier.IsPlayer ? applier.Player : applier.PetOwner;
         if (player == null)
         {
-            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: player is null");
+            Log.Debug("ProcessPowerEntry: player is null");
             return;
         }
 
@@ -92,7 +97,7 @@ public class StatsTrackerManager
         var target = entry.Actor;
         if (target == null)
         {
-            MainFile.Logger.Debug("[StatsTracker] ProcessPowerEntry: target (Actor) is null");
+            Log.Debug("ProcessPowerEntry: target (Actor) is null");
             return;
         }
 
@@ -108,7 +113,7 @@ public class StatsTrackerManager
             // 给队友上 buff
             if (power.Type == PowerType.Buff)
             {
-                MainFile.Logger.Debug($"[StatsTracker] ProcessPowerEntry: buff {amount} from player {player.NetId}");
+                Log.Debug($"ProcessPowerEntry: buff {amount} from player {player.NetId}");
                 stats.Add("stats.combat.buffs_applied", amount);
                 stats.Add("stats.total.buffs_applied", amount);
             }
@@ -118,7 +123,7 @@ public class StatsTrackerManager
             // 给敌人上 debuff
             if (power.Type == PowerType.Debuff)
             {
-                MainFile.Logger.Debug($"[StatsTracker] ProcessPowerEntry: debuff {amount} from player {player.NetId}");
+                Log.Debug($"ProcessPowerEntry: debuff {amount} from player {player.NetId}");
                 stats.Add("stats.combat.debuffs_applied", amount);
                 stats.Add("stats.total.debuffs_applied", amount);
             }

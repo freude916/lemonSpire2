@@ -5,6 +5,8 @@ using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.util.Ui;
 
 /// <summary>
@@ -13,8 +15,10 @@ namespace lemonSpire2.util.Ui;
 /// </summary>
 public static class ProviderUtils
 {
+    private static Logger Log => ChatUiPatch.Log;
+
     /// <summary>
-    ///     清空 Control 的所有子节点，并重置容器大小
+    ///     清空 Control 的所有子节点
     /// </summary>
     public static void ClearChildren(Control container)
     {
@@ -25,9 +29,9 @@ public static class ProviderUtils
             container.RemoveChild(child);
             child?.QueueFree();
         }
-        // 重置容器大小
-        container.Size = Vector2.Zero;
-        container.CustomMinimumSize = Vector2.Zero;
+        // 只重置高度，保持宽度不变（宽度由 SizeFlags 控制）
+        container.Size = new Vector2(container.Size.X, 0);
+        container.CustomMinimumSize = new Vector2(container.CustomMinimumSize.X, 0);
     }
 
     /// <summary>
@@ -39,7 +43,7 @@ public static class ProviderUtils
         var store = ChatStore.Instance;
         if (store == null)
         {
-            MainFile.Logger.Warn("[ProviderUtils] ChatStore.Instance is null");
+            Log.Warn("ChatStore.Instance is null");
             return;
         }
 
@@ -48,7 +52,7 @@ public static class ProviderUtils
             ReceiverId = 0,
             Segments = [segment]
         });
-        MainFile.Logger.Info($"[ProviderUtils] Sent to chat: {segment.Tooltip.Render()}");
+        Log.Info($"Sent to chat: {segment.Tooltip.Render()}");
     }
 
     /// <summary>

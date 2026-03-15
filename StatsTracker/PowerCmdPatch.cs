@@ -4,12 +4,16 @@ using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Powers;
 using MegaCrit.Sts2.Core.Models;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.StatsTracker;
 
 [HarmonyPatch(typeof(PowerCmd), nameof(PowerCmd.Apply), typeof(PowerModel), typeof(Creature), typeof(decimal),
     typeof(Creature), typeof(CardModel), typeof(bool))]
 public static class PowerCmdPatch
 {
+    private static Logger Log => StatsTrackerManager.Log;
+
     public static void Postfix(PowerModel power, Creature target, decimal amount, Creature? applier,
         CardModel? cardSource, bool silent)
     {
@@ -33,7 +37,7 @@ public static class PowerCmdPatch
         var applierPlayer = applier.IsPlayer ? applier.Player : applier.PetOwner;
         if (applierPlayer == null)
         {
-            MainFile.Logger.Info("[PowerCmdPatch] Skipped: applierPlayer is null");
+            Log.Info("Skipped: applierPlayer is null");
             return;
         }
 
@@ -42,7 +46,7 @@ public static class PowerCmdPatch
         // 施加者和目标是同一人 → 自身能力，暂不统计
         if (applier == target)
         {
-            MainFile.Logger.Info("[PowerCmdPatch] Skipped: applier == target (self-buff)");
+            Log.Info("Skipped: applier == target (self-buff)");
             return;
         }
 
@@ -55,7 +59,7 @@ public static class PowerCmdPatch
             // 给队友上 buff
             if (power.Type == PowerType.Buff)
             {
-                MainFile.Logger.Info($"[PowerCmdPatch] Added buff: {intAmount}");
+                Log.Info($"Added buff: {intAmount}");
                 stats.Add("stats.combat.buffs_applied", intAmount);
                 stats.Add("stats.total.buffs_applied", intAmount);
             }
@@ -65,7 +69,7 @@ public static class PowerCmdPatch
             // 给敌人上 debuff
             if (power.Type == PowerType.Debuff)
             {
-                MainFile.Logger.Info($"[PowerCmdPatch] Added debuff: {intAmount}");
+                Log.Info($"Added debuff: {intAmount}");
                 stats.Add("stats.combat.debuffs_applied", intAmount);
                 stats.Add("stats.total.debuffs_applied", intAmount);
             }

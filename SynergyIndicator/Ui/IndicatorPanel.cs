@@ -4,19 +4,16 @@ using lemonSpire2.SynergyIndicator.Models;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
-namespace lemonSpire2.SynergyIndicator.Ui;
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
-public class IndicatorClickedEventArgs : EventArgs
-{
-    public ulong PlayerNetId { get; init; }
-    public IndicatorType IndicatorType { get; init; }
-}
+namespace lemonSpire2.SynergyIndicator.Ui;
 
 /// <summary>
 ///     指示器主面板容器，负责显示和管理所有玩家的指示器图标
 /// </summary>
 public partial class IndicatorPanel : HBoxContainer
 {
+    private static Logger Log => SynergyIndicatorPatch.Log;
     private static readonly FieldInfo? TopContainerField =
         typeof(NMultiplayerPlayerState).GetField("_topContainer", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -55,7 +52,7 @@ public partial class IndicatorPanel : HBoxContainer
 
         topContainer.AddChild(panel);
         panel.MoveToFront();
-        MainFile.Logger.Debug($"CreateForPlayer: netId={player.Player.NetId} isInteractive={isInteractive}");
+        Log.Debug($"CreateForPlayer: netId={player.Player.NetId} isInteractive={isInteractive}");
 
         var topContainerParent = topContainer.GetParent();
         if (topContainerParent != null)
@@ -151,8 +148,7 @@ public partial class IndicatorPanel : HBoxContainer
 
     private void OnIndicatorClicked(IndicatorType type)
     {
-        MainFile.Logger.Debug(
-            $"IndicatorClicked: panelNetId={PlayerNetId} type={type} localNetId={LocalContext.NetId}");
+        Log.Debug($"IndicatorClicked: panelNetId={PlayerNetId} type={type} localNetId={LocalContext.NetId}");
         IndicatorClicked?.Invoke(this, new IndicatorClickedEventArgs
         {
             PlayerNetId = PlayerNetId,

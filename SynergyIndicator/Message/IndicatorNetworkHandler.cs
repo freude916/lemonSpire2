@@ -2,10 +2,14 @@ using lemonSpire2.SynergyIndicator.Models;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 
+using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+
 namespace lemonSpire2.SynergyIndicator.Message;
 
 public class IndicatorNetworkHandler : NetworkHandlerBase<IndicatorStatusMessage>
 {
+    private static Logger Log => SynergyIndicatorPatch.Log;
+
     public IndicatorNetworkHandler(INetGameService netService) : base(netService)
     {
     }
@@ -26,8 +30,7 @@ public class IndicatorNetworkHandler : NetworkHandlerBase<IndicatorStatusMessage
         ArgumentNullException.ThrowIfNull(message);
         if (IsSelf(senderId)) return;
 
-        MainFile.Logger.Debug(
-            $"Received indicator status: player={message.SenderId} type={message.IndicatorType} status={message.Status}");
+        Log.Debug($"Received indicator status: player={message.SenderId} type={message.IndicatorType} status={message.Status}");
         IndicatorManager.Instance.SetStatus(message.SenderId, message.IndicatorType, message.Status);
     }
 }
