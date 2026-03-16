@@ -24,6 +24,14 @@ public static class RewardsScreenPatch
     {
         ArgumentNullException.ThrowIfNull(rewards);
         ArgumentNullException.ThrowIfNull(__instance);
+        // Reward abstract class
+        // ├─ CardReward
+        // ├─ SpecialCardReward
+        // ├─ GoldReward
+        // ├─ PotionReward
+        // ├─ RelicReward
+        // ├─ CardRemovalReward
+        // └─ LinkedRewardSet
 
         if (LocalContext.NetId == null)
         {

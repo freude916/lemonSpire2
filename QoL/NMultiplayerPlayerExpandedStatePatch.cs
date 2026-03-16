@@ -9,8 +9,8 @@ using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 namespace lemonSpire2.PlayerStateEx;
 
 /// <summary>
-///     Patch 为 NMultiplayerPlayerExpandedState 中的卡牌添加 HoverTip
-///     游戏原生的 ExpandPlayerState 没有为 NDeckHistoryEntry 提供悬浮提示
+///     Patch 为 NMultiplayerPlayerExpandedState 中的卡牌添加 HoverTip <br/>
+///     <li> 游戏原生的 ExpandPlayerState 没有为 NDeckHistoryEntry 提供悬浮提示 </li>
 /// </summary>
 [HarmonyPatch(typeof(NMultiplayerPlayerExpandedState))]
 public static class NMultiplayerPlayerExpandedStatePatch

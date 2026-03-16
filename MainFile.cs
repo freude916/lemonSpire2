@@ -1,6 +1,7 @@
 using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
+using lemonSpire2.PlayerColor;
 using lemonSpire2.PlayerStateEx;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;
@@ -59,6 +60,14 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(RunManagerPatch)).Patch();
         }
 
+        if (EnablePlayerColor)
+        {
+            harmony.CreateClassProcessor(typeof(PlayerNameColorPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(MapDrawColorPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(RemoteCursorColorPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(ColorNetworkPatch)).Patch();
+        }
+
         if (PlayerTooltipRegistry.HasProviders)
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
@@ -97,6 +106,9 @@ public partial class MainFile : Node
 
     /// <summary> Extra Sync </summary>
     public static bool EnableSync { get; set; } = true;
+
+    /// <summary> Player Color Management </summary>
+    public static bool EnablePlayerColor { get; set; } = true;
 
     #endregion
 }

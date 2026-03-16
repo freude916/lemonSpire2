@@ -85,6 +85,10 @@
         </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+        <Folder Include="Color\"/>
+    </ItemGroup>
+
     <Target Name="CopyToModsFolderOnBuild" AfterTargets="PostBuildEvent">
         <Message Text="Copying .dll and .pdb to mods folder." Importance="high"/>
         <ItemGroup>
