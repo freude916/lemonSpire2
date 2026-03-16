@@ -2,6 +2,7 @@ using System.Globalization;
 using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.PlayerColor;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
@@ -275,8 +276,9 @@ public sealed class ChatPanel : IDisposable
         _messageBuffer.AppendText($"[{time}] ");
         _messageBuffer.Pop();
 
-        // sender name
-        _messageBuffer.PushColor(ChatConfig.SenderColor);
+        // sender name - 使用 ColorManager 获取玩家颜色
+        var senderColor = ColorManager.Instance.GetCustomColor(message.SenderId) ?? ChatConfig.SenderColor;
+        _messageBuffer.PushColor(senderColor);
         _messageBuffer.AppendText($"{senderName}: ");
         _messageBuffer.Pop();
 
