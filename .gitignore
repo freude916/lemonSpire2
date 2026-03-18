@@ -8,6 +8,10 @@ publish/
 Properties/
 .editorconfig
 *.import
+
+# 本地开发环境配置
+Directory.Build.props
+
 *.uid
 *.user
 /.codebase/*

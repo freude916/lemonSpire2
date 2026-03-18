@@ -4,7 +4,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx;
 
 /// <summary>
 ///     玩家颜色选择按钮 Patch
@@ -123,8 +123,7 @@ public static class PlayerColorButtonPatch
             EditAlpha = false
         };
 
-        colorPicker.ColorChanged += color => { OnColorChanged(playerId, color, button); };
-
+        // 不在拖动时更新，只在关闭时应用
         popup.AddChild(colorPicker);
         button.GetTree().Root.AddChild(popup);
 
@@ -136,8 +135,13 @@ public static class PlayerColorButtonPatch
             300
         ));
 
-        // 关闭时清理
-        popup.CloseRequested += popup.QueueFree;
+        // 关闭时应用最终颜色
+        popup.CloseRequested += () =>
+        {
+            var finalColor = colorPicker.Color;
+            OnColorChanged(playerId, finalColor, button);
+            popup.QueueFree();
+        };
     }
 
     private static void OnColorChanged(ulong playerId, Color color, Button button)

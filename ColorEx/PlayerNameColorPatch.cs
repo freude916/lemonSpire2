@@ -4,7 +4,7 @@ using HarmonyLib;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx;
 
 /// <summary>
 ///     玩家名字颜色 Patch

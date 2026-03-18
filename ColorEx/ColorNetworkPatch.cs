@@ -1,10 +1,11 @@
 using Godot;
 using HarmonyLib;
+using lemonSpire2.ColorEx.Message;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.CommonUi;
 using MegaCrit.Sts2.Core.Runs;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx;
 
 /// <summary>
 ///     Color 模块网络初始化 Patch

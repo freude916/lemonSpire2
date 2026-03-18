@@ -2,7 +2,7 @@ using System.Globalization;
 using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
-using lemonSpire2.PlayerColor;
+using lemonSpire2.ColorEx;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
@@ -17,7 +17,7 @@ namespace lemonSpire2.Chat.Ui;
 public sealed class ChatPanel : IDisposable
 {
     private readonly Action<IIntent> _dispatch;
-    private readonly List<string> _inputHistory = new();
+    private readonly List<string> _inputHistory = [];
     private readonly ChatModel _model;
     private readonly TooltipManager _tooltipManager = new();
     private readonly Control _tooltipParent;
