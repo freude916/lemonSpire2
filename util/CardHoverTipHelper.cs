@@ -3,7 +3,7 @@ using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
 
-namespace lemonSpire2.QoL;
+namespace lemonSpire2.util;
 
 /// <summary>
 ///     卡牌悬浮提示助手

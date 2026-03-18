@@ -1,7 +1,7 @@
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx.Message;
 
 /// <summary>
 ///     玩家颜色同步消息

@@ -2,7 +2,7 @@ using Godot;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 using LogType = MegaCrit.Sts2.Core.Logging.LogType;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx;
 
 /// <summary>
 ///     玩家颜色管理器

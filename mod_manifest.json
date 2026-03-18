@@ -1,7 +1,13 @@
 {
-  "pck_name": "lemonSpire2",
-  "name": "LemonSpire2",
+  "id": "lemonSpire2",
+  "name": "Lemon Spire 2",
   "author": "freude916",
   "description": "A collection of multiplayer QoL: Chat, State, Damage Tracker",
-  "version": "v0.6.0"
+  "version": "v0.6.1",
+  "has_pck": true,
+  "has_dll": true,
+  "dependencies": [
+    "BaseLib"
+  ],
+  "affects_gameplay": true
 }

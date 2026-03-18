@@ -1,7 +1,7 @@
 using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
-using lemonSpire2.PlayerColor;
+using lemonSpire2.ColorEx;
 using lemonSpire2.PlayerStateEx;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;

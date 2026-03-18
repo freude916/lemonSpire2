@@ -2,7 +2,7 @@ using Godot;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx.Message;
 
 /// <summary>
 ///     玩家颜色网络处理器

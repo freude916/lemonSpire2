@@ -1,8 +1,9 @@
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 
-namespace lemonSpire2.PlayerColor;
+namespace lemonSpire2.ColorEx;
 
 /// <summary>
 ///     远程鼠标颜色 Patch
@@ -13,14 +14,41 @@ namespace lemonSpire2.PlayerColor;
 public static class RemoteCursorColorPatch
 {
     /// <summary>
-    ///     基础亮度（提高鼠标可见度）
+    ///     描边亮度阈值：低于此值视为描边，涂成白色
+    ///     原始材质描边为纯黑 RGB(0,0,0)，阈值 50 可覆盖抗锯齿边缘
     /// </summary>
-    private const float BaseBrightness = 1.5f;
+    private const float OutlineLumThreshold = 50f / 255f;
 
     /// <summary>
-    ///     基础透明度下限
+    ///     去色着色 Shader 代码
+    ///     1. 黑色描边涂成白色
+    ///     2. 内部去色 + 着色
     /// </summary>
-    private const float MinAlpha = 0.9f;
+    private const string DesaturateShaderCode =
+        """
+        shader_type canvas_item;
+        render_mode blend_mix;
+
+        uniform vec4 tint_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+        uniform float outline_lum_threshold = 0.2;
+
+        void fragment() {
+            vec4 tex_color = texture(TEXTURE, UV);
+
+            if (tex_color.a < 0.1) {
+                COLOR = vec4(0.0);
+            } else {
+                float lum = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
+
+                if (lum < outline_lum_threshold) {
+                    COLOR = vec4(0.5, 0.5, 0.5, tex_color.a);
+                } else {
+                    vec3 result = lum * tint_color.rgb;
+                    COLOR = vec4(result, tex_color.a);
+                }
+            }
+        }
+        """;
 
     /// <summary>
     ///     去色 + 着色 Shader（静态，只创建一次）
@@ -29,33 +57,6 @@ public static class RemoteCursorColorPatch
 
     private static readonly List<(WeakReference<NRemoteMouseCursor> Cursor, Action<ulong, Color> Handler)>
         Registrations = new();
-
-    /// <summary>
-    ///     去色着色 Shader 代码
-    ///     1. 将纹理转换为灰度（去色）
-    ///     2. 提高亮度
-    ///     3. 应用玩家颜色（着色）
-    /// </summary>
-    private static readonly string DesaturateShaderCode = @"
-shader_type canvas_item;
-render_mode blend_add;
-
-uniform vec4 tint_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform float brightness : hint_range(0.5, 2.5) = 1.5;
-
-void fragment() {
-    vec4 tex_color = texture(TEXTURE, UV);
-
-    // 去色：转换为灰度（使用标准亮度权重）
-    float gray = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
-
-    // 提高亮度
-    gray *= brightness;
-
-    // 应用玩家颜色（灰度 × 颜色 = 着色效果）
-    COLOR = vec4(gray * tint_color.rgb, tex_color.a * tint_color.a);
-}
-";
 
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
@@ -74,9 +75,35 @@ void fragment() {
         Registrations.Add((new WeakReference<NRemoteMouseCursor>(__instance), handler));
         ColorManager.Instance.OnPlayerColorChanged += handler;
 
-        // 设置初始颜色
+        // 设置初始颜色（默认是 DrawingMode.None）
         var customColor = ColorManager.Instance.GetCustomColor(playerId);
         if (customColor.HasValue) UpdateCursorColor(__instance, customColor.Value);
+    }
+
+    /// <summary>
+    ///     当光标图像更新时，根据 DrawingMode 决定是否应用颜色
+    ///     只对普通指针（DrawingMode.None）应用颜色，quill/pencil 保持原样
+    /// </summary>
+    [HarmonyPostfix]
+    [HarmonyPatch("UpdateImage")]
+    public static void UpdateImagePostfix(NRemoteMouseCursor __instance, bool isDown, DrawingMode drawingMode)
+    {
+        var textureRect = __instance.GetNode<TextureRect>("TextureRect");
+        if (textureRect == null) return;
+
+        if (drawingMode == DrawingMode.None)
+        {
+            // 普通指针：应用玩家颜色
+            var customColor = ColorManager.Instance.GetCustomColor(__instance.PlayerId);
+            if (customColor.HasValue) UpdateCursorColor(__instance, customColor.Value);
+        }
+        else
+        {
+            // quill/pencil：清除材质，恢复原样
+            textureRect.Material = null;
+            textureRect.Modulate = Colors.White;
+            textureRect.SelfModulate = Colors.White;
+        }
     }
 
     private static void CleanupDeadReferences()
@@ -105,13 +132,9 @@ void fragment() {
 
         // 设置着色参数
         material.SetShaderParameter("tint_color", playerColor);
-        material.SetShaderParameter("brightness", BaseBrightness);
+        material.SetShaderParameter("outline_lum_threshold", OutlineLumThreshold);
 
         textureRect.Material = material;
-
-        // 重置 Modulate（Shader 会处理颜色）
-        textureRect.Modulate = Colors.White;
-        textureRect.SelfModulate = new Color(1, 1, 1, MinAlpha);
     }
 
     private static Shader CreateDesaturateShader()
@@ -120,6 +143,8 @@ void fragment() {
         {
             Code = DesaturateShaderCode
         };
+        // 强制初始化 shader，确保编译完成
+        _ = shader.GetRid();
         return shader;
     }
 }

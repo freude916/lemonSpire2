@@ -1,7 +1,7 @@
 using System.Reflection;
 using Godot;
 using HarmonyLib;
-using lemonSpire2.QoL;
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;

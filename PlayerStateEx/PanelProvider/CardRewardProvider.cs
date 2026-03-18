@@ -1,6 +1,5 @@
 using Godot;
 using lemonSpire2.Chat.Message;
-using lemonSpire2.QoL;
 using lemonSpire2.SyncReward;
 using lemonSpire2.Tooltips;
 using lemonSpire2.util;
