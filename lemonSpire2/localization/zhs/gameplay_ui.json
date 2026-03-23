@@ -18,6 +18,8 @@
   "LEMONSPIRE.panel.potions": "药水",
   "LEMONSPIRE.panel.shop": "商店",
   "LEMONSPIRE.panel.cardRewards": "卡牌奖励",
+  "LEMONSPIRE.color_picker.title": "选择颜色",
+  "LEMONSPIRE.color_picker.tooltip": "选择玩家颜色",
   "LEMONSPIRE.shop.empty": "暂无商品",
   "LEMONSPIRE.shop.gold": "金币",
   "LEMONSPIRE.cardRewards.empty": "暂无奖励",

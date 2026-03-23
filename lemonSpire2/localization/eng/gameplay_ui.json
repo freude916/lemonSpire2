@@ -18,6 +18,8 @@
   "LEMONSPIRE.panel.potions": "Potions",
   "LEMONSPIRE.panel.shop": "Shop",
   "LEMONSPIRE.panel.cardRewards": "Card Rewards",
+  "LEMONSPIRE.color_picker.title": "Color Selector",
+  "LEMONSPIRE.color_picker.tooltip": "Select player color",
   "LEMONSPIRE.shop.empty": "No items",
   "LEMONSPIRE.shop.gold": "Gold",
   "LEMONSPIRE.cardRewards.empty": "No rewards",
