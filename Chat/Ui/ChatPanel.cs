@@ -3,6 +3,7 @@ using Godot;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.ColorEx;
+using lemonSpire2.SendGameItem;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
@@ -451,6 +452,9 @@ public sealed class ChatPanel : IDisposable
 
         // 订阅窗口大小变化事件
         ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
+
+        // 注册到 InputCapture，让其放过 ChatPanel 内部的 Alt+Click
+        ItemInputCapture.RegisterBlockingControl(_container);
     }
 
     private void OnViewportResized(Vector2 _)

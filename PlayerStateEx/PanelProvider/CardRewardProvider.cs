@@ -203,7 +203,7 @@ public class CardRewardProvider : IPlayerPanelProvider
             Callable.From<NDeckHistoryEntry>(_ => OnCardClicked(player, card)));
 
         // 添加悬浮提示
-        CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Right);
+        CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left);
 
         return entry;
     }

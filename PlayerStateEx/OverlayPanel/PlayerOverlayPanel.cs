@@ -1,12 +1,10 @@
 using Godot;
-using lemonSpire2.SyncReward;
-using lemonSpire2.SyncShop;
+using lemonSpire2.SendGameItem;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
-using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
 using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
@@ -22,34 +20,43 @@ namespace lemonSpire2.PlayerStateEx.OverlayPanel;
 /// </summary>
 public partial class PlayerOverlayPanel : Control
 {
+    #region Constants & Fields
+
     private const float MinContentHeight = 80f;
     private const float PanelWidth = 280f;
     private const float HeightUpdateEpsilon = 0.5f;
+
+    private static Logger Log => PlayerPanelRegistry.Log;
+
     private readonly HashSet<string> _pendingProviderUpdates = [];
     private readonly Dictionary<string, Control> _providerContents = [];
     private readonly List<Action> _unsubscribeActions = [];
 
-    private VBoxContainer _contentContainer = null!;
+    private Player? _player;
+    private PanelContainer _panel = null!;
+    private VBoxContainer _mainContainer = null!;
     private DraggableTitleBar _header = null!;
     private Label _headerTitle = null!;
-    private float _lastAppliedTargetHeight = -1f;
-    private VBoxContainer _mainContainer = null!;
-    private bool _needsLayoutUpdate = true;
+    private ScrollContainer _scrollContainer = null!;
+    private VBoxContainer _contentContainer = null!;
 
+    private float _lastAppliedTargetHeight = -1f;
+    private bool _needsLayoutUpdate = true;
     private bool _needsRefresh;
     private Action<Vector2>? _onViewportResized;
 
-    private PanelContainer _panel = null!;
+    #endregion
 
-
-    private Player? _player;
-    private ScrollContainer _scrollContainer = null!;
-    private static Logger Log => PlayerPanelRegistry.Log;
+    #region Godot Lifecycle
 
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Stop;
         CreateUi();
+
+        // 注册到 InputCapture，让其放过 Panel 内部的 Alt+Click
+        ItemInputCapture.RegisterBlockingControl(_panel);
+
         _onViewportResized = _ =>
         {
             _needsLayoutUpdate = true;
@@ -70,9 +77,177 @@ public partial class PlayerOverlayPanel : Control
         if (!_needsRefresh && _pendingProviderUpdates.Count > 0)
             FlushPendingProviderUpdates();
 
-        // 每帧检查尺寸目标；仅在目标变化时重算，避免每帧抖动
         UpdatePanelSize();
     }
+
+    public override void _ExitTree()
+    {
+        if (_onViewportResized != null)
+            ViewportResizeNotifier.Instance.OnViewportResized -= _onViewportResized;
+
+        CombatManager.Instance.CombatSetUp -= OnCombatSetUp;
+        // CombatManager.Instance.CombatEnded -= OnCombatEnded;
+
+        ClearProviderContents();
+    }
+
+    #endregion
+
+    #region Initialization & Factory
+
+    public void Initialize(Player player)
+    {
+        _player = player ?? throw new ArgumentNullException(nameof(player));
+        _headerTitle!.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
+
+        PlayerPanelRegistry.Initialize();
+
+        CombatManager.Instance.CombatSetUp += OnCombatSetUp;
+        // CombatManager.Instance.CombatEnded += OnCombatEnded;
+        // 战斗结束时似乎不必刷新
+
+        RefreshAllProviders();
+    }
+
+    public static PlayerOverlayPanel Show(Player player, Vector2? position = null)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+
+        var panel = new PlayerOverlayPanel
+        {
+            Name = $"PlayerOverlayPanel_{player.NetId}"
+        };
+
+        NRun.Instance?.GlobalUi.AddChild(panel);
+        panel.Initialize(player);
+
+        if (position.HasValue) panel.Position = position.Value;
+
+        return panel;
+    }
+
+    #endregion
+
+    #region Provider Management
+
+    private void CreateProviderContents()
+    {
+        if (_player == null || _contentContainer == null) return;
+
+        foreach (var provider in PlayerPanelRegistry.GetProviders())
+        {
+            if (!provider.ShouldShow(_player)) continue;
+
+            // 创建区块容器
+            var sectionContainer = new VBoxContainer
+            {
+                Name = $"Section_{provider.ProviderId}",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill
+            };
+            sectionContainer.AddThemeConstantOverride("separation", 4);
+
+            // 区块标题
+            var sectionTitle = new Label
+            {
+                Text = provider.DisplayName,
+                MouseFilter = MouseFilterEnum.Ignore
+            };
+            sectionTitle.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.7f));
+            sectionTitle.AddThemeFontSizeOverride("font_size", 20);
+            sectionContainer.AddChild(sectionTitle);
+
+            _contentContainer.AddChild(sectionContainer);
+
+            var content = provider.CreateContent(_player);
+            _providerContents[provider.ProviderId] = content;
+            sectionContainer.AddChild(content);
+
+            provider.UpdateContent(_player, content);
+
+            var providerId = provider.ProviderId;
+            var unsubscribe = provider.SubscribeEvents(_player, () =>
+            {
+                // 事件可能在数据真正落地前触发；延迟到下一帧读取可避免"一拍慢"。
+                QueueProviderUpdate(providerId);
+            });
+            if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
+        }
+    }
+
+    private void ClearProviderContents()
+    {
+        foreach (var unsubscribe in _unsubscribeActions) unsubscribe();
+        _unsubscribeActions.Clear();
+        _pendingProviderUpdates.Clear();
+        _providerContents.Clear();
+
+        if (_contentContainer == null) return;
+
+        foreach (var child in _contentContainer.GetChildren())
+        {
+            _contentContainer.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
+    #endregion
+
+    #region Refresh Logic
+
+    public void Refresh()
+    {
+        _needsRefresh = true;
+    }
+
+    private void RefreshAllProviders()
+    {
+        if (_player == null || _contentContainer == null) return;
+
+        ClearProviderContents();
+        CreateProviderContents();
+
+        _needsLayoutUpdate = true;
+        _lastAppliedTargetHeight = -1f;
+        PanelPositionHelper.ClampToViewport(_panel);
+    }
+
+    private void QueueProviderUpdate(string providerId)
+    {
+        if (string.IsNullOrEmpty(providerId) || _player == null) return;
+        _pendingProviderUpdates.Add(providerId);
+    }
+
+    private void FlushPendingProviderUpdates()
+    {
+        if (_player == null || _pendingProviderUpdates.Count == 0) return;
+
+        var pendingProviderIds = _pendingProviderUpdates.ToArray();
+        _pendingProviderUpdates.Clear();
+
+        foreach (var providerId in pendingProviderIds)
+        {
+            var provider = PlayerPanelRegistry.GetProvider(providerId);
+            if (provider == null) continue;
+
+            var shouldShow = provider.ShouldShow(_player);
+            var hasContent = _providerContents.ContainsKey(providerId);
+
+            if (shouldShow != hasContent)
+            {
+                Refresh();
+                return;
+            }
+
+            if (shouldShow && _providerContents.TryGetValue(providerId, out var content))
+                provider.UpdateContent(_player, content);
+        }
+
+        _needsLayoutUpdate = true;
+    }
+
+    #endregion
+
+    #region UI & Layout
 
     private void CreateUi()
     {
@@ -134,9 +309,6 @@ public partial class PlayerOverlayPanel : Control
         _scrollContainer.AddChild(_contentContainer);
     }
 
-    /// <summary>
-    ///     每帧更新面板尺寸
-    /// </summary>
     private void UpdatePanelSize()
     {
         var contentHeight = _contentContainer.GetCombinedMinimumSize().Y;
@@ -165,141 +337,9 @@ public partial class PlayerOverlayPanel : Control
         return viewportHeight * 0.5f;
     }
 
-    public void Initialize(Player player)
-    {
-        _player = player ?? throw new ArgumentNullException(nameof(player));
-        _headerTitle!.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
+    #endregion
 
-        PlayerPanelRegistry.Initialize();
-
-        CombatManager.Instance.CombatSetUp += OnCombatSetUp;
-        CombatManager.Instance.CombatEnded += OnCombatEnded;
-
-        RefreshAllProviders();
-    }
-
-    private void RefreshAllProviders()
-    {
-        if (_player == null || _contentContainer == null) return;
-
-        ClearProviderContents();
-        CreateProviderContents();
-        _needsLayoutUpdate = true;
-        _lastAppliedTargetHeight = -1f;
-        PanelPositionHelper.ClampToViewport(_panel);
-    }
-
-    private void QueueProviderUpdate(string providerId)
-    {
-        if (string.IsNullOrEmpty(providerId) || _player == null) return;
-        _pendingProviderUpdates.Add(providerId);
-    }
-
-    private void FlushPendingProviderUpdates()
-    {
-        if (_player == null || _pendingProviderUpdates.Count == 0) return;
-
-        var pendingProviderIds = _pendingProviderUpdates.ToArray();
-        _pendingProviderUpdates.Clear();
-
-        foreach (var providerId in pendingProviderIds)
-        {
-            var provider = PlayerPanelRegistry.GetProvider(providerId);
-            if (provider == null) continue;
-
-            var shouldShow = provider.ShouldShow(_player);
-            var hasContent = _providerContents.ContainsKey(providerId);
-
-            if (shouldShow != hasContent)
-            {
-                _needsRefresh = true;
-                return;
-            }
-
-            if (shouldShow && _providerContents.TryGetValue(providerId, out var content))
-                provider.UpdateContent(_player, content);
-        }
-
-        _needsLayoutUpdate = true;
-    }
-
-    private void CreateProviderContents()
-    {
-        if (_player == null || _contentContainer == null) return;
-
-        foreach (var provider in PlayerPanelRegistry.GetProviders())
-        {
-            if (!provider.ShouldShow(_player)) continue;
-
-            // 创建区块容器
-            var sectionContainer = new VBoxContainer
-            {
-                Name = $"Section_{provider.ProviderId}",
-                SizeFlagsHorizontal = SizeFlags.ExpandFill
-            };
-            sectionContainer.AddThemeConstantOverride("separation", 4);
-
-            // 区块标题
-            var sectionTitle = new Label
-            {
-                Text = provider.DisplayName,
-                MouseFilter = MouseFilterEnum.Ignore
-            };
-            sectionTitle.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.7f));
-            sectionTitle.AddThemeFontSizeOverride("font_size", 20);
-            sectionContainer.AddChild(sectionTitle);
-
-            _contentContainer.AddChild(sectionContainer);
-
-            var content = provider.CreateContent(_player);
-            _providerContents[provider.ProviderId] = content;
-            sectionContainer.AddChild(content);
-
-            provider.UpdateContent(_player, content);
-
-            var providerId = provider.ProviderId;
-            var unsubscribe = provider.SubscribeEvents(_player, () =>
-            {
-                // 事件可能在数据真正落地前触发；延迟到下一帧读取可避免“一拍慢”。
-                QueueProviderUpdate(providerId);
-            });
-            if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
-        }
-
-        ShopManager.Instance.InventoryUpdated += OnShopInventoryUpdated;
-        CardRewardManager.Instance.RewardsUpdated += OnRewardsUpdated;
-    }
-
-    private void OnShopInventoryUpdated(ulong netId)
-    {
-        if (_player != null && netId == _player.NetId)
-            _needsRefresh = true;
-    }
-
-    private void OnRewardsUpdated(ulong netId)
-    {
-        if (_player != null && netId == _player.NetId)
-            _needsRefresh = true;
-    }
-
-    private void ClearProviderContents()
-    {
-        foreach (var unsubscribe in _unsubscribeActions) unsubscribe();
-        _unsubscribeActions.Clear();
-        _pendingProviderUpdates.Clear();
-
-        ShopManager.Instance.InventoryUpdated -= OnShopInventoryUpdated;
-        CardRewardManager.Instance.RewardsUpdated -= OnRewardsUpdated;
-
-        _providerContents.Clear();
-
-        if (_contentContainer == null) return;
-        foreach (var child in _contentContainer.GetChildren())
-        {
-            _contentContainer.RemoveChild(child);
-            child.QueueFree();
-        }
-    }
+    #region Event Handlers
 
     private void OnCloseButtonPressed()
     {
@@ -307,45 +347,11 @@ public partial class PlayerOverlayPanel : Control
         QueueFree();
     }
 
-    public override void _ExitTree()
-    {
-        if (_onViewportResized != null)
-            ViewportResizeNotifier.Instance.OnViewportResized -= _onViewportResized;
-        CombatManager.Instance.CombatSetUp -= OnCombatSetUp;
-        CombatManager.Instance.CombatEnded -= OnCombatEnded;
-        ClearProviderContents();
-    }
-
     private void OnCombatSetUp(CombatState _)
     {
         Log.Debug("CombatSetUp, refreshing");
-        _needsRefresh = true;
+        Refresh();
     }
 
-    private void OnCombatEnded(CombatRoom _)
-    {
-        Log.Debug("CombatEnded, refreshing");
-        _needsRefresh = true;
-    }
-
-    public void Refresh()
-    {
-        _needsRefresh = true;
-    }
-
-    public static PlayerOverlayPanel Show(Player player, Vector2? position = null)
-    {
-        ArgumentNullException.ThrowIfNull(player);
-        var panel = new PlayerOverlayPanel
-        {
-            Name = $"PlayerOverlayPanel_{player.NetId}"
-        };
-
-        NRun.Instance?.GlobalUi.AddChild(panel);
-        panel.Initialize(player);
-
-        if (position.HasValue) panel.Position = position.Value;
-
-        return panel;
-    }
+    #endregion
 }

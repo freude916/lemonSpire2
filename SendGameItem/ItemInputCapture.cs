@@ -3,6 +3,7 @@ using lemonSpire2.Chat;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.Tooltips;
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
@@ -16,6 +17,11 @@ namespace lemonSpire2.SendGameItem;
 /// </summary>
 public partial class ItemInputCapture : Control
 {
+    /// <summary>
+    ///     已注册的阻塞控件列表 — 这些控件内部的 Alt+Click 将被放过
+    /// </summary>
+    private static readonly WeakNodeRegistry<Control> BlockingControls = new();
+
     private static Logger Log => SendItemInputPatch.Log;
 
     /// <summary>
@@ -24,6 +30,31 @@ public partial class ItemInputCapture : Control
     ///     设为 false 允许其他 Mod 处理 Alt+Click
     /// </summary>
     public static bool BlockAltClickOnNoItem { get; set; }
+
+    /// <summary>
+    ///     UI 组件调用此方法注册自己，InputCapture 将放过其内部的 Alt+Click
+    /// </summary>
+    public static void RegisterBlockingControl(Control control)
+    {
+        BlockingControls.Register(control);
+    }
+
+    /// <summary>
+    ///     检查是否在任何已注册的阻塞控件内
+    /// </summary>
+    public static bool IsInsideBlockingControl(Control? control)
+    {
+        if (control == null) return false;
+
+        var found = false;
+        BlockingControls.ForEachLive(c =>
+        {
+            if (c == control || c.IsAncestorOf(control))
+                found = true;
+        });
+
+        return found;
+    }
 
     public override void _Ready()
     {
@@ -64,9 +95,9 @@ public partial class ItemInputCapture : Control
 
         Log.Debug($"Hovered: {hovered.Name} ({hovered.GetType().Name})");
 
-        if (IsInsideChatPanel(hovered))
+        if (IsInsideBlockingControl(hovered))
         {
-            Log.Debug("Inside chat panel, ignoring");
+            Log.Debug("Inside blocking control, ignoring");
             return;
         }
 
@@ -207,26 +238,10 @@ public partial class ItemInputCapture : Control
             return;
         }
 
-
         store.Dispatch(new IntentSendSegments
         {
             ReceiverId = 0,
             Segments = [segment]
         });
-    }
-
-    private static bool IsInsideChatPanel(Control? control)
-    {
-        if (control == null)
-            return false;
-
-        var found = false;
-        ChatUiPatch.ChatUIs.ForEachLive(chatUI =>
-        {
-            if (chatUI == control || chatUI.IsAncestorOf(control))
-                found = true;
-        });
-
-        return found;
     }
 }

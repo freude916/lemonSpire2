@@ -117,7 +117,7 @@ public class HandCardProvider : IPlayerPanelProvider
             entry.Connect(NDeckHistoryEntry.SignalName.Clicked,
                 Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e.Card, player)));
 
-            CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Right);
+            CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left);
 
             container.AddChild(entry);
         }
