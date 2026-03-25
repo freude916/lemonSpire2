@@ -3,7 +3,7 @@
   "name": "Lemon Spire 2",
   "author": "freude916",
   "description": "A collection of multiplayer QoL: Chat, State, Damage Tracker",
-  "version": "v0.6.1",
+  "version": "v0.6.3",
   "has_pck": true,
   "has_dll": true,
   "dependencies": [

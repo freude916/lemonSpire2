@@ -6,6 +6,13 @@ namespace lemonSpire2.Chat.Message;
 
 public record LocSegment : IMsgSegment
 {
+    // Required by Activator.CreateInstance during network deserialization.
+    public LocSegment()
+    {
+        LocTable = string.Empty;
+        LocEntryKey = string.Empty;
+    }
+
     public LocSegment(LocString locString)
     {
         ArgumentNullException.ThrowIfNull(locString);

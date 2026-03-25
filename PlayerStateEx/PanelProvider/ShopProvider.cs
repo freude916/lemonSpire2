@@ -249,7 +249,7 @@ public class ShopProvider : IPlayerPanelProvider
 
         // 连接事件
         holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From(() => OnRelicClicked(player, entry, relic)));
+            Callable.From<Variant>(_ => OnRelicClicked(player, entry, relic)));
 
         row.AddChild(container);
     }
@@ -284,7 +284,7 @@ public class ShopProvider : IPlayerPanelProvider
 
         // 连接事件
         holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From(() => OnPotionClicked(player, entry, potion)));
+            Callable.From<Variant>(_ => OnPotionClicked(player, entry, potion)));
     }
 
     private static Label CreatePriceLabel(Player player, ShopItemEntry entry, bool centered = false)

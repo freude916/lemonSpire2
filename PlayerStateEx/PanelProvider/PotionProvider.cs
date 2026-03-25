@@ -94,7 +94,7 @@ public class PotionProvider : IPlayerPanelProvider
 
             // 订阅点击事件，支持 Alt+Click 发送药水到聊天
             holder.Connect(NClickableControl.SignalName.Released,
-                Callable.From(() => OnPotionHolderReleased(player, holder, potion)));
+                Callable.From<Variant>(_ => OnPotionHolderReleased(player, holder, potion)));
 
             container.AddChild(holder);
             holder.AddPotion(nPotion);

@@ -32,7 +32,7 @@ public partial class PlayerOverlayPanel : Control
     private readonly Dictionary<string, Control> _providerContents = [];
     private readonly List<Action> _unsubscribeActions = [];
 
-    private Player? _player;
+    private Player _player = null!;
     private PanelContainer _panel = null!;
     private VBoxContainer _mainContainer = null!;
     private DraggableTitleBar _header = null!;
@@ -98,7 +98,7 @@ public partial class PlayerOverlayPanel : Control
     public void Initialize(Player player)
     {
         _player = player ?? throw new ArgumentNullException(nameof(player));
-        _headerTitle!.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
+        _headerTitle.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
 
         PlayerPanelRegistry.Initialize();
 
@@ -132,8 +132,6 @@ public partial class PlayerOverlayPanel : Control
 
     private void CreateProviderContents()
     {
-        if (_player == null || _contentContainer == null) return;
-
         foreach (var provider in PlayerPanelRegistry.GetProviders())
         {
             if (!provider.ShouldShow(_player)) continue;
@@ -181,8 +179,6 @@ public partial class PlayerOverlayPanel : Control
         _pendingProviderUpdates.Clear();
         _providerContents.Clear();
 
-        if (_contentContainer == null) return;
-
         foreach (var child in _contentContainer.GetChildren())
         {
             _contentContainer.RemoveChild(child);
@@ -201,8 +197,6 @@ public partial class PlayerOverlayPanel : Control
 
     private void RefreshAllProviders()
     {
-        if (_player == null || _contentContainer == null) return;
-
         ClearProviderContents();
         CreateProviderContents();
 
@@ -213,13 +207,13 @@ public partial class PlayerOverlayPanel : Control
 
     private void QueueProviderUpdate(string providerId)
     {
-        if (string.IsNullOrEmpty(providerId) || _player == null) return;
+        if (string.IsNullOrEmpty(providerId)) return;
         _pendingProviderUpdates.Add(providerId);
     }
 
     private void FlushPendingProviderUpdates()
     {
-        if (_player == null || _pendingProviderUpdates.Count == 0) return;
+        if (_pendingProviderUpdates.Count == 0) return;
 
         var pendingProviderIds = _pendingProviderUpdates.ToArray();
         _pendingProviderUpdates.Clear();

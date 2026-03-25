@@ -137,12 +137,16 @@ public static class PlayerColorButtonPatch
         ));
 
         // 关闭时应用最终颜色
-        popup.CloseRequested += () =>
+        popup.PopupHide += SubmitColor;
+
+        return;
+
+        void SubmitColor()
         {
             var finalColor = colorPicker.Color;
             OnColorChanged(playerId, finalColor, button);
             popup.QueueFree();
-        };
+        }
     }
 
     private static void OnColorChanged(ulong playerId, Color color, Button button)
