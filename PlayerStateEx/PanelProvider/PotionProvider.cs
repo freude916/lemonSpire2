@@ -41,6 +41,32 @@ public class PotionProvider : IPlayerPanelProvider
 
     #endregion
 
+    #region Helpers
+
+    private static Action SubscribePotionEvents(Player player, Action onUpdate, bool shouldLog)
+    {
+        // 事件类型是 Action<PotionModel>，需要适配
+        void OnPotionChanged(PotionModel potion)
+        {
+            if (shouldLog)
+                Log.Debug($"Potion event triggered for {potion?.Id.Entry ?? "null"}");
+            onUpdate();
+        }
+
+        player.PotionProcured += OnPotionChanged;
+        player.PotionDiscarded += OnPotionChanged;
+        player.UsedPotionRemoved += OnPotionChanged;
+
+        return () =>
+        {
+            player.PotionProcured -= OnPotionChanged;
+            player.PotionDiscarded -= OnPotionChanged;
+            player.UsedPotionRemoved -= OnPotionChanged;
+        };
+    }
+
+    #endregion
+
     #region IPlayerPanelProvider Implementation
 
     public string ProviderId => "potions";
@@ -123,24 +149,14 @@ public class PotionProvider : IPlayerPanelProvider
         ArgumentNullException.ThrowIfNull(onUpdate);
         Log.Debug($"SubscribeEvents for player with {player.Potions.Count()} potions");
 
-        // 订阅药水变化事件
-        // 事件类型是 Action<PotionModel>，需要适配
-        void OnPotionChanged(PotionModel potion)
-        {
-            Log.Debug($"Potion event triggered for {potion?.Id.Entry ?? "null"}");
-            onUpdate();
-        }
+        return SubscribePotionEvents(player, onUpdate, true);
+    }
 
-        player.PotionProcured += OnPotionChanged;
-        player.PotionDiscarded += OnPotionChanged;
-        player.UsedPotionRemoved += OnPotionChanged;
-
-        return () =>
-        {
-            player.PotionProcured -= OnPotionChanged;
-            player.PotionDiscarded -= OnPotionChanged;
-            player.UsedPotionRemoved -= OnPotionChanged;
-        };
+    public Action SubscribeVisibilityEvents(Player player, Action onVisibilityChanged)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(onVisibilityChanged);
+        return SubscribePotionEvents(player, onVisibilityChanged, false);
     }
 
     public void Cleanup(Control content)

@@ -100,6 +100,20 @@ public class CardRewardProvider : IPlayerPanelProvider
         return () => CardRewardManager.Instance.RewardsUpdated -= OnRewardsUpdated;
     }
 
+    public Action SubscribeVisibilityEvents(Player player, Action onVisibilityChanged)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(onVisibilityChanged);
+
+        void OnRewardsUpdated(ulong netId)
+        {
+            if (netId == player.NetId) onVisibilityChanged();
+        }
+
+        CardRewardManager.Instance.RewardsUpdated += OnRewardsUpdated;
+        return () => CardRewardManager.Instance.RewardsUpdated -= OnRewardsUpdated;
+    }
+
     public void Cleanup(Control content)
     {
         ArgumentNullException.ThrowIfNull(content);

@@ -70,8 +70,11 @@
         <Reference Include="sts2">
             <HintPath>$(Sts2DataDir)/sts2.dll</HintPath>
             <Private>false</Private>
-            <Publicize>true</Publicize> <!--Allows private/protected field references but may cause errors.-->
         </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Publicize Include="sts2" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -95,14 +98,12 @@
         <None Include=".gitignore"/>
         <None Include="lemonSpire2.json"/>
         <None Include="project.godot"/>
+        <None Include="export_presets.cfg"/>
         <None Include="lemonSpire2/**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="All"/>
     </ItemGroup>
 
     <ItemGroup>
