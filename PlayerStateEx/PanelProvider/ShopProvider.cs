@@ -106,13 +106,13 @@ public class ShopProvider : IPlayerPanelProvider
 
         Log.Debug($"SubscribeEvents for player {player.NetId}");
 
-        ShopManager.Instance.InventoryUpdated += OnInventoryUpdated;
+        var unsubscribeInventory = SubscribeInventoryEvents(player, onUpdate, true);
         player.GoldChanged += OnGoldChanged;
 
         return () =>
         {
             Log.Debug($"UnsubscribeEvents for player {player.NetId}");
-            ShopManager.Instance.InventoryUpdated -= OnInventoryUpdated;
+            unsubscribeInventory();
             player.GoldChanged -= OnGoldChanged;
         };
 
@@ -121,18 +121,32 @@ public class ShopProvider : IPlayerPanelProvider
             Log.Debug($"OnGoldChanged for player {player.NetId}");
             onUpdate();
         }
+    }
 
-        void OnInventoryUpdated(ulong netId)
-        {
-            Log.Debug($"OnInventoryUpdated: netId={netId}, player.NetId={player.NetId}");
-            if (netId == player.NetId) onUpdate();
-        }
+    public Action SubscribeVisibilityEvents(Player player, Action onVisibilityChanged)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(onVisibilityChanged);
+        return SubscribeInventoryEvents(player, onVisibilityChanged, false);
     }
 
     public void Cleanup(Control content)
     {
         ArgumentNullException.ThrowIfNull(content);
         UiUtils.ClearChildren(content);
+    }
+
+    private static Action SubscribeInventoryEvents(Player player, Action onUpdate, bool shouldLog)
+    {
+        void OnInventoryUpdated(ulong netId)
+        {
+            if (shouldLog)
+                Log.Debug($"OnInventoryUpdated: netId={netId}, player.NetId={player.NetId}");
+            if (netId == player.NetId) onUpdate();
+        }
+
+        ShopManager.Instance.InventoryUpdated += OnInventoryUpdated;
+        return () => ShopManager.Instance.InventoryUpdated -= OnInventoryUpdated;
     }
 
     #endregion

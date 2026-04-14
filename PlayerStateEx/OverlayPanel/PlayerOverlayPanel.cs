@@ -5,6 +5,7 @@ using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
+using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
 using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
@@ -30,7 +31,8 @@ public partial class PlayerOverlayPanel : Control
 
     private readonly HashSet<string> _pendingProviderUpdates = [];
     private readonly Dictionary<string, Control> _providerContents = [];
-    private readonly List<Action> _unsubscribeActions = [];
+    private readonly List<Action> _unsubscribeContentActions = [];
+    private readonly List<Action> _unsubscribeVisibilityActions = [];
 
     private Player _player = null!;
     private PanelContainer _panel = null!;
@@ -86,7 +88,7 @@ public partial class PlayerOverlayPanel : Control
             ViewportResizeNotifier.Instance.OnViewportResized -= _onViewportResized;
 
         CombatManager.Instance.CombatSetUp -= OnCombatSetUp;
-        // CombatManager.Instance.CombatEnded -= OnCombatEnded;
+        CombatManager.Instance.CombatEnded -= OnCombatEnded;
 
         ClearProviderContents();
     }
@@ -103,8 +105,8 @@ public partial class PlayerOverlayPanel : Control
         PlayerPanelRegistry.Initialize();
 
         CombatManager.Instance.CombatSetUp += OnCombatSetUp;
-        // CombatManager.Instance.CombatEnded += OnCombatEnded;
-        // 战斗结束时似乎不必刷新
+        CombatManager.Instance.CombatEnded += OnCombatEnded;
+        // 保留战斗结束刷新，确保奖励等区块能在状态切换后重建。
 
         RefreshAllProviders();
     }
@@ -134,12 +136,17 @@ public partial class PlayerOverlayPanel : Control
     {
         foreach (var provider in PlayerPanelRegistry.GetProviders())
         {
+            var providerId = provider.ProviderId;
+            var unsubscribeVisibility =
+                provider.SubscribeVisibilityEvents(_player, () => { QueueProviderUpdate(providerId); });
+            if (unsubscribeVisibility != null) _unsubscribeVisibilityActions.Add(unsubscribeVisibility);
+
             if (!provider.ShouldShow(_player)) continue;
 
             // 创建区块容器
             var sectionContainer = new VBoxContainer
             {
-                Name = $"Section_{provider.ProviderId}",
+                Name = $"Section_{providerId}",
                 SizeFlagsHorizontal = SizeFlags.ExpandFill
             };
             sectionContainer.AddThemeConstantOverride("separation", 4);
@@ -157,26 +164,34 @@ public partial class PlayerOverlayPanel : Control
             _contentContainer.AddChild(sectionContainer);
 
             var content = provider.CreateContent(_player);
-            _providerContents[provider.ProviderId] = content;
+            _providerContents[providerId] = content;
             sectionContainer.AddChild(content);
 
             provider.UpdateContent(_player, content);
 
-            var providerId = provider.ProviderId;
-            var unsubscribe = provider.SubscribeEvents(_player, () =>
+            var unsubscribeContent = provider.SubscribeEvents(_player, () =>
             {
                 // 事件可能在数据真正落地前触发；延迟到下一帧读取可避免"一拍慢"。
                 QueueProviderUpdate(providerId);
             });
-            if (unsubscribe != null) _unsubscribeActions.Add(unsubscribe);
+            if (unsubscribeContent != null) _unsubscribeContentActions.Add(unsubscribeContent);
         }
     }
 
     private void ClearProviderContents()
     {
-        foreach (var unsubscribe in _unsubscribeActions) unsubscribe();
-        _unsubscribeActions.Clear();
+        foreach (var unsubscribe in _unsubscribeContentActions) unsubscribe();
+        _unsubscribeContentActions.Clear();
+        foreach (var unsubscribe in _unsubscribeVisibilityActions) unsubscribe();
+        _unsubscribeVisibilityActions.Clear();
         _pendingProviderUpdates.Clear();
+
+        foreach (var entry in _providerContents)
+        {
+            var provider = PlayerPanelRegistry.GetProvider(entry.Key);
+            provider?.Cleanup(entry.Value);
+        }
+
         _providerContents.Clear();
 
         foreach (var child in _contentContainer.GetChildren())
@@ -344,6 +359,12 @@ public partial class PlayerOverlayPanel : Control
     private void OnCombatSetUp(CombatState _)
     {
         Log.Debug("CombatSetUp, refreshing");
+        Refresh();
+    }
+
+    private void OnCombatEnded(CombatRoom _)
+    {
+        Log.Debug("CombatEnded, refreshing");
         Refresh();
     }
 

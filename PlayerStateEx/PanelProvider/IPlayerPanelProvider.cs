@@ -46,6 +46,17 @@ public interface IPlayerPanelProvider
     Action? SubscribeEvents(Player player, Action onUpdate);
 
     /// <summary>
+    ///     订阅影响可见性的事件（用于触发 ShouldShow 重新评估）
+    ///     默认无订阅
+    /// </summary>
+    Action? SubscribeVisibilityEvents(Player player, Action onVisibilityChanged)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(onVisibilityChanged);
+        return null;
+    }
+
+    /// <summary>
     ///     内容被移除时的清理
     /// </summary>
     void Cleanup(Control content);
