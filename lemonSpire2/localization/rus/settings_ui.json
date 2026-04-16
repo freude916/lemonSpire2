@@ -1,0 +1,12 @@
+{
+  "LEMONSPIRE2.mod_title": "Lemon Spire 2",
+  "LEMONSPIRE2-FEATURE_FLAGS.title": "Настройки мода",
+  "LEMONSPIRE2-ENABLE_QO_L.title": "Включить QoL функции",
+  "LEMONSPIRE2-ENABLE_CHAT.title": "Включить чат для Совместной игры",
+  "LEMONSPIRE2-ENABLE_SYNERGY_INDICATOR.title": "Включить индикатор синергии",
+  "LEMONSPIRE2-ENABLE_STATS_TRACKER.title": "Включить отображение статистики",
+  "LEMONSPIRE2-ENABLE_SYNC.title": "Включить синхронизацию",
+  "LEMONSPIRE2-ENABLE_PLAYER_COLOR.title": "Включить смену цвета игрока",
+  "LEMONSPIRE2-PANEL_FLAGS.title": "Настройки панелей",
+  "LEMONSPIRE2-GROUP_HAND_CARDS.title": "Группировать карты союзников в руке"
+}
