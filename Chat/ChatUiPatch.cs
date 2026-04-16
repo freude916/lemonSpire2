@@ -40,7 +40,9 @@ public static class ChatUiPatch
         var store = new ChatStore(netService);
 
         // Create ChatPanel with model, dispatch, intent registry, and tooltip parent (globalUi)
-        var panel = new ChatPanel(store.Model, intent => store.Dispatch(intent), store.IntentRegistry, globalUi);
+        var panel = new ChatPanel(store.Model, intent => store.Dispatch(intent), store.IntentRegistry,
+            store.InputServices,
+            globalUi);
 
         // Add to scene
         var control = panel.GetControl()!; // panel inited , control should be non-null

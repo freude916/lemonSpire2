@@ -1,7 +1,9 @@
 using System.Globalization;
 using Godot;
+using lemonSpire2.Chat.Input;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.Chat.Ui.Completion;
 using lemonSpire2.ColorEx;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.util.Ui;
@@ -17,9 +19,11 @@ namespace lemonSpire2.Chat.Ui;
 /// </summary>
 public sealed class ChatPanel : IDisposable
 {
+    private readonly ChatCompletionPopupController _completionPopup = new();
     private readonly Action<IIntent> _dispatch;
     private readonly EntityFocusManager _entityFocusManager = new();
     private readonly List<string> _inputHistory = [];
+    private readonly ChatInputServices _inputServices;
     private readonly AudioStream? _messageSound;
     private readonly ChatModel _model;
     private readonly TooltipManager _tooltipManager = new();
@@ -37,14 +41,17 @@ public sealed class ChatPanel : IDisposable
     private bool _isUpdatingLayout; // 防止 OnResized 递归调用 UpdateLayout
     private RichTextLabel _messageBuffer = null!;
     private StyleBoxFlat _panelStyle = null!;
+    private bool _pendingCompletionRefresh;
     private DraggableTitleBar _titleBar = null!;
     private VBoxContainer _vboxLayout = null!;
 
     public ChatPanel(ChatModel model, Action<IIntent> dispatch, IntentHandlerRegistry intentRegistry,
+        ChatInputServices inputServices,
         Control tooltipParent)
     {
         _model = model;
         _dispatch = dispatch;
+        _inputServices = inputServices;
         _tooltipParent = tooltipParent;
         _messageSound = GD.Load<AudioStream>(ChatConfig.MessageSoundPath);
         _model.OnMessageAppended += OnMessageAppended;
@@ -76,6 +83,9 @@ public sealed class ChatPanel : IDisposable
 
         if (keyEvent.Keycode == ChatConfig.ToggleKey)
         {
+            if (_isExpanded && _completionPopup.TryConfirm(_inputField))
+                return true;
+
             ToggleExpanded();
             return true;
         }
@@ -84,8 +94,21 @@ public sealed class ChatPanel : IDisposable
 
         switch (keyEvent.Keycode)
         {
+            case Key.Enter:
+            case Key.KpEnter:
+                return _completionPopup.TryConfirm(_inputField);
+
             case Key.Escape:
+                if (_completionPopup.IsOpen)
+                {
+                    _completionPopup.Hide();
+                    return true;
+                }
+
                 SetExpanded(false);
+                return true;
+
+            case Key.Up when _completionPopup.MoveSelection(-1):
                 return true;
 
             case Key.Up when _historyIndex < _inputHistory.Count:
@@ -93,6 +116,10 @@ public sealed class ChatPanel : IDisposable
                 var olderText = _inputHistory[^_historyIndex];
                 _inputField.Text = olderText;
                 _inputField.CaretColumn = olderText.Length;
+                RequestCompletionRefresh();
+                return true;
+
+            case Key.Down when _completionPopup.MoveSelection(1):
                 return true;
 
             case Key.Down when _historyIndex > 0:
@@ -102,8 +129,10 @@ public sealed class ChatPanel : IDisposable
                     : "";
                 _inputField.Text = newerText;
                 _inputField.CaretColumn = newerText.Length;
+                RequestCompletionRefresh();
                 return true;
             default:
+                RequestCompletionRefresh();
                 return false;
         }
     }
@@ -212,6 +241,7 @@ public sealed class ChatPanel : IDisposable
             _inputField.ReleaseFocus();
             _container.GetViewport()?.GuiReleaseFocus();
             _historyIndex = 0;
+            _completionPopup.Hide();
         }
     }
 
@@ -272,6 +302,13 @@ public sealed class ChatPanel : IDisposable
         PlayMessageSound();
         DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
 
+        if (TryDisplayTextSegment(message))
+        {
+            _messageBuffer.AppendText("\n");
+            _messageBuffer.ScrollToLine(_messageBuffer.GetLineCount() - 1);
+            return;
+        }
+
         var senderName = message.SenderName ?? $"Player {message.SenderId}";
         var time = message.Timestamp.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
@@ -291,6 +328,18 @@ public sealed class ChatPanel : IDisposable
 
         _messageBuffer.AppendText("\n");
         _messageBuffer.ScrollToLine(_messageBuffer.GetLineCount() - 1);
+    }
+
+    private bool TryDisplayTextSegment(ChatMessage message)
+    {
+        if (message.Segments.Count != 1 || message.Segments.First() is not TextDisplaySegment textDisplay)
+            return false;
+
+        _messageBuffer.PushColor(ChatConfig.TimeColor);
+        _messageBuffer.AppendText($"[{textDisplay.HeaderText}]: ");
+        _messageBuffer.Pop();
+        _messageBuffer.AppendText(textDisplay.Render());
+        return true;
     }
 
     private void PlayMessageSound()
@@ -331,6 +380,7 @@ public sealed class ChatPanel : IDisposable
             BorderWidthRight = ChatConfig.BorderWidth
         };
         _container.AddThemeStyleboxOverride("panel", _panelStyle);
+        _completionPopup.Attach(_container);
 
         // layout
         _vboxLayout = new VBoxContainer
@@ -415,6 +465,7 @@ public sealed class ChatPanel : IDisposable
         _inputField.SetFocusMode(Control.FocusModeEnum.Click);
 
         _inputField.TextSubmitted += OnTextSubmitted;
+        _inputField.TextChanged += _ => RequestCompletionRefresh();
         _inputContainer.AddChild(_inputField);
 
         // 初始化时隐藏拖拽条（默认折叠状态）
@@ -459,6 +510,7 @@ public sealed class ChatPanel : IDisposable
     private void OnViewportResized(Vector2 _)
     {
         PanelPositionHelper.ClampToViewport(_container);
+        RequestCompletionRefresh();
     }
 
     private void ShowWelcome()
@@ -487,9 +539,40 @@ public sealed class ChatPanel : IDisposable
 
         _historyIndex = 0;
         _inputField.Text = "";
+        _completionPopup.Hide();
 
-        _dispatch(new IntentTextSubmit { Text = text });
+        if (!_completionPopup.TryConfirm(_inputField)) _dispatch(new IntentTextSubmit { Text = text });
+
         _inputField.CallDeferred(Control.MethodName.GrabFocus);
+    }
+
+    private void RequestCompletionRefresh()
+    {
+        if (_pendingCompletionRefresh)
+            return;
+
+        _pendingCompletionRefresh = true;
+        Callable.From(RefreshCompletion).CallDeferred();
+    }
+
+    private void RefreshCompletion()
+    {
+        _pendingCompletionRefresh = false;
+        if (!_isExpanded || !_inputField.HasFocus())
+        {
+            _completionPopup.Hide();
+            return;
+        }
+
+        var text = _inputField.Text;
+        if (!_inputServices.CompletionLeaderRegistry.TryMatch(text, _inputField.CaretColumn, out var session))
+        {
+            _completionPopup.Hide();
+            return;
+        }
+
+        var items = session.Provider.GetItems(session.Query);
+        _completionPopup.Show(_inputField, session, items);
     }
 
     private void OnMetaClicked(Variant meta)

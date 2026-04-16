@@ -38,6 +38,19 @@ public sealed class CardTooltip : Tooltip
         };
     }
 
+    public static CardTooltip FromChatReference(CardModel card)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+
+        var snapshotSource = (CardModel)card.MutableClone();
+
+        return new CardTooltip
+        {
+            Snapshot = snapshotSource.ToSerializable(),
+            UseCombatPreview = false
+        };
+    }
+
     public static Color GetCardRarityColor(CardRarity rarity)
     {
         return rarity switch

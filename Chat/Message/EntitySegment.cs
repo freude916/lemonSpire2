@@ -105,17 +105,19 @@ public sealed record EntitySegment : IMsgSegment
 
     public static bool IsEntityMeta(string meta)
     {
+        ArgumentNullException.ThrowIfNull(meta);
         return meta.StartsWith($"{MetaPrefix}:", StringComparison.Ordinal);
     }
 
     public static bool TryParseMeta(string meta, out EntityKind kind, out ulong playerNetId, out uint creatureCombatId)
     {
+        ArgumentNullException.ThrowIfNull(meta);
         kind = EntityKind.Unknown;
         playerNetId = 0;
         creatureCombatId = 0;
 
         var parts = meta.Split(':', 3);
-        if (parts.Length != 3 || parts[0] != MetaPrefix)
+        if (parts is not [MetaPrefix, _, _])
             return false;
 
         switch (parts[1])

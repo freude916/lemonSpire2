@@ -1,3 +1,4 @@
+using lemonSpire2.Chat.Input;
 using lemonSpire2.Chat.Intent;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.util;
@@ -22,19 +23,14 @@ public class ChatStore
         // 注册核心基础意图的处理逻辑
         IntentRegistry.Register<IntentTextSubmit>(i =>
         {
-            var safeText = BbCodeUtils.AutoCloseUnclosedTags(i.Text);
+            var text = BbCodeUtils.AutoCloseUnclosedTags(i.Text);
+            var result = InputServices.Parser.Parse(text);
 
-            // Fill sender ID, name, and UTC timestamp
-            var senderId = _netService.NetId;
-            var senderName = PlatformUtil.GetPlayerName(_netService.Platform, senderId);
-            var msg = new ChatMessage
+            Dispatch(new IntentSendSegments
             {
-                SenderId = senderId, // Will be filled by ChatStore
-                SenderName = senderName,
-                Timestamp = DateTimeOffset.UtcNow,
-                Segments = [new RichTextSegment { Text = safeText }]
-            };
-            Dispatch(new IntentSendMessage { Message = msg });
+                Segments = result
+            });
+
             return true;
         });
 
@@ -76,6 +72,9 @@ public class ChatStore
     public static ChatStore? Instance { get; internal set; }
 
     public ChatModel Model { get; init; }
+    public ChatInputServices InputServices { get; } = new();
+
+    public ulong LocalNetId => _netService.NetId;
 
     // Expose for external handlers (e.g., TooltipManager)
     public IntentHandlerRegistry IntentRegistry { get; } = new();

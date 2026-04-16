@@ -74,20 +74,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Publicize Include="sts2" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Alchyr.Sts2.BaseLib" Version="*" PrivateAssets="All"/>
         <AdditionalFiles Include="lemonSpire2/localization/**/*.json"/>
     </ItemGroup>
 
     <ItemGroup>
         <Compile Remove="lemonSpire2/**"/>
+        <Compile Remove="lemonSpire2.Tests/**"/>
         <Compile Remove="materials/**"/>
         <Compile Remove="shaders/**"/>
         <Compile Remove="images/**"/>
         <EmbeddedResource Remove="lemonSpire2/**"/>
+        <EmbeddedResource Remove="lemonSpire2.Tests/**"/>
         <EmbeddedResource Remove="materials/**"/>
         <EmbeddedResource Remove="shaders/**"/>
         <EmbeddedResource Remove="images/**"/>
