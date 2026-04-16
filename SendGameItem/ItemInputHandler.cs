@@ -3,6 +3,8 @@ using lemonSpire2.Chat.Message;
 using lemonSpire2.Tooltips;
 using MegaCrit.Sts2.Core.Entities.Creatures;
 using MegaCrit.Sts2.Core.Entities.Merchant;
+using MegaCrit.Sts2.Core.Events;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
@@ -24,75 +26,74 @@ public static class ItemInputHandler
     /// <summary>
     ///     从节点树中查找物品并创建 TooltipSegment
     /// </summary>
-    public static TooltipSegment? FindItemToTooltipSegment(Node? node)
+    public static IEnumerable<TooltipSegment> FindItemToTooltipSegments(Node? node)
     {
         // 先检查是否点击了附魔标签
-        var enchantmentSegment = TryGetEnchantmentFromTab(node);
-        if (enchantmentSegment != null)
-            return enchantmentSegment;
+        var enchantmentSegments = TryGetEnchantmentFromTab(node);
+        if (enchantmentSegments.Count > 0)
+            return enchantmentSegments;
 
         // 检查是否是商店槽位
-        var merchantSegment = TryGetMerchantItem(node);
-        if (merchantSegment != null)
-            return merchantSegment;
+        var merchantSegments = TryGetMerchantItem(node);
+        if (merchantSegments.Count > 0)
+            return merchantSegments;
 
         while (node != null)
         {
             switch (node)
             {
                 case NDeckHistoryEntry { Card: { } card }:
-                    return CreateCardSegment(card);
+                    return CardTooltip.FromModel(card).ToTooltipSegments();
 
-                case NEventOptionButton { Option.Relic: { } relic }:
-                    // Ancient 遗物三选一选项
-                    return CreateRelicSegment(relic);
+                case NEventOptionButton { Option: { } option }:
+                    return CreateEventOptionSegments(option);
 
                 case NOrb { Model: { } orb }:
-                    return CreateOrbSegment(orb);
+                    return OrbTooltip.FromModel(orb).ToTooltipSegments();
 
                 case NPower { Model: { } pm }:
-                    return CreatePowerSegment(pm);
+                    return PowerTooltip.FromModel(pm).ToTooltipSegments();
 
                 case NCardHolder { CardModel: { } card }:
-                    return CreateCardSegment(card);
+                    return CardTooltip.FromModel(card).ToTooltipSegments();
 
                 case NCard { Model: { } card }:
-                    return CreateCardSegment(card);
+                    return CardTooltip.FromModel(card).ToTooltipSegments();
 
                 case NPotionHolder { Potion: { } potion }:
-                    return CreatePotionSegment(potion.Model);
+                    return PotionTooltip.FromModel(potion.Model).ToTooltipSegments();
 
                 case NPotion { Model: { } potion }:
-                    // 直接匹配 NPotion 节点，可用于 NPlayerState.Panel.PotionProvider 创建的药水
-                    return CreatePotionSegment(potion);
+                    return PotionTooltip.FromModel(potion).ToTooltipSegments();
 
                 case NRelicInventoryHolder { Relic.Model: { } relic }:
-                    return CreateRelicSegment(relic);
+                    return RelicTooltip.FromModel(relic).ToTooltipSegments();
 
                 case NRelicBasicHolder { Relic.Model: { } relic }:
                     // 用于 NMultiplayerPlayerExpandedState 中的遗物
-                    return CreateRelicSegment(relic);
+                    return RelicTooltip.FromModel(relic).ToTooltipSegments();
 
                 case NRelic { Model: { } relicModel }:
                     // 直接匹配 NRelic 节点
-                    return CreateRelicSegment(relicModel);
+                    return RelicTooltip.FromModel(relicModel).ToTooltipSegments();
 
                 case NCreature { Entity: { } entity }:
-                    return CreateTargetSegment(entity);
+                    return CreateTargetSegments(entity);
             }
 
             node = node.GetParent();
         }
 
-        return null;
+        return [];
     }
+
 
     /// <summary>
     ///     尝试从商店槽位获取物品
     /// </summary>
-    private static TooltipSegment? TryGetMerchantItem(Node? node)
+    private static List<TooltipSegment> TryGetMerchantItem(Node? node)
     {
-        if (node == null) return null;
+        if (node == null) return [];
 
         // 向上查找 NMerchantSlot
         var current = node;
@@ -101,24 +102,25 @@ public static class ItemInputHandler
             if (current is NMerchantSlot { Entry: { } entry })
                 return entry switch
                 {
-                    MerchantCardEntry { CreationResult.Card: { } card } => CreateCardSegment(card),
-                    MerchantPotionEntry { Model: { } potion } => CreatePotionSegment(potion),
-                    MerchantRelicEntry { Model: { } relic } => CreateRelicSegment(relic),
-                    _ => null
+                    MerchantCardEntry { CreationResult.Card: { } card } => CardTooltip.FromModel(card)
+                        .ToTooltipSegments(),
+                    MerchantPotionEntry { Model: { } potion } => PotionTooltip.FromModel(potion).ToTooltipSegments(),
+                    MerchantRelicEntry { Model: { } relic } => RelicTooltip.FromModel(relic).ToTooltipSegments(),
+                    _ => []
                 };
 
             current = current.GetParent();
         }
 
-        return null;
+        return [];
     }
 
     /// <summary>
     ///     尝试从附魔标签获取附魔信息
     /// </summary>
-    private static TooltipSegment? TryGetEnchantmentFromTab(Node? node)
+    private static List<TooltipSegment> TryGetEnchantmentFromTab(Node? node)
     {
-        if (node == null) return null;
+        if (node == null) return [];
 
         // 检查当前节点或其父节点是否是附魔标签
         var current = node;
@@ -131,8 +133,8 @@ public static class ItemInputHandler
                 var parent = current.GetParent();
                 while (parent != null)
                 {
-                    if (parent is NCard { Model: { Enchantment: { } enchantment } })
-                        return CreateEnchantmentSegment(enchantment);
+                    if (parent is NCard { Model.Enchantment: { } enchantment })
+                        return EnchantmentTooltip.FromModel(enchantment).ToTooltipSegments();
 
                     parent = parent.GetParent();
                 }
@@ -141,67 +143,76 @@ public static class ItemInputHandler
             current = current.GetParent();
         }
 
-        return null;
+        return [];
     }
 
-    private static TooltipSegment CreateCardSegment(CardModel card)
+    private static List<TooltipSegment> CreateEventOptionSegments(EventOption option)
     {
-        return new TooltipSegment
+        ArgumentNullException.ThrowIfNull(option);
+
+        var segments = new LocTooltip
         {
-            Tooltip = CardTooltip.FromModel(card)
-        };
+            Title = option.Title,
+            Description = option.Description,
+            IsDebuff = false
+        }.ToTooltipSegments();
+
+        if (option.Relic != null && option.Relic.Description.LocEntryKey != option.Description.LocEntryKey)
+            segments.AddRange(RelicTooltip.FromModel(option.Relic).ToTooltipSegment());
+
+        foreach (var hoverTip in IHoverTip.RemoveDupes(option.HoverTips))
+            segments.AddRange(CreateSegmentsFromHoverTip(hoverTip));
+
+        return segments;
     }
 
-    private static TooltipSegment CreatePowerSegment(PowerModel pm)
+    private static List<TooltipSegment> CreateTargetSegments(Creature entity)
     {
-        return new TooltipSegment
-        {
-            Tooltip = PowerTooltip.FromModel(pm)
-        };
-    }
-
-    private static TooltipSegment CreateOrbSegment(OrbModel orb)
-    {
-        return new TooltipSegment
-        {
-            Tooltip = OrbTooltip.FromModel(orb)
-        };
-    }
-
-    private static TooltipSegment CreatePotionSegment(PotionModel potion)
-    {
-        return new TooltipSegment
-        {
-            Tooltip = PotionTooltip.FromModel(potion)
-        };
-    }
-
-    private static TooltipSegment CreateRelicSegment(RelicModel relic)
-    {
-        return new TooltipSegment
-        {
-            Tooltip = RelicTooltip.FromModel(relic)
-        };
-    }
-
-    private static TooltipSegment CreateEnchantmentSegment(EnchantmentModel enchantment)
-    {
-        return new TooltipSegment
-        {
-            Tooltip = EnchantmentTooltip.FromModel(enchantment)
-        };
-    }
-
-    private static TooltipSegment CreateTargetSegment(Creature entity)
-    {
-        var tooltip = new RichTextTooltip
+        var description = $"{entity.CurrentHp}/{entity.MaxHp}";
+        return new RichTextTooltip
         {
             Title = entity.Name,
-            Description = $"{entity.CurrentHp}/{entity.MaxHp}"
-        };
-        return new TooltipSegment
+            Description = description,
+            IsDebuff = false,
+            IconPath = null
+        }.ToTooltipSegments();
+    }
+
+    private static List<TooltipSegment> CreateSegmentsFromHoverTip(IHoverTip hoverTip)
+    {
+        ArgumentNullException.ThrowIfNull(hoverTip);
+
+        if (hoverTip is CardHoverTip cardHoverTip)
+            return CardTooltip.FromModel(cardHoverTip.Card).ToTooltipSegments();
+
+        if (hoverTip.CanonicalModel != null)
+            return CreateSegmentsFromModel(hoverTip.CanonicalModel);
+
+        if (hoverTip is HoverTip simpleHoverTip)
+            return new RichTextTooltip
+            {
+                Title = simpleHoverTip.Title,
+                Description = simpleHoverTip.Description,
+                IsDebuff = simpleHoverTip.IsDebuff,
+                IconPath = simpleHoverTip.Icon?.ResourcePath
+            }.ToTooltipSegments();
+
+        return [];
+    }
+
+    private static List<TooltipSegment> CreateSegmentsFromModel(AbstractModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        return model switch
         {
-            Tooltip = tooltip
+            CardModel card => CardTooltip.FromModel(card).ToTooltipSegments(),
+            PowerModel power => PowerTooltip.FromModel(power).ToTooltipSegments(),
+            OrbModel orb => OrbTooltip.FromModel(orb).ToTooltipSegments(),
+            PotionModel potion => PotionTooltip.FromModel(potion).ToTooltipSegments(),
+            RelicModel relic => RelicTooltip.FromModel(relic).ToTooltipSegments(),
+            EnchantmentModel enchantment => EnchantmentTooltip.FromModel(enchantment).ToTooltipSegments(),
+            _ => []
         };
     }
 }

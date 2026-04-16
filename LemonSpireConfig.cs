@@ -3,7 +3,7 @@ using BaseLib.Config;
 namespace lemonSpire2;
 
 [HoverTipsByDefault]
-internal class LemonSpireConfig : SimpleModConfig
+internal sealed class LemonSpireConfig : SimpleModConfig
 {
     [ConfigSection("FeatureFlags")] public static bool EnableQoL { get; set; } = true;
 

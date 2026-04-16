@@ -2,7 +2,6 @@ using Godot;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Entities.Potions;
 using MegaCrit.Sts2.Core.Helpers;
-using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
@@ -64,19 +63,8 @@ public sealed class PotionTooltip : Tooltip
     public override Control? CreatePreview()
     {
         var model = ResolveModel();
-        if (model is null) return null;
-
-        // Potion atlas resources are regular textures; using model.Image is stable across locales.
-        return BuildHoverTipControl(model.HoverTip, model.Image);
-    }
-
-    public override IHoverTip ToHoverTip()
-    {
-        var model = ResolveModel();
-        if (model is null)
-            throw new InvalidOperationException($"Cannot resolve potion model: {ModelIdStr}");
-
-        return model.HoverTip;
+        return model is null ? null : BuildHoverTipControl(model.HoverTip, model.Image);
+        // use a more stable image object
     }
 
     private PotionModel? ResolveModel()

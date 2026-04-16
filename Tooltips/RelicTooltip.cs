@@ -2,7 +2,6 @@ using Godot;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Helpers;
-using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
@@ -65,18 +64,7 @@ public sealed class RelicTooltip : Tooltip
     public override Control? CreatePreview()
     {
         var model = ResolveModel();
-        if (model is null) return null;
-
-        return BuildHoverTipControl(model.HoverTip, model.Icon);
-    }
-
-    public override IHoverTip ToHoverTip()
-    {
-        var model = ResolveModel();
-        if (model is null)
-            throw new InvalidOperationException($"Cannot resolve relic model: {ModelIdStr}");
-
-        return model.HoverTip;
+        return model is null ? null : BuildHoverTipControl(model.HoverTip, model.Icon);
     }
 
     private RelicModel? ResolveModel()

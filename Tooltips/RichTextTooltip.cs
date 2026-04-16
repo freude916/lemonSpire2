@@ -72,22 +72,4 @@ public sealed class RichTextTooltip : Tooltip
 
         return BuildHoverTipControl(tip, icon);
     }
-
-    public override IHoverTip ToHoverTip()
-    {
-        var tip = new HoverTip
-        {
-            IsDebuff = IsDebuff,
-            IsSmart = false,
-            IsInstanced = false,
-            Id = $"richtext:{Title ?? "untitled"}"
-        };
-
-        object boxed = tip;
-        TitleProperty?.SetValue(boxed, Title);
-        DescriptionProperty?.SetValue(boxed, Description);
-        tip = (HoverTip)boxed;
-
-        return tip;
-    }
 }

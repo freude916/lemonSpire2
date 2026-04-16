@@ -1,6 +1,5 @@
 using Godot;
 using lemonSpire2.util;
-using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
@@ -140,18 +139,7 @@ public sealed class PowerTooltip : Tooltip
     public override Control? CreatePreview()
     {
         var model = ResolveModel();
-        if (model is null) return null;
-
-        return BuildHoverTipControl(model.DumbHoverTip, model.Icon);
-    }
-
-    public override IHoverTip ToHoverTip()
-    {
-        var model = ResolveModel();
-        if (model is null)
-            throw new InvalidOperationException($"Cannot resolve power model: {PowerIdStr}");
-
-        return model.DumbHoverTip;
+        return model is null ? null : BuildHoverTipControl(model.DumbHoverTip, model.Icon);
     }
 
     private PowerModel? ResolveModel()

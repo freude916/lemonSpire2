@@ -81,6 +81,5 @@ public partial class MainFile : Node
 
     private static void SetupLogLevels()
     {
-        Logger.SetLogLevelForType(LogType.GameSync, LogLevel.Debug);
     }
 }

@@ -106,11 +106,8 @@ public sealed class TooltipManager
 
     private void ClearPreview()
     {
-        if (_currentPreview is not null)
-        {
-            _currentPreview.QueueFree();
-            _currentPreview = null;
-        }
+        _currentPreview?.QueueFree();
+        _currentPreview = null;
 
         _currentMeta = null;
     }

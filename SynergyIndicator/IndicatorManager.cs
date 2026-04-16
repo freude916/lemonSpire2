@@ -137,11 +137,17 @@ public sealed class IndicatorManager : IDisposable
         var netId = player.NetId;
         if (player.PlayerCombatState?.Hand.Cards == null) return;
 
-        var shouldShowTypes = PlayerExpectedTypes(player.PlayerCombatState);
+        var shouldShow = PlayerExpectedTypes(player.PlayerCombatState);
 
-        var currentTypes = PlayerCurrentTypes(player);
+        var shouldDisappear = PlayerCurrentTypes(player);
 
-        UpdateIndicator(shouldShowTypes, currentTypes, netId);
+        shouldShow.ExceptWith(shouldShow);
+
+        shouldDisappear.ExceptWith(shouldShow);
+
+        UpdateIndicator(shouldShow, shouldDisappear, netId);
+
+        if (shouldShow.Count != 0) Instance.PlayNoticeSound();
     }
 
     /// <summary>
@@ -170,13 +176,11 @@ public sealed class IndicatorManager : IDisposable
             : [];
     }
 
-    private static void UpdateIndicator(HashSet<IndicatorType> shouldShowTypes, HashSet<IndicatorType> currentTypes,
+    private static void UpdateIndicator(HashSet<IndicatorType> shouldShow, HashSet<IndicatorType> shouldDisappear,
         ulong netId)
     {
-        foreach (var type in shouldShowTypes.Where(type => !currentTypes.Contains(type)))
-            Instance.AddIndicator(netId, type, IndicatorStatus.WillUse);
+        foreach (var type in shouldShow) Instance.AddIndicator(netId, type, IndicatorStatus.WillUse);
 
-        foreach (var type in currentTypes.Where(type => !shouldShowTypes.Contains(type)))
-            Instance.RemoveIndicator(netId, type);
+        foreach (var type in shouldDisappear) Instance.RemoveIndicator(netId, type);
     }
 }

@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.HoverTips;
@@ -54,8 +55,10 @@ public static class NMultiplayerPlayerStatePatch
         ArgumentNullException.ThrowIfNull(__instance);
         if (!____isHighlighted) return;
 
-        var indicator = NetworkProblemIndicatorField?.GetValue(__instance) as NMultiplayerNetworkProblemIndicator;
-        if (indicator != null && indicator.IsShown) return;
+        if (NetworkProblemIndicatorField?.GetValue(__instance) is NMultiplayerNetworkProblemIndicator
+            {
+                IsShown: true
+            }) return;
 
         ShowTooltips(__instance, __instance.Player);
     }
@@ -69,13 +72,14 @@ public static class NMultiplayerPlayerStatePatch
         if (IsTooltipActiveForOwner(instance)) return;
 
         var hoverTips = PlayerTooltipRegistry.GetHoverTips(player);
-        if (!hoverTips.Any())
+        var tips = hoverTips as IHoverTip[] ?? [.. hoverTips];
+        if (tips.Length == 0)
         {
             Log.Debug($"No hover tips for player {player.NetId}");
             return;
         }
 
-        var tipSet = NHoverTipSet.CreateAndShow(instance, hoverTips);
+        var tipSet = NHoverTipSet.CreateAndShow(instance, tips);
         tipSet.GlobalPosition = instance.GlobalPosition + Vector2.Down * 80f;
     }
 

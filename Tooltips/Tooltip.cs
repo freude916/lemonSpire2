@@ -1,4 +1,5 @@
 using Godot;
+using lemonSpire2.Chat.Message;
 using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.HoverTips;
@@ -39,19 +40,30 @@ public abstract class Tooltip
     public abstract void Serialize(PacketWriter writer);
     public abstract void Deserialize(PacketReader reader);
 
+    public List<TooltipSegment> ToTooltipSegments()
+    {
+        return
+        [
+            new TooltipSegment
+            {
+                Tooltip = this
+            }
+        ];
+    }
+
+    public TooltipSegment ToTooltipSegment()
+    {
+        return new TooltipSegment
+        {
+            Tooltip = this
+        };
+    }
+
     /// <summary>
     ///     Creates a preview Control for this tooltip.
     ///     Returns null if preview cannot be created.
     /// </summary>
     public abstract Control? CreatePreview();
-
-    /// <summary>
-    ///     Converts this tooltip to an IHoverTip (optional, for NHoverTipSet compatibility).
-    /// </summary>
-    public virtual IHoverTip ToHoverTip()
-    {
-        throw new NotImplementedException();
-    }
 
     public static Tooltip? TryResolve(int registryId)
     {

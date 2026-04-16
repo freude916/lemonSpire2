@@ -63,17 +63,6 @@ public sealed class ChatPanel : IDisposable
         _container.QueueFree();
     }
 
-    #region Model Events: Message Update Source
-
-    private void OnMessageAppended(ChatMessage message)
-    {
-        DisplayMessage(message);
-    }
-
-    #endregion
-
-    // ========== Input Handling ==========
-
     internal bool HandleInput(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true } keyEvent)
@@ -117,7 +106,16 @@ public sealed class ChatPanel : IDisposable
         }
     }
 
-    // ========== Layout & State ==========
+    #region Model Events: Message Update Source
+
+    private void OnMessageAppended(ChatMessage message)
+    {
+        DisplayMessage(message);
+    }
+
+    #endregion
+
+    #region Layout & State
 
     internal void ProcessFrame(double delta)
     {
@@ -240,8 +238,6 @@ public sealed class ChatPanel : IDisposable
 
             _messageBuffer.MouseFilter = Control.MouseFilterEnum.Stop;
             _inputField.MouseFilter = Control.MouseFilterEnum.Stop;
-
-            _inputContainer.CallDeferred(Control.MethodName.GrabFocus); // TODO: Grab Focus Test
         }
         else
         {
@@ -257,7 +253,9 @@ public sealed class ChatPanel : IDisposable
         _isUpdatingLayout = false;
     }
 
-    // ========== Message Display ==========
+    #endregion
+
+    #region Message Display
 
     private void DisplayMessage(ChatMessage message)
     {
@@ -314,6 +312,8 @@ public sealed class ChatPanel : IDisposable
         player.Play();
         player.Finished += player.QueueFree;
     }
+
+    #endregion
 
     #region Ui Base
 
@@ -403,7 +403,7 @@ public sealed class ChatPanel : IDisposable
             PlaceholderText = new LocString("gameplay_ui", "LEMONSPIRE.chat.placeholder").GetFormattedText(),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            CaretBlink = true
+            KeepEditingOnTextSubmit = true
         };
         _inputField.AddThemeColorOverride("font_color", Colors.White);
         _inputField.AddThemeColorOverride("font_placeholder_color", ChatConfig.PlaceholderColor);
@@ -414,6 +414,8 @@ public sealed class ChatPanel : IDisposable
         _inputField.AddThemeStyleboxOverride("normal", _inputStyle);
         _inputField.AddThemeStyleboxOverride("focus", _inputStyle);
         _inputField.AddThemeStyleboxOverride("read_only", _inputStyle);
+
+        _inputField.SetFocusMode(Control.FocusModeEnum.Click);
 
         _inputField.TextSubmitted += OnTextSubmitted;
         _inputContainer.AddChild(_inputField);

@@ -22,11 +22,12 @@ public static class PlayerColorButtonPatch
     private static readonly FieldInfo? TopContainerField =
         typeof(NMultiplayerPlayerState).GetField("_topContainer", BindingFlags.NonPublic | BindingFlags.Instance);
 
-    // 存储按钮引用，用于更新颜色显示
-    private static readonly Dictionary<ulong, WeakReference<Button>> ColorButtons = new();
+    // 存储按钮引用
+    private static WeakReference<Button>? _colorButton;
 
     // 是否已订阅颜色变更事件
     private static bool _subscribedToColorChange;
+    private static bool _subscribedToCombatEvents;
 
     public static string Title => new LocString("gameplay_ui", "LEMONSPIRE.color_picker.title").GetFormattedText();
     public static string Tooltip => new LocString("gameplay_ui", "LEMONSPIRE.color_picker.tooltip").GetFormattedText();
@@ -39,8 +40,7 @@ public static class PlayerColorButtonPatch
         // 只对本地玩家显示颜色按钮
         if (!LocalContext.IsMe(__instance.Player)) return;
 
-        var topContainer = TopContainerField?.GetValue(__instance) as HBoxContainer;
-        if (topContainer == null)
+        if (TopContainerField?.GetValue(__instance) is not HBoxContainer topContainer)
         {
             ColorManager.Log.Info("Failed to get TopContainer from NMultiplayerPlayerState");
             return;
@@ -55,12 +55,13 @@ public static class PlayerColorButtonPatch
 
         // 确保 topContainer 在最前面
         var topContainerParent = topContainer.GetParent();
-        if (topContainerParent != null)
-            topContainerParent.MoveChild(topContainer, topContainerParent.GetChildCount() - 1);
+        topContainerParent?.MoveChild(topContainer, topContainerParent.GetChildCount() - 1);
 
         // 注册按钮引用
-        ColorButtons[playerId] = new WeakReference<Button>(colorButton);
-        UpdateButtonVisibility(playerId);
+        _colorButton = new WeakReference<Button>(colorButton);
+        EnsureCombatEventSubscribed();
+        UpdateButtonVisibility();
+        colorButton.Visible = false; // 默认隐藏呗，大不了下场战斗才能打开
 
         // 只订阅一次颜色变更事件
         if (!_subscribedToColorChange)
@@ -72,22 +73,13 @@ public static class PlayerColorButtonPatch
         ColorManager.Log.Debug($"ColorButton added for player {playerId}");
     }
 
-    [HarmonyPostfix]
-    [HarmonyPatch("OnCombatSetUp")]
-    public static void OnCombatSetUpPostfix(NMultiplayerPlayerState __instance, CombatState _)
+    [HarmonyPrefix]
+    [HarmonyPatch("_ExitTree")]
+    public static void ExitTreePrefix(NMultiplayerPlayerState __instance)
     {
         ArgumentNullException.ThrowIfNull(__instance);
         if (!LocalContext.IsMe(__instance.Player)) return;
-        UpdateButtonVisibility(__instance.Player.NetId);
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch("OnCombatEnded")]
-    public static void OnCombatEndedPostfix(NMultiplayerPlayerState __instance, CombatRoom _)
-    {
-        ArgumentNullException.ThrowIfNull(__instance);
-        if (!LocalContext.IsMe(__instance.Player)) return;
-        UpdateButtonVisibility(__instance.Player.NetId);
+        _colorButton = null;
     }
 
     private static Button CreateColorButton(ulong playerId)
@@ -191,19 +183,36 @@ public static class PlayerColorButtonPatch
     private static void OnPlayerColorChanged(ulong playerId, Color color)
     {
         // 更新按钮显示
-        if (ColorButtons.TryGetValue(playerId, out var weakRef) &&
-            weakRef.TryGetTarget(out var button) &&
-            GodotObject.IsInstanceValid(button))
-            UpdateButtonStyle(button, color);
+        if (_colorButton == null || !_colorButton.TryGetTarget(out var button) ||
+            !GodotObject.IsInstanceValid(button)) return;
+        UpdateButtonStyle(button, color);
+        UpdateButtonVisibility();
     }
 
-    private static void UpdateButtonVisibility(ulong playerId)
+    private static void EnsureCombatEventSubscribed()
     {
-        if (!ColorButtons.TryGetValue(playerId, out var weakRef) ||
-            !weakRef.TryGetTarget(out var button) ||
-            !GodotObject.IsInstanceValid(button))
-            return;
+        if (_subscribedToCombatEvents) return;
 
+        CombatManager.Instance.CombatSetUp += OnCombatSetUp;
+        CombatManager.Instance.CombatEnded += OnCombatEnded;
+        _subscribedToCombatEvents = true;
+    }
+
+    private static void OnCombatSetUp(CombatState _)
+    {
+        UpdateButtonVisibility();
+    }
+
+    private static void OnCombatEnded(CombatRoom _)
+    {
+        UpdateButtonVisibility();
+    }
+
+    private static void UpdateButtonVisibility()
+    {
+        Button? button = null;
+        _colorButton?.TryGetTarget(out button);
+        if (button == null) return;
         button.Visible = !CombatManager.Instance.IsInProgress;
     }
 }
