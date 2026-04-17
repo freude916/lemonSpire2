@@ -45,7 +45,9 @@ internal sealed class ChatCompletionPopupController : IDisposable
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
-            MouseFilter = Control.MouseFilterEnum.Pass
+            MouseFilter = Control.MouseFilterEnum.Pass,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
 
         _list = new ItemList
@@ -53,7 +55,8 @@ internal sealed class ChatCompletionPopupController : IDisposable
             MouseFilter = Control.MouseFilterEnum.Ignore,
             SelectMode = ItemList.SelectModeEnum.Single,
             AutoHeight = true,
-            SameColumnWidth = true
+            SameColumnWidth = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _list.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
         _scroll.AddChild(_list);
@@ -102,8 +105,11 @@ internal sealed class ChatCompletionPopupController : IDisposable
 
         _list.Select(0);
         var visibleItemCount = Mathf.Min(items.Count, MaxVisibleItems);
-        _panel.Size = new Vector2(Mathf.Max(inputField.Size.X, 260f), visibleItemCount * ItemHeight + PopupPadding);
-        _scroll.CustomMinimumSize = new Vector2(0f, visibleItemCount * ItemHeight);
+        var popupWidth = Mathf.Max(inputField.Size.X, 260f);
+        var visibleHeight = visibleItemCount * ItemHeight;
+        _panel.Size = new Vector2(popupWidth, visibleHeight + PopupPadding);
+        _scroll.CustomMinimumSize = new Vector2(popupWidth - PopupPadding, visibleHeight);
+        _list.CustomMinimumSize = new Vector2(popupWidth - PopupPadding, items.Count * ItemHeight);
         _scroll.ScrollVertical = 0;
         _panel.Position = inputField.GlobalPosition - new Vector2(0, _panel.Size.Y + 4f);
         _panel.Visible = true;

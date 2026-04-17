@@ -13,7 +13,9 @@ public static class IndicatorRegistry
         Vulnerable,
         Weak,
         Strangle,
+        Flanking,
         Strength,
+        Block,
         Energy,
         Draw
     }
@@ -35,7 +37,9 @@ public static class IndicatorRegistry
         Register(entries, new VulnerableIndicatorProvider(), PowerIcon<VulnerablePower>());
         Register(entries, new WeakIndicatorProvider(), PowerIcon<WeakPower>());
         Register(entries, new StrangleIndicatorProvider(), PowerIcon<StranglePower>());
+        Register(entries, new FlankingIndicatorProvider(), PowerIcon<FlankingPower>());
         Register(entries, new StrengthIndicatorProvider(), PowerIcon<StrengthPower>());
+        Register(entries, new BlockIndicatorProvider(), PowerIcon<BlockNextTurnPower>());
         Register(entries, new EnergyIndicatorProvider(), PowerIcon<EnergyNextTurnPower>());
         Register(entries, new DrawIndicatorProvider(), PowerIcon<DrawCardsNextTurnPower>());
 

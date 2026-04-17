@@ -50,7 +50,7 @@ public static class RemoteUiFlashResolver
         return uiHand.GetCard(match);
     }
 
-    private static CanvasItem? FindPotionTarget(SerializablePotion? expected)
+    private static NPotionHolder? FindPotionTarget(SerializablePotion? expected)
     {
         if (expected == null) return null;
 
@@ -67,7 +67,7 @@ public static class RemoteUiFlashResolver
                    RemoteUiFlashSnapshotMatcher.MatchesPotionId(expected, CreatePotionSnapshot(holder.Potion!.Model)));
     }
 
-    private static CanvasItem? FindShopCardTarget(SerializableCard? expected)
+    private static NMerchantCard? FindShopCardTarget(SerializableCard? expected)
     {
         if (expected == null) return null;
 
@@ -81,7 +81,7 @@ public static class RemoteUiFlashResolver
                 RemoteUiFlashSnapshotMatcher.MatchesCard(expected, card.ToSerializable()));
     }
 
-    private static CanvasItem? FindShopPotionTarget(SerializablePotion? expected)
+    private static NMerchantPotion? FindShopPotionTarget(SerializablePotion? expected)
     {
         if (expected == null) return null;
 
@@ -100,7 +100,7 @@ public static class RemoteUiFlashResolver
                    RemoteUiFlashSnapshotMatcher.MatchesPotionId(expected, CreatePotionSnapshot(potion)));
     }
 
-    private static CanvasItem? FindShopRelicTarget(SerializableRelic? expected)
+    private static NMerchantRelic? FindShopRelicTarget(SerializableRelic? expected)
     {
         if (expected == null) return null;
 
@@ -114,7 +114,7 @@ public static class RemoteUiFlashResolver
                 RemoteUiFlashSnapshotMatcher.MatchesRelic(expected, relic.ToSerializable()));
     }
 
-    private static CanvasItem? FindRewardCardTarget(SerializableCard? expected)
+    private static NCardHolder? FindRewardCardTarget(SerializableCard? expected)
     {
         if (expected == null) return null;
 
