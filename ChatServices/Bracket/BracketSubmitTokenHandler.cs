@@ -25,10 +25,10 @@ public sealed class BracketSubmitTokenHandler(ChatInlineReferenceRegistry inline
             return false;
 
         // 这里 submit 阶段只做“type + payload”的分发，真正把 payload 解释成 segment 的责任留给具体类型。
-        if (!inlineReferences.TryGet(body[..separatorIndex], out var referenceType) || referenceType is null)
+        if (!inlineReferences.TryGet(body[..separatorIndex], out var Reference) || Reference is null)
             return false;
 
-        if (!referenceType.TryResolve(body[(separatorIndex + 1)..], out segment))
+        if (!Reference.TryResolve(body[(separatorIndex + 1)..], out segment))
             return false;
 
         length = endIndex - startIndex + 1;

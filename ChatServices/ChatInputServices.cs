@@ -17,7 +17,7 @@ public sealed class ChatInputServices
 {
     public ChatInputServices(
         IReadOnlyList<MentionTarget>? mentionTargetsOverride = null,
-        IReadOnlyList<IChatInlineReferenceType>? inlineReferenceTypes = null)
+        IReadOnlyList<IChatInlineReference>? inlineReferences = null)
     {
         Func<IReadOnlyList<MentionTarget>> mentionTargetGetter = mentionTargetsOverride is null
             ? GetMentionTargets
@@ -29,7 +29,7 @@ public sealed class ChatInputServices
         SubmitTokenHandlerRegistry = new ChatSubmitTokenHandlerRegistry();
         CommandRegistry = new ChatCmdRegistry();
 
-        RegisterReferenceTypes();
+        RegisterReferences();
 
         SubmitTokenHandlerRegistry.Register(new MentionSubmitTokenHandler(mentionTargetGetter));
         SubmitTokenHandlerRegistry.Register(new BracketSubmitTokenHandler(InlineReferenceRegistry));
@@ -48,10 +48,10 @@ public sealed class ChatInputServices
     public ChatCmdProcessor CommandProcessor { get; }
     public ChatInputSubmitParser Parser { get; }
 
-    private void RegisterReferenceTypes()
+    private void RegisterReferences()
     {
-        InlineReferenceRegistry.Register(new CardInlineReferenceType());
-        InlineReferenceRegistry.Register(new PotionInlineReferenceType());
+        InlineReferenceRegistry.Register(new CardInlineReference());
+        InlineReferenceRegistry.Register(new PotionInlineReference());
     }
 
     private void RegisterCompletionServices(Func<IReadOnlyList<MentionTarget>> mentionTargetGetter)

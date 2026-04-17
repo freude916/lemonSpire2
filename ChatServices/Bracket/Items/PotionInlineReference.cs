@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace lemonSpire2.Chat.Input.Service.Bracket;
 
-public sealed class PotionInlineReferenceType : IChatInlineReferenceType
+public sealed class PotionInlineReference : IChatInlineReference
 {
     public string TypeName => "potion";
 
@@ -59,5 +59,3 @@ public sealed class PotionInlineReferenceType : IChatInlineReferenceType
                candidate.Title.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 }
-
-internal readonly record struct PotionCompletionCandidate(string Title, string Entry);

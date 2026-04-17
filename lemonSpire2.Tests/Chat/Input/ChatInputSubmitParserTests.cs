@@ -28,7 +28,7 @@ public sealed class ChatInputSubmitParserTests
     public void Parse_ShouldSplitMentionAndInlineReference_WhenTargetsResolve()
     {
         var inlineRegistry = new ChatInlineReferenceRegistry();
-        inlineRegistry.Register(new FakeInlineReferenceType("card"));
+        inlineRegistry.Register(new FakeInlineReference("card"));
         var tokenHandlers = new ChatSubmitTokenHandlerRegistry();
         tokenHandlers.Register(new MentionSubmitTokenHandler(() => GetMentionTargets("Alice", 42)));
         tokenHandlers.Register(new BracketSubmitTokenHandler(inlineRegistry));
@@ -102,7 +102,7 @@ public sealed class ChatInputSubmitParserTests
     }
 
 
-    private sealed class FakeInlineReferenceType(string typeName) : IChatInlineReferenceType
+    private sealed class FakeInlineReference(string typeName) : IChatInlineReference
     {
         public string TypeName => typeName;
 

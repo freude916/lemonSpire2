@@ -7,7 +7,7 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace lemonSpire2.Chat.Input.Service.Bracket;
 
-public sealed class CardInlineReferenceType : IChatInlineReferenceType
+public sealed class CardInlineReference : IChatInlineReference
 {
     public string TypeName => "card";
 
@@ -58,5 +58,3 @@ public sealed class CardInlineReferenceType : IChatInlineReferenceType
                candidate.Title.Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 }
-
-internal readonly record struct CardCompletionCandidate(string Title, string Entry);

@@ -1,6 +1,6 @@
 using lemonSpire2.Chat.Input;
+using lemonSpire2.Chat.Input.Abstractions;
 using lemonSpire2.Chat.Input.Model;
-using lemonSpire2.Chat.Input.Service.Mention;
 using lemonSpire2.Chat.Message;
 using Xunit;
 
@@ -63,14 +63,13 @@ public sealed class ChatCompletionAnalyzerTests
     {
         return new ChatInputServices(
             mentionTargetsOverride: mentionTargets,
-            inlineReferenceTypes:
             [
-                new FakeInlineReferenceType("card")
+                new FakeInlineReference("card")
             ]);
     }
 
-    private sealed class FakeInlineReferenceType(string typeName)
-        : lemonSpire2.Chat.Input.Abstractions.IChatInlineReferenceType
+    private sealed class FakeInlineReference(string typeName)
+        : IChatInlineReference
     {
         public string TypeName => typeName;
 

@@ -3,7 +3,7 @@ using lemonSpire2.Chat.Message;
 
 namespace lemonSpire2.Chat.Input.Abstractions;
 
-public interface IChatInlineReferenceType
+public interface IChatInlineReference
 {
     string TypeName { get; }
     IReadOnlyList<ChatCompletionItem> GetCompletions(string query);
