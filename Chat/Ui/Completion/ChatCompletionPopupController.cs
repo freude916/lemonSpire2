@@ -124,7 +124,7 @@ internal sealed class ChatCompletionPopupController : IDisposable
         var nextIndex = Mathf.Clamp(currentIndex + delta, 0, _items.Count - 1);
         _list.DeselectAll();
         _list.Select(nextIndex);
-        _list.EnsureCurrentIsVisible();
+        ScrollSelectionIntoView(nextIndex);
         return true;
     }
 
@@ -143,5 +143,23 @@ internal sealed class ChatCompletionPopupController : IDisposable
         inputField.CaretColumn = _session.ReplaceStart + item.InsertText.Length;
         Hide();
         return true;
+    }
+
+    private void ScrollSelectionIntoView(int index)
+    {
+        var itemTop = index * ItemHeight;
+        var itemBottom = itemTop + ItemHeight;
+        var viewportTop = _scroll.ScrollVertical;
+        var viewportHeight = _scroll.CustomMinimumSize.Y;
+        var viewportBottom = viewportTop + viewportHeight;
+
+        if (itemTop < viewportTop)
+        {
+            _scroll.ScrollVertical = Mathf.RoundToInt(itemTop);
+            return;
+        }
+
+        if (itemBottom > viewportBottom)
+            _scroll.ScrollVertical = Mathf.RoundToInt(itemBottom - viewportHeight);
     }
 }
