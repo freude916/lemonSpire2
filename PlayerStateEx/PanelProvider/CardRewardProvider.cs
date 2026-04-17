@@ -40,7 +40,7 @@ public class CardRewardProvider : IPlayerPanelProvider
 
     #region IPlayerPanelProvider
 
-    public string ProviderId => "card_rewards";
+    public string Id => "card_rewards";
     public int Priority => 15;
     public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.cardRewards").GetFormattedText();
 

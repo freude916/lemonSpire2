@@ -47,9 +47,9 @@ internal static class ModSoundManager
             return null;
         }
 
-        var stream = GD.Load<AudioStream>(userPath);
+        var stream = AudioStreamMP3.LoadFromFile(globalUserPath);
         if (stream == null)
-            MainFile.Log.Warn($"Failed to load sound from {userPath}");
+            MainFile.Log.Warn($"Failed to load sound from {globalUserPath}");
 
         return stream;
     }

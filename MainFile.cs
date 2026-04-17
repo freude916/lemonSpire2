@@ -32,6 +32,7 @@ public partial class MainFile : Node
         SetupLogLevels();
 
         Harmony harmony = new(ModId);
+        PlayerPanelRegistry.RegisterBuiltins();
 
         if (LemonSpireConfig.EnableQoL)
             harmony.CreateClassProcessor(typeof(NMultiplayerPlayerExpandedStatePatch)).Patch();
@@ -75,8 +76,7 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(PlayerColorButtonPatch)).Patch();
         }
 
-        if (PlayerTooltipRegistry.HasProviders)
-            harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
+        harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
         Log.Info("lemonSpire2 mod initialized");
     }

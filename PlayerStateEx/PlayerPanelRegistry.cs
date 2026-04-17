@@ -12,18 +12,13 @@ namespace lemonSpire2.PlayerStateEx;
 public static class PlayerPanelRegistry
 {
     private static readonly PriorityRegistry<IPlayerPanelProvider> Registry = new();
-    private static bool _initialized;
     internal static Logger Log { get; } = new("lemon.player", LogType.Generic);
 
     /// <summary>
-    ///     初始化注册表，注册内置提供者
+    ///     注册内置提供者
     /// </summary>
-    public static void Initialize()
+    public static void RegisterBuiltins()
     {
-        if (_initialized) return;
-        _initialized = true;
-
-        // 注册内置提供者
         Register(new HandCardProvider());
         Register(new PotionProvider());
         Register(new ShopProvider());
@@ -38,14 +33,9 @@ public static class PlayerPanelRegistry
     public static void Register(IPlayerPanelProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        if (Registry.Items.Any(p => p.ProviderId == provider.ProviderId))
-        {
-            Log.Warn($"Provider {provider.ProviderId} already registered, skipping");
-            return;
-        }
 
-        Registry.Register(provider, p => p.Priority, p => p.ProviderId);
-        Log.Debug($"Registered player panel provider: {provider.ProviderId}");
+        Registry.Register(provider, p => p.Priority, p => p.Id);
+        Log.Debug($"Registered player panel provider: {provider.Id}");
     }
 
     /// <summary>
@@ -53,7 +43,6 @@ public static class PlayerPanelRegistry
     /// </summary>
     public static IEnumerable<IPlayerPanelProvider> GetProviders()
     {
-        if (!_initialized) Initialize();
         return Registry.Items;
     }
 
@@ -62,7 +51,7 @@ public static class PlayerPanelRegistry
     /// </summary>
     public static IPlayerPanelProvider? GetProvider(string providerId)
     {
-        return Registry.Items.FirstOrDefault(p => p.ProviderId == providerId);
+        return Registry.Items.FirstOrDefault(p => p.Id == providerId);
     }
 
     /// <summary>
@@ -71,6 +60,5 @@ public static class PlayerPanelRegistry
     public static void Clear()
     {
         Registry.Clear();
-        _initialized = false;
     }
 }

@@ -13,7 +13,9 @@ public static class IndicatorRegistry
         Vulnerable,
         Weak,
         Strangle,
-        Strength
+        Strength,
+        Energy,
+        Draw
     }
 
     private static readonly IReadOnlyDictionary<IndicatorType, Entry> Entries = CreateEntries();
@@ -32,8 +34,10 @@ public static class IndicatorRegistry
         Register(entries, new HandShakeIndicatorProvider(), emoji: "🤝");
         Register(entries, new VulnerableIndicatorProvider(), PowerIcon<VulnerablePower>());
         Register(entries, new WeakIndicatorProvider(), PowerIcon<WeakPower>());
-        Register(entries, new StrangleIndicatorProvider());
-        Register(entries, new StrengthIndicatorProvider());
+        Register(entries, new StrangleIndicatorProvider(), PowerIcon<StranglePower>());
+        Register(entries, new StrengthIndicatorProvider(), PowerIcon<StrengthPower>());
+        Register(entries, new EnergyIndicatorProvider(), PowerIcon<EnergyNextTurnPower>());
+        Register(entries, new DrawIndicatorProvider(), PowerIcon<DrawCardsNextTurnPower>());
 
         return entries;
     }

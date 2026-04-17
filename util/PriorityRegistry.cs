@@ -30,16 +30,15 @@ public class PriorityRegistry<T> where T : class
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(getPriority);
 
-        // 如果提供了 getId，检查重复
         if (getId != null)
         {
             var id = getId(item);
             if (id != null && _items.Any(i => getId(i) == id))
-                return;
+                throw new InvalidOperationException($"Duplicate registry id '{id}'.");
         }
         else if (_items.Contains(item))
         {
-            return;
+            throw new InvalidOperationException($"Duplicate registry item '{item}'.");
         }
 
         _items.Add(item);

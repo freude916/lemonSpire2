@@ -22,6 +22,7 @@ public static class PlayerTooltipRegistry
     /// </summary>
     public static void Register(ITooltipProvider provider)
     {
+        ArgumentNullException.ThrowIfNull(provider);
         Registry.Register(provider, p => p.Priority, p => p.Id);
     }
 

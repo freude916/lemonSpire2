@@ -53,7 +53,7 @@ public class HandCardProvider : IPlayerPanelProvider
 
     #region IPlayerPanelProvider Implementation
 
-    public string ProviderId => "hand_cards";
+    public string Id => "hand_cards";
     public int Priority => 10;
     public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.hand").GetFormattedText();
 

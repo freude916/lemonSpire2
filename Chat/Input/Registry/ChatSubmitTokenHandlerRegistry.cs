@@ -12,6 +12,8 @@ public sealed class ChatSubmitTokenHandlerRegistry
     public void Register(IChatSubmitTokenHandler handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
+        if (_handlers.ContainsKey(handler.TriggerChar))
+            throw new InvalidOperationException($"Duplicate submit token handler '{handler.TriggerChar}'.");
         _handlers[handler.TriggerChar] = handler;
     }
 

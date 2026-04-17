@@ -12,7 +12,7 @@ public interface IPlayerPanelProvider
     /// <summary>
     ///     提供者唯一标识
     /// </summary>
-    string ProviderId { get; }
+    string Id { get; }
 
     /// <summary>
     ///     显示顺序优先级（数字越小越靠前）

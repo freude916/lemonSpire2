@@ -10,6 +10,8 @@ public sealed class ChatCmdRegistry
     public void Register(ChatCmdSpec command)
     {
         ArgumentNullException.ThrowIfNull(command);
+        if (_commands.ContainsKey(command.Name))
+            throw new InvalidOperationException($"Duplicate chat command '{command.Name}'.");
         _commands[command.Name] = command;
     }
 

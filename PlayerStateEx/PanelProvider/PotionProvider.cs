@@ -69,7 +69,7 @@ public class PotionProvider : IPlayerPanelProvider
 
     #region IPlayerPanelProvider Implementation
 
-    public string ProviderId => "potions";
+    public string Id => "potions";
     public int Priority => 20;
     public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.potions").GetFormattedText();
 

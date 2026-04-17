@@ -102,8 +102,6 @@ public partial class PlayerOverlayPanel : Control
         _player = player ?? throw new ArgumentNullException(nameof(player));
         _headerTitle.Text = PlatformUtil.GetPlayerName(RunManager.Instance.NetService.Platform, player.NetId);
 
-        PlayerPanelRegistry.Initialize();
-
         CombatManager.Instance.CombatSetUp += OnCombatSetUp;
         CombatManager.Instance.CombatEnded += OnCombatEnded;
         // 保留战斗结束刷新，确保奖励等区块能在状态切换后重建。
@@ -136,7 +134,7 @@ public partial class PlayerOverlayPanel : Control
     {
         foreach (var provider in PlayerPanelRegistry.GetProviders())
         {
-            var providerId = provider.ProviderId;
+            var providerId = provider.Id;
             var unsubscribeVisibility =
                 provider.SubscribeVisibilityEvents(_player, () => { QueueProviderUpdate(providerId); });
             if (unsubscribeVisibility != null) _unsubscribeVisibilityActions.Add(unsubscribeVisibility);

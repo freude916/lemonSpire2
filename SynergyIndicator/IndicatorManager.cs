@@ -131,17 +131,21 @@ public sealed class IndicatorManager : IDisposable
         var netId = player.NetId;
         if (player.PlayerCombatState?.Hand.Cards == null) return;
 
-        var shouldShow = PlayerExpectedTypes(player.PlayerCombatState);
+        var expectedTypes = PlayerExpectedTypes(player.PlayerCombatState);
+        var currentTypes = PlayerCurrentTypes(player);
 
-        var shouldDisappear = PlayerCurrentTypes(player);
+        var shouldShow = new HashSet<IndicatorType>(expectedTypes);
+        var shouldDisappear = new HashSet<IndicatorType>(currentTypes);
 
-        shouldShow.ExceptWith(shouldShow);
-
-        shouldDisappear.ExceptWith(shouldShow);
+        shouldShow.ExceptWith(shouldDisappear);
+        shouldDisappear.ExceptWith(expectedTypes);
 
         UpdateIndicator(shouldShow, shouldDisappear, netId);
 
         if (shouldShow.Count != 0) Instance.PlayNoticeSound();
+
+        SynergyIndicatorPatch.Log.Info(
+            $"Updated indicators for player {netId}. Should show: {string.Join(", ", shouldShow)}; Should disappear: {string.Join(", ", shouldDisappear)}");
     }
 
     /// <summary>

@@ -12,6 +12,8 @@ public sealed class ChatInlineReferenceRegistry
     public void Register(IChatInlineReference type)
     {
         ArgumentNullException.ThrowIfNull(type);
+        if (_types.ContainsKey(type.TypeName))
+            throw new InvalidOperationException($"Duplicate inline reference type '{type.TypeName}'.");
         _types[type.TypeName] = type;
     }
 

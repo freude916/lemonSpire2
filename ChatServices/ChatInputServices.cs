@@ -29,7 +29,7 @@ public sealed class ChatInputServices
         SubmitTokenHandlerRegistry = new ChatSubmitTokenHandlerRegistry();
         CommandRegistry = new ChatCmdRegistry();
 
-        RegisterReferences();
+        RegisterReferences(inlineReferences);
 
         SubmitTokenHandlerRegistry.Register(new MentionSubmitTokenHandler(mentionTargetGetter));
         SubmitTokenHandlerRegistry.Register(new BracketSubmitTokenHandler(InlineReferenceRegistry));
@@ -53,6 +53,16 @@ public sealed class ChatInputServices
         InlineReferenceRegistry.Register(new CardInlineReference());
         InlineReferenceRegistry.Register(new PotionInlineReference());
         InlineReferenceRegistry.Register(new RelicInlineReference());
+    }
+
+    private void RegisterReferences(IReadOnlyList<IChatInlineReference>? inlineReferences)
+    {
+        RegisterReferences();
+
+        if (inlineReferences == null) return;
+
+        foreach (var inlineReference in inlineReferences)
+            InlineReferenceRegistry.Register(inlineReference);
     }
 
     private void RegisterCompletionServices(Func<IReadOnlyList<MentionTarget>> mentionTargetGetter)

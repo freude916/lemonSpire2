@@ -6,10 +6,10 @@ namespace lemonSpire2.SynergyIndicator.Models;
 
 public class DrawIndicatorProvider : IIndicatorProvider
 {
-    public IndicatorType Type => IndicatorType.Vulnerable;
+    public IndicatorType Type => IndicatorType.Draw;
 
     public bool ShouldShow(IEnumerable<CardModel> handCards)
     {
-        return handCards.Any(card => IIndicatorProvider.CardHasVarToAllies(card, nameof(CardsVar)));
+        return handCards.Any(card => IIndicatorProvider.CardHasVarToAllies(card, nameof(DynamicVarSet.Cards)));
     }
 }

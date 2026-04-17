@@ -33,7 +33,7 @@ public class ShopProvider : IPlayerPanelProvider
 
     #region IPlayerPanelProvider Implementation
 
-    public string ProviderId => "shop";
+    public string Id => "shop";
     public int Priority => 30;
     public string DisplayName => new LocString("gameplay_ui", "LEMONSPIRE.panel.shop").GetFormattedText();
 
