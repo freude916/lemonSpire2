@@ -52,6 +52,7 @@ public sealed class ChatInputServices
     {
         InlineReferenceRegistry.Register(new CardInlineReference());
         InlineReferenceRegistry.Register(new PotionInlineReference());
+        InlineReferenceRegistry.Register(new RelicInlineReference());
     }
 
     private void RegisterCompletionServices(Func<IReadOnlyList<MentionTarget>> mentionTargetGetter)

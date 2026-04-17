@@ -4,6 +4,7 @@ using lemonSpire2.SynergyIndicator.Models;
 using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
+using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator.Ui;
 

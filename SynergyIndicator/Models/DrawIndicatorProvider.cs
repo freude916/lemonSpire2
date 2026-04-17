@@ -1,15 +1,15 @@
+using MegaCrit.Sts2.Core.Localization.DynamicVars;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Powers;
 using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator.Models;
 
-public class VulnerableIndicatorProvider : IIndicatorProvider
+public class DrawIndicatorProvider : IIndicatorProvider
 {
     public IndicatorType Type => IndicatorType.Vulnerable;
 
     public bool ShouldShow(IEnumerable<CardModel> handCards)
     {
-        return handCards.Any(IIndicatorProvider.CardAppliesPowerToEnemy<VulnerablePower>);
+        return handCards.Any(card => IIndicatorProvider.CardHasVarToAllies(card, nameof(CardsVar)));
     }
 }

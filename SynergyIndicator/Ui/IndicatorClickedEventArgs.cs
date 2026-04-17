@@ -1,4 +1,4 @@
-using lemonSpire2.SynergyIndicator.Models;
+using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator.Ui;
 

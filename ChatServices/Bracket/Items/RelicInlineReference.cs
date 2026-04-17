@@ -7,15 +7,15 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace lemonSpire2.Chat.Input.Service.Bracket;
 
-public sealed class PotionInlineReference : IChatInlineReference
+public sealed class RelicInlineReference : IChatInlineReference
 {
-    public string TypeName => "potion";
+    public string TypeName => "relic";
 
     public IReadOnlyList<ChatCompletionItem> GetCompletions(string query)
     {
         return BuildCompletionItems(
-            ModelDb.AllPotions.Select(potion =>
-                new PotionCompletionCandidate(potion.Title.GetFormattedText(), potion.Id.Entry)),
+            ModelDb.AllRelics.Select(potion =>
+                new RelicCompletionCandidate(potion.Title.GetFormattedText(), potion.Id.Entry)),
             query);
     }
 
@@ -23,18 +23,18 @@ public sealed class PotionInlineReference : IChatInlineReference
     {
         segment = null!;
 
-        var potion = StsUtil.ResolveModel<PotionModel>(payload) ??
-                     ModelDb.AllPotions.SingleOrDefault(model =>
-                         string.Equals(model.Title.GetFormattedText(), payload, StringComparison.OrdinalIgnoreCase));
-        if (potion is null)
+        var relic = StsUtil.ResolveModel<RelicModel>(payload) ??
+                    ModelDb.AllRelics.SingleOrDefault(model =>
+                        string.Equals(model.Title.GetFormattedText(), payload, StringComparison.OrdinalIgnoreCase));
+        if (relic is null)
             return false;
 
-        segment = PotionTooltip.FromModel(potion).ToTooltipSegment();
+        segment = RelicTooltip.FromModel(relic).ToTooltipSegment();
         return true;
     }
 
     internal static IReadOnlyList<ChatCompletionItem> BuildCompletionItems(
-        IEnumerable<PotionCompletionCandidate> candidates,
+        IEnumerable<RelicCompletionCandidate> candidates,
         string query)
     {
         ArgumentNullException.ThrowIfNull(candidates);
@@ -46,11 +46,11 @@ public sealed class PotionInlineReference : IChatInlineReference
                 .Where(candidate => Matches(candidate, query))
                 .OrderBy(candidate => candidate.Entry, StringComparer.OrdinalIgnoreCase)
                 .Select(candidate =>
-                    new ChatCompletionItem($"{candidate.Title} - {candidate.Entry}", $"<potion:{candidate.Entry}>"))
+                    new ChatCompletionItem($"{candidate.Title} - {candidate.Entry}", $"<relic:{candidate.Entry}>"))
         ];
     }
 
-    private static bool Matches(PotionCompletionCandidate candidate, string query)
+    private static bool Matches(RelicCompletionCandidate candidate, string query)
     {
         if (string.IsNullOrWhiteSpace(query))
             return true;
@@ -60,4 +60,4 @@ public sealed class PotionInlineReference : IChatInlineReference
     }
 }
 
-internal readonly record struct PotionCompletionCandidate(string Title, string Entry);
+internal readonly record struct RelicCompletionCandidate(string Title, string Entry);

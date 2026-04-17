@@ -12,6 +12,7 @@ namespace lemonSpire2.Chat;
 public class ChatStore
 {
     private readonly INetGameService _netService;
+    private Action<string>? _inputTextInserter;
 
     public ChatStore(INetGameService netService)
     {
@@ -96,6 +97,12 @@ public class ChatStore
         return IntentRegistry.TryHandle(intent);
     }
 
+    public void RegisterInputTextInserter(Action<string> inserter)
+    {
+        ArgumentNullException.ThrowIfNull(inserter);
+        _inputTextInserter = inserter;
+    }
+
     private void HandleCommandResult(ChatCmdResult result)
     {
         switch (result)
@@ -175,6 +182,8 @@ public class ChatStore
             return; // 不是发给我的消息，忽略
         }
 
+        chatMessage.NotificationSound = ResolveNotificationSound(chatMessage);
+
         var intentReceiveMessage = new IntentReceiveMessage
         {
             Message = chatMessage
@@ -187,6 +196,25 @@ public class ChatStore
         }
 
         ChatUiPatch.Log.Error("Basic intent registered, should not happen! ");
+    }
+
+    private ChatNotificationSound ResolveNotificationSound(ChatMessage chatMessage)
+    {
+        ArgumentNullException.ThrowIfNull(chatMessage);
+
+        if (chatMessage.SenderId != _netService.NetId && ContainsMentionForLocalPlayer(chatMessage))
+            return ChatNotificationSound.AtMessage;
+
+        return ChatNotificationSound.ReceiveMessage;
+    }
+
+    private bool ContainsMentionForLocalPlayer(ChatMessage chatMessage)
+    {
+        ArgumentNullException.ThrowIfNull(chatMessage);
+
+        return chatMessage.Segments.OfType<EntitySegment>()
+            .Any(segment =>
+                segment.Kind == EntitySegment.EntityKind.Player && segment.PlayerNetId == _netService.NetId);
     }
 
     /// <summary>
@@ -208,5 +236,26 @@ public class ChatStore
             Segments = segments
         });
         Log.Info($"Sent to chat: {string.Join(", ", segments.Select(s => s.Render()))}");
+    }
+
+    public static bool TryInsertIntoInput(string text)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        var store = Instance;
+        if (store == null)
+        {
+            Log.Warn("ChatStore.Instance is null");
+            return false;
+        }
+
+        if (store._inputTextInserter == null)
+        {
+            Log.Warn("Chat input inserter is not registered");
+            return false;
+        }
+
+        store._inputTextInserter(text);
+        return true;
     }
 }

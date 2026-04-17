@@ -1,6 +1,7 @@
 using lemonSpire2.SynergyIndicator.Models;
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
+using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator.Message;
 

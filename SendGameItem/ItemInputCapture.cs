@@ -38,6 +38,13 @@ public partial class ItemInputCapture : Control
 
     public override void _Input(InputEvent @event)
     {
+        // MiddleClick: 把当前捕获的物品插入聊天输入框，交给输入解析链继续处理。
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle })
+        {
+            HandleMiddleClick();
+            return;
+        }
+
         // Alt+LeftClick: 从悬停的节点发送物品
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, AltPressed: true })
         {
@@ -51,6 +58,37 @@ public partial class ItemInputCapture : Control
             HandleAltRightClick();
             return;
         }
+    }
+
+    private void HandleMiddleClick()
+    {
+        Log.Debug("MiddleClick detected");
+
+        var hovered = GetHoveredControl();
+        if (hovered == null)
+        {
+            Log.Debug("No hovered control");
+            return;
+        }
+
+        if (IsInsideBlockingControl(hovered))
+        {
+            Log.Debug("Inside blocking control, ignoring");
+            return;
+        }
+
+        var segment = ItemInputHandler.FindItemToTooltipSegment(hovered);
+        if (!ItemInputInsertFormatter.TryFormat(segment, out var insertionText))
+        {
+            Log.Debug("Hovered item is not insertable");
+            return;
+        }
+
+        if (!ChatStore.TryInsertIntoInput(insertionText))
+            return;
+
+        Log.Info($"Inserted item reference into chat input: {insertionText}");
+        GetViewport()?.SetInputAsHandled();
     }
 
     private void HandleAltLeftClick()

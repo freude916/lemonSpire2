@@ -4,12 +4,12 @@ using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorTy
 
 namespace lemonSpire2.SynergyIndicator.Models;
 
-public class VulnerableIndicatorProvider : IIndicatorProvider
+public class StrengthIndicatorProvider : IIndicatorProvider
 {
-    public IndicatorType Type => IndicatorType.Vulnerable;
+    public IndicatorType Type => IndicatorType.Strength;
 
     public bool ShouldShow(IEnumerable<CardModel> handCards)
     {
-        return handCards.Any(IIndicatorProvider.CardAppliesPowerToEnemy<VulnerablePower>);
+        return handCards.Any(IIndicatorProvider.CardAppliesPowerToAllies<StrengthPower>);
     }
 }

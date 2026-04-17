@@ -43,6 +43,7 @@ public static class ChatUiPatch
         var panel = new ChatPanel(store.Model, intent => store.Dispatch(intent), store.IntentRegistry,
             store.InputServices,
             globalUi);
+        store.RegisterInputTextInserter(panel.InsertTextAtCaret);
 
         // Add to scene
         var control = panel.GetControl()!; // panel inited , control should be non-null

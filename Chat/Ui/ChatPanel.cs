@@ -20,6 +20,7 @@ namespace lemonSpire2.Chat.Ui;
 /// </summary>
 public sealed class ChatPanel : IDisposable
 {
+    private readonly AudioStream? _atMessageSound;
     private readonly ChatCompletionPopupController _completionPopup = new();
     private readonly Action<IIntent> _dispatch;
     private readonly EntityFocusManager _entityFocusManager = new();
@@ -55,6 +56,7 @@ public sealed class ChatPanel : IDisposable
         _inputServices = inputServices;
         _tooltipParent = tooltipParent;
         _messageSound = ModSoundManager.Load(ModSound.ReceiveMessage);
+        _atMessageSound = ModSoundManager.Load(ModSound.AtMessage);
         _model.OnMessageAppended += OnMessageAppended;
         _tooltipManager.RegisterHandlers(intentRegistry);
         _entityFocusManager.RegisterHandlers(intentRegistry);
@@ -300,7 +302,7 @@ public sealed class ChatPanel : IDisposable
             _hasWelcome = false;
         }
 
-        PlayMessageSound();
+        PlayMessageSound(message.NotificationSound);
         DelayFadeOut(ChatConfig.FadeOutDelaySeconds);
 
         if (TryDisplayTextSegment(message))
@@ -344,15 +346,25 @@ public sealed class ChatPanel : IDisposable
         return true;
     }
 
-    private void PlayMessageSound()
+    private void PlayMessageSound(ChatNotificationSound notificationSound)
     {
-        if (_messageSound == null || !_container.IsInsideTree())
+        if (!_container.IsInsideTree())
+            return;
+
+        var sound = notificationSound switch
+        {
+            ChatNotificationSound.None => null,
+            ChatNotificationSound.AtMessage => _atMessageSound ?? _messageSound,
+            _ => _messageSound
+        };
+
+        if (sound == null)
             return;
 
 #pragma warning disable CA2000 // AudioStreamPlayer ownership transferred to scene tree and auto-freed after playback
         var player = new AudioStreamPlayer
         {
-            Stream = _messageSound,
+            Stream = sound,
             VolumeDb = ChatConfig.MessageSoundVolumeDb
         };
 #pragma warning restore CA2000
@@ -478,6 +490,23 @@ public sealed class ChatPanel : IDisposable
     public Control GetControl()
     {
         return _container;
+    }
+
+    public void InsertTextAtCaret(string text)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+
+        if (!_isExpanded)
+            SetExpanded(true);
+
+        var caretColumn = _inputField.HasFocus()
+            ? _inputField.CaretColumn
+            : _inputField.Text.Length;
+        var result = ChatInputInsertion.InsertToken(_inputField.Text, caretColumn, text);
+        _inputField.Text = result.Text;
+        _inputField.CaretColumn = result.CaretColumn;
+        RequestCompletionRefresh();
+        _inputField.CallDeferred(Control.MethodName.GrabFocus);
     }
 
     public void ResetPosition()

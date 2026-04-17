@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
 using IndicatorPanel = lemonSpire2.SynergyIndicator.Ui.IndicatorPanel;
+using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator;
 
@@ -15,14 +16,6 @@ namespace lemonSpire2.SynergyIndicator;
 public sealed class IndicatorManager : IDisposable
 {
     private static IndicatorManager? _instance;
-
-    private static readonly IReadOnlyList<IIndicatorProvider> Providers =
-    [
-        new HandShakeIndicatorProvider(),
-        new VulnerableIndicatorProvider(),
-        new WeakIndicatorProvider(),
-        new StrangleIndicatorProvider()
-    ];
 
     private readonly AudioStream? _noticeSound;
 
@@ -164,7 +157,7 @@ public sealed class IndicatorManager : IDisposable
     {
         var cards = state.Hand.Cards;
         var expectedTypes = new HashSet<IndicatorType>();
-        foreach (var provider in Providers)
+        foreach (var provider in IndicatorRegistry.Providers)
             if (provider.ShouldShow(cards))
                 expectedTypes.Add(provider.Type);
         return expectedTypes;

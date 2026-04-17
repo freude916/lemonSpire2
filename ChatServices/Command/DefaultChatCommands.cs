@@ -1,7 +1,11 @@
+using Godot;
 using lemonSpire2.Chat.Input.Arguments;
 using lemonSpire2.Chat.Input.Command;
 using lemonSpire2.Chat.Input.Model;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.util;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Runs;
 
 namespace lemonSpire2.Chat.Input.Service.Command;
 
@@ -33,7 +37,7 @@ public static class DefaultChatCmds
             Name = "ping",
             Description = ChatCmdText.PingDescription(),
             Args = [],
-            Execute = _ => new LocalDisplayChatCmdResult(ChatCmdText.PingResponse(), ChatCmdText.SystemHeader())
+            Execute = _ => new LocalDisplayChatCmdResult(GetPingText(), ChatCmdText.SystemHeader())
         });
 
         registry.Register(new ChatCmdSpec
@@ -90,5 +94,47 @@ public static class DefaultChatCmds
                 return new SendSegmentsChatCmdResult(messages);
             }
         });
+    }
+
+    private static string GetPingText()
+    {
+        var netService = RunManager.Instance?.NetService;
+        if (netService == null || !netService.Type.IsMultiplayer())
+            return ChatCmdText.PingUnavailable();
+
+        if (netService is INetClientGameService clientService)
+        {
+            var hostNetId = clientService.NetClient?.HostNetId;
+            if (!hostNetId.HasValue)
+                return ChatCmdText.PingUnavailable();
+
+            var stats = netService.GetStatsForPeer(hostNetId.Value);
+            if (stats == null)
+                return ChatCmdText.PingUnavailable();
+
+            return ChatCmdText.PingClientHost(FormatPing(stats.PingMsec));
+        }
+
+        if (netService is INetHostGameService hostService)
+        {
+            var lines = hostService.ConnectedPeers
+                .Select(peer => (peer.peerId, stats: netService.GetStatsForPeer(peer.peerId)))
+                .Where(x => x.stats != null)
+                .Select(x => ChatCmdText.PingPeer(
+                    StsUtil.GetPlayerNameFromNetId(x.peerId),
+                    Mathf.RoundToInt(x.stats!.PingMsec)))
+                .ToArray();
+
+            return lines.Length > 0
+                ? string.Join('\n', lines)
+                : ChatCmdText.PingUnavailable();
+        }
+
+        return ChatCmdText.PingUnavailable();
+    }
+
+    private static string FormatPing(float pingMsec)
+    {
+        return Mathf.RoundToInt(pingMsec).ToString();
     }
 }

@@ -3,6 +3,13 @@ using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
 namespace lemonSpire2.Chat.Message;
 
+public enum ChatNotificationSound
+{
+    None = 0,
+    ReceiveMessage = 1,
+    AtMessage = 2
+}
+
 public record ChatMessage : BasePlayerMessage
 {
     public required IReadOnlyCollection<IMsgSegment> Segments { get; set; } = [];
@@ -12,6 +19,8 @@ public record ChatMessage : BasePlayerMessage
     public string? SenderName { get; set; } // Optional display name, for UI convenience
 
     public ulong ReceiverId { get; set; } // 0 = broadcast
+
+    public ChatNotificationSound NotificationSound { get; set; } = ChatNotificationSound.None;
 
     public override void Serialize(PacketWriter writer)
     {

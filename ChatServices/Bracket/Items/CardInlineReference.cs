@@ -7,6 +7,8 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace lemonSpire2.Chat.Input.Service.Bracket;
 
+internal readonly record struct CardCompletionCandidate(string Title, string Entry);
+
 public sealed class CardInlineReference : IChatInlineReference
 {
     public string TypeName => "card";

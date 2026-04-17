@@ -26,9 +26,19 @@ public static class ChatCmdText
         return Text("LEMONSPIRE.chat.command.ping.description");
     }
 
-    public static string PingResponse()
+    public static string PingUnavailable()
     {
-        return Text("LEMONSPIRE.chat.command.ping.response");
+        return Text("LEMONSPIRE.chat.command.ping.unavailable");
+    }
+
+    public static string PingPeer(string player, int pingMsec)
+    {
+        return Text("LEMONSPIRE.chat.command.ping.peer", ("Player", player), ("Ping", pingMsec.ToString()));
+    }
+
+    public static string PingClientHost(string pingMsec)
+    {
+        return Text("LEMONSPIRE.chat.command.ping.client_host", ("Ping", pingMsec));
     }
 
     public static string HelpDescription()

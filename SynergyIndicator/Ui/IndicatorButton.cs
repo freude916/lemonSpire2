@@ -1,7 +1,6 @@
 using Godot;
 using lemonSpire2.SynergyIndicator.Models;
-using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Models.Powers;
+using IndicatorType = lemonSpire2.SynergyIndicator.IndicatorRegistry.IndicatorType;
 
 namespace lemonSpire2.SynergyIndicator.Ui;
 
@@ -10,18 +9,6 @@ namespace lemonSpire2.SynergyIndicator.Ui;
 /// </summary>
 public partial class IndicatorButton : Button
 {
-    private static readonly Dictionary<IndicatorType, Texture2D?> IconCache = new()
-    {
-        { IndicatorType.Vulnerable, PowerIcon<VulnerablePower>() },
-        { IndicatorType.Weak, PowerIcon<WeakPower>() }
-    };
-
-    // emoji 映射
-    private static readonly Dictionary<IndicatorType, string> Emojis = new()
-    {
-        { IndicatorType.HandShake, "🤝" }
-    };
-
     private static readonly StyleBoxFlat InteractiveStyle = new()
     {
         BgColor = new Color(1, 1, 1, 0), // 透明背景
@@ -63,10 +50,13 @@ public partial class IndicatorButton : Button
         EmojiLabel?.QueueFree();
         IconTextureRect?.QueueFree();
 
-        if (Emojis.TryGetValue(type, out var emoji))
-            SetupEmoji(emoji);
+        var entry = IndicatorRegistry.GetEntry(type);
+        if (!string.IsNullOrEmpty(entry?.Emoji))
+            SetupEmoji(entry.Emoji);
+        else if (entry?.Icon != null)
+            SetupIcon(entry.Icon);
         else
-            SetupIcon(type);
+            return;
 
         Pressed += OnIndicatorClicked;
 
@@ -140,11 +130,8 @@ public partial class IndicatorButton : Button
         AddChild(EmojiLabel);
     }
 
-    private void SetupIcon(IndicatorType type)
+    private void SetupIcon(Texture2D icon)
     {
-        var icon = GetIconForIndicatorType(type);
-        if (icon == null) return;
-
         IconTextureRect = new TextureRect
         {
             Texture = icon,
@@ -161,15 +148,5 @@ public partial class IndicatorButton : Button
     private void OnIndicatorClicked()
     {
         IndicatorClicked?.Invoke(Type);
-    }
-
-    private static Texture2D? GetIconForIndicatorType(IndicatorType type)
-    {
-        return IconCache.GetValueOrDefault(type);
-    }
-
-    private static Texture2D? PowerIcon<T>() where T : PowerModel
-    {
-        return ModelDb.AllPowers.FirstOrDefault(p => p is T)?.Icon;
     }
 }
