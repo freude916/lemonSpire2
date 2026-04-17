@@ -1,6 +1,7 @@
 using Godot;
 using lemonSpire2.SynergyIndicator.Message;
 using lemonSpire2.SynergyIndicator.Models;
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Multiplayer;
@@ -34,7 +35,7 @@ public sealed class IndicatorManager : IDisposable
 
     private IndicatorManager()
     {
-        _noticeSound = GD.Load<AudioStream>("res://lemonSpire2/synergy-notice.mp3");
+        _noticeSound = ModSoundManager.Load(ModSound.SynergyNotice);
     }
 
     public static IndicatorManager Instance => _instance ??= new IndicatorManager();

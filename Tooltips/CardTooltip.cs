@@ -1,7 +1,7 @@
 using Godot;
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Assets;
 using MegaCrit.Sts2.Core.Entities.Cards;
-using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
@@ -51,23 +51,6 @@ public sealed class CardTooltip : Tooltip
         };
     }
 
-    public static Color GetCardRarityColor(CardRarity rarity)
-    {
-        return rarity switch
-        {
-            CardRarity.Basic => StsColors.cardTitleOutlineCommon,
-            CardRarity.Common => StsColors.cardTitleOutlineCommon,
-            CardRarity.Uncommon => StsColors.cardTitleOutlineUncommon,
-            CardRarity.Rare => StsColors.cardTitleOutlineRare,
-            CardRarity.Curse => StsColors.cardTitleOutlineCurse,
-            CardRarity.Quest => StsColors.cardTitleOutlineQuest,
-            CardRarity.Status => StsColors.cardTitleOutlineStatus,
-            CardRarity.Ancient or CardRarity.Event or CardRarity.Token => StsColors.cardTitleOutlineSpecial,
-            CardRarity.None => StsColors.cream,
-            _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null)
-        };
-    }
-
     public static Color GetCardPoolColor(CardModel card)
     {
         ArgumentNullException.ThrowIfNull(card);
@@ -79,7 +62,7 @@ public sealed class CardTooltip : Tooltip
         var card = ResolveCardForChat();
         if (card is null) return "Broken Card";
 
-        var rarityColor = GetCardRarityColor(card.Rarity);
+        var rarityColor = StsUtil.GetRarityColor(card.Rarity);
         var poolColor = GetCardPoolColor(card);
 
         return $"[color={poolColor.ToHtml()}]■[/color] [color={rarityColor.ToHtml()}]{card.Title}[/color]";

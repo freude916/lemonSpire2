@@ -9,6 +9,7 @@ using lemonSpire2.StatsTracker;
 using lemonSpire2.SyncReward;
 using lemonSpire2.SyncShop;
 using lemonSpire2.SynergyIndicator;
+using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Modding;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
@@ -25,6 +26,7 @@ public partial class MainFile : Node
     public static void Initialize()
     {
         ModConfigRegistry.Register(ModId, new LemonSpireConfig());
+        ModSoundManager.Initialize();
 
         // 设置日志级别为 Debug，启用所有模块的调试日志
         SetupLogLevels();

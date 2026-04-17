@@ -7,14 +7,15 @@ using MegaCrit.Sts2.Core.Models;
 
 namespace lemonSpire2.Chat.Input.Service.Bracket;
 
-public sealed class CardInlineReferenceType : IChatInlineReferenceType
+public sealed class PotionInlineReferenceType : IChatInlineReferenceType
 {
-    public string TypeName => "card";
+    public string TypeName => "potion";
 
     public IReadOnlyList<ChatCompletionItem> GetCompletions(string query)
     {
         return BuildCompletionItems(
-            ModelDb.AllCards.Select(card => new CardCompletionCandidate(card.Title, card.Id.Entry)),
+            ModelDb.AllPotions.Select(potion =>
+                new PotionCompletionCandidate(potion.Title.GetFormattedText(), potion.Id.Entry)),
             query);
     }
 
@@ -33,7 +34,7 @@ public sealed class CardInlineReferenceType : IChatInlineReferenceType
     }
 
     internal static IReadOnlyList<ChatCompletionItem> BuildCompletionItems(
-        IEnumerable<CardCompletionCandidate> candidates,
+        IEnumerable<PotionCompletionCandidate> candidates,
         string query)
     {
         ArgumentNullException.ThrowIfNull(candidates);
@@ -45,11 +46,11 @@ public sealed class CardInlineReferenceType : IChatInlineReferenceType
                 .Where(candidate => Matches(candidate, query))
                 .OrderBy(candidate => candidate.Entry, StringComparer.OrdinalIgnoreCase)
                 .Select(candidate =>
-                    new ChatCompletionItem($"{candidate.Title} - {candidate.Entry}", $"<card:{candidate.Entry}>"))
+                    new ChatCompletionItem($"{candidate.Title} - {candidate.Entry}", $"<potion:{candidate.Entry}>"))
         ];
     }
 
-    private static bool Matches(CardCompletionCandidate candidate, string query)
+    private static bool Matches(PotionCompletionCandidate candidate, string query)
     {
         if (string.IsNullOrWhiteSpace(query))
             return true;
@@ -59,4 +60,4 @@ public sealed class CardInlineReferenceType : IChatInlineReferenceType
     }
 }
 
-internal readonly record struct CardCompletionCandidate(string Title, string Entry);
+internal readonly record struct PotionCompletionCandidate(string Title, string Entry);

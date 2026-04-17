@@ -104,6 +104,10 @@
         <PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="All"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <SoundFiles Include="lemonSpire2/*.mp3"/>
+    </ItemGroup>
+
     <ItemGroup Condition="True">
         <Publicize Include="sts2" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false"/>
     </ItemGroup>
@@ -119,6 +123,8 @@
         <Message Text="Copying .dll and manifest to mods folder." Importance="high"/>
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)$(MSBuildProjectName)/"/>
         <Copy SourceFiles="lemonSpire2.json" DestinationFolder="$(ModsPath)$(MSBuildProjectName)/"/>
+        <Copy SourceFiles="@(SoundFiles)"
+              DestinationFiles="@(SoundFiles->'$(ModsPath)$(MSBuildProjectName)/lemonSpire2/%(Filename)%(Extension)')"/>
         <Message Text="Copying BaseLib to mods folder." Importance="high"/>
         <ItemGroup>
             <BaseLibFiles Include="$(NuGetPackageRoot)/alchyr.sts2.baselib/**/lib/**/BaseLib.dll;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.pck;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.json;"/>

@@ -29,6 +29,6 @@ public record TooltipSegment : IMsgSegment
     public string Render()
     {
         var meta = Tooltip.ToMetaString();
-        return $"[lb][url={meta}]{Tooltip.Render()}[/url][rb]";
+        return $"[url={meta}][lb]{Tooltip.Render()}[rb][/url]";
     }
 }

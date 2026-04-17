@@ -1,8 +1,8 @@
+using lemonSpire2.Chat.Input.Abstractions;
+using lemonSpire2.Chat.Input.Command;
 using lemonSpire2.Chat.Input.Model;
 using lemonSpire2.Chat.Input.Parsing;
 using lemonSpire2.Chat.Input.Registry;
-using lemonSpire2.Chat.Input.Command;
-using lemonSpire2.Chat.Input.Abstractions;
 using lemonSpire2.Chat.Input.Service.Bracket;
 using lemonSpire2.Chat.Input.Service.Command;
 using lemonSpire2.Chat.Input.Service.Mention;
@@ -29,8 +29,7 @@ public sealed class ChatInputServices
         SubmitTokenHandlerRegistry = new ChatSubmitTokenHandlerRegistry();
         CommandRegistry = new ChatCmdRegistry();
 
-        foreach (var inlineReferenceType in inlineReferenceTypes ?? [new CardInlineReferenceType()])
-            InlineReferenceRegistry.Register(inlineReferenceType);
+        RegisterReferenceTypes();
 
         SubmitTokenHandlerRegistry.Register(new MentionSubmitTokenHandler(mentionTargetGetter));
         SubmitTokenHandlerRegistry.Register(new BracketSubmitTokenHandler(InlineReferenceRegistry));
@@ -39,12 +38,7 @@ public sealed class ChatInputServices
         DefaultChatCmds.RegisterDefaults(CommandRegistry, mentionTargetGetter, GetLocalNetId, Parser.Parse);
         CommandProcessor = new ChatCmdProcessor(CommandRegistry);
 
-        CompletionAnalyzer.Register(
-            new SlashCommandCompletionAnalyzer(CommandRegistry));
-        CompletionAnalyzer.Register(
-            new MentionCompletionAnalyzer(new MentionCompletionProvider(mentionTargetGetter)));
-        CompletionAnalyzer.Register(
-            new InlineReferenceCompletionAnalyzer(new InlineReferenceCompletionProvider(InlineReferenceRegistry)));
+        RegisterCompletionServices(mentionTargetGetter);
     }
 
     public ChatInlineReferenceRegistry InlineReferenceRegistry { get; }
@@ -53,6 +47,22 @@ public sealed class ChatInputServices
     public ChatCmdRegistry CommandRegistry { get; }
     public ChatCmdProcessor CommandProcessor { get; }
     public ChatInputSubmitParser Parser { get; }
+
+    private void RegisterReferenceTypes()
+    {
+        InlineReferenceRegistry.Register(new CardInlineReferenceType());
+        InlineReferenceRegistry.Register(new PotionInlineReferenceType());
+    }
+
+    private void RegisterCompletionServices(Func<IReadOnlyList<MentionTarget>> mentionTargetGetter)
+    {
+        ArgumentNullException.ThrowIfNull(mentionTargetGetter);
+
+        CompletionAnalyzer.Register(new SlashCommandCompletionAnalyzer(CommandRegistry));
+        CompletionAnalyzer.Register(new MentionCompletionAnalyzer(new MentionCompletionProvider(mentionTargetGetter)));
+        CompletionAnalyzer.Register(
+            new InlineReferenceCompletionAnalyzer(new InlineReferenceCompletionProvider(InlineReferenceRegistry)));
+    }
 
     private static IReadOnlyList<MentionTarget> GetMentionTargets()
     {

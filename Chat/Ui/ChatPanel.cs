@@ -6,6 +6,7 @@ using lemonSpire2.Chat.Message;
 using lemonSpire2.Chat.Ui.Completion;
 using lemonSpire2.ColorEx;
 using lemonSpire2.SendGameItem;
+using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
@@ -53,7 +54,7 @@ public sealed class ChatPanel : IDisposable
         _dispatch = dispatch;
         _inputServices = inputServices;
         _tooltipParent = tooltipParent;
-        _messageSound = GD.Load<AudioStream>(ChatConfig.MessageSoundPath);
+        _messageSound = ModSoundManager.Load(ModSound.ReceiveMessage);
         _model.OnMessageAppended += OnMessageAppended;
         _tooltipManager.RegisterHandlers(intentRegistry);
         _entityFocusManager.RegisterHandlers(intentRegistry);

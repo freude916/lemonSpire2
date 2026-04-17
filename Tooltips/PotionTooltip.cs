@@ -1,7 +1,5 @@
 using Godot;
 using lemonSpire2.util;
-using MegaCrit.Sts2.Core.Entities.Potions;
-using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
@@ -22,27 +20,12 @@ public sealed class PotionTooltip : Tooltip
         };
     }
 
-    public static Color GetPotionRarityColor(PotionRarity rarity)
-    {
-        return rarity switch
-        {
-            // potion don't have rarity color definations in the game, so we will just use the same colors as cards
-            PotionRarity.Common => StsColors.cardTitleOutlineCommon,
-            PotionRarity.Uncommon => StsColors.cardTitleOutlineUncommon,
-            PotionRarity.Rare => StsColors.cardTitleOutlineRare,
-            PotionRarity.Event => StsColors.cardTitleOutlineSpecial,
-            PotionRarity.Token => StsColors.cardTitleOutlineSpecial,
-            PotionRarity.None => StsColors.cream,
-            _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null)
-        };
-    }
-
     public override string Render()
     {
         var model = ResolveModel();
         if (model is null) return "Broken Potion";
 
-        var color = GetPotionRarityColor(model.Rarity);
+        var color = StsUtil.GetRarityColor(model.Rarity);
         var iconPath = model.ImagePath;
 
         return $"[img={16}x{16}]{iconPath}[/img] [color={color.ToHtml()}]{model.Title.GetFormattedText()}[/color]";

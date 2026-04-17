@@ -5,8 +5,13 @@ namespace lemonSpire2.Chat.Ui.Completion;
 
 internal sealed class ChatCompletionPopupController : IDisposable
 {
+    private const int MaxVisibleItems = 10;
+    private const float ItemHeight = 28f;
+    private const float PopupPadding = 8f;
+
     private readonly ItemList _list;
     private readonly PanelContainer _panel;
+    private readonly ScrollContainer _scroll;
     private IReadOnlyList<ChatCompletionItem> _items = [];
     private ChatCompletionSession? _session;
 
@@ -36,6 +41,13 @@ internal sealed class ChatCompletionPopupController : IDisposable
         };
         _panel.AddThemeStyleboxOverride("panel", style);
 
+        _scroll = new ScrollContainer
+        {
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            MouseFilter = Control.MouseFilterEnum.Pass
+        };
+
         _list = new ItemList
         {
             MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -44,7 +56,8 @@ internal sealed class ChatCompletionPopupController : IDisposable
             SameColumnWidth = true
         };
         _list.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
-        _panel.AddChild(_list);
+        _scroll.AddChild(_list);
+        _panel.AddChild(_scroll);
     }
 
     public bool IsOpen => _panel.Visible && _items.Count > 0 && _session is not null;
@@ -88,7 +101,10 @@ internal sealed class ChatCompletionPopupController : IDisposable
             _list.AddItem(item.DisplayText);
 
         _list.Select(0);
-        _panel.Size = new Vector2(Mathf.Max(inputField.Size.X, 260f), Mathf.Min(items.Count, 6) * 28f + 8f);
+        var visibleItemCount = Mathf.Min(items.Count, MaxVisibleItems);
+        _panel.Size = new Vector2(Mathf.Max(inputField.Size.X, 260f), visibleItemCount * ItemHeight + PopupPadding);
+        _scroll.CustomMinimumSize = new Vector2(0f, visibleItemCount * ItemHeight);
+        _scroll.ScrollVertical = 0;
         _panel.Position = inputField.GlobalPosition - new Vector2(0, _panel.Size.Y + 4f);
         _panel.Visible = true;
     }
