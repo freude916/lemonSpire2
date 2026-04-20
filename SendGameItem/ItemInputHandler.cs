@@ -305,17 +305,18 @@ public static class ItemInputHandler
         return segments;
     }
 
-    private static List<TooltipSegment> CreateSegmentsFromHoverTip(IHoverTip hoverTip)
+    private static List<TooltipSegment> CreateSegmentsFromHoverTip(IHoverTip hoverTip, bool allowNoLoc = false)
     {
         ArgumentNullException.ThrowIfNull(hoverTip);
 
         if (hoverTip is CardHoverTip cardHoverTip)
-            return CardTooltip.FromModel(cardHoverTip.Card).ToTooltipSegments().ToList();
+            return [CardTooltip.FromModel(cardHoverTip.Card).ToTooltipSegment()];
 
         if (hoverTip.CanonicalModel != null)
             return [CreateSegmentFromModel(hoverTip.CanonicalModel)];
 
-        if (hoverTip is HoverTip simpleHoverTip)
+        if (hoverTip is not HoverTip simpleHoverTip) return [];
+        if (allowNoLoc)
             return
             [
                 new RichTextTooltip
@@ -326,7 +327,6 @@ public static class ItemInputHandler
                     IconPath = simpleHoverTip.Icon?.ResourcePath
                 }.ToTooltipSegment()
             ];
-
         return [];
     }
 

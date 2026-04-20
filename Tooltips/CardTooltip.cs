@@ -25,9 +25,12 @@ public sealed class CardTooltip : Tooltip
     {
         ArgumentNullException.ThrowIfNull(card);
         var snapshotSource = (CardModel)card.MutableClone();
-        var ownerNetId = snapshotSource.Owner.NetId;
+        var ownerNetId = snapshotSource.Owner?.NetId ?? 0UL;
         var pileType = snapshotSource.Pile?.Type ?? PileType.Deck;
         var useCombatPreview = snapshotSource.IsInCombat;
+
+        if (snapshotSource.Owner == null)
+            Log.Debug($"CardTooltip.FromModel: card {snapshotSource.Id} has no owner, falling back to ownerNetId=0");
 
         return new CardTooltip
         {
