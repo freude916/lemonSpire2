@@ -40,7 +40,7 @@ public static class ChatUiPatch
         var store = new ChatStore(netService);
 
         // Create ChatPanel with model, dispatch, intent registry, and tooltip parent (globalUi)
-        var panel = new ChatPanel(store.Model, intent => store.Dispatch(intent), store.IntentRegistry,
+        var panel = new ChatPanel(store.Model, netService, intent => store.Dispatch(intent), store.IntentRegistry,
             store.InputServices,
             globalUi);
         store.RegisterInputTextInserter(panel.InsertTextAtCaret);

@@ -16,7 +16,7 @@ public record ChatMessage : BasePlayerMessage
 
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
-    public string? SenderName { get; set; } // Optional display name, for UI convenience
+    public string? SpecialName { get; set; } // For SenderId == 0 or local special/system display
 
     public ulong ReceiverId { get; set; } // 0 = broadcast
 
@@ -34,7 +34,7 @@ public record ChatMessage : BasePlayerMessage
         }
 
         writer.WriteULong(SenderId);
-        writer.WriteString(SenderName ?? "");
+        writer.WriteString(SpecialName ?? "");
         writer.WriteULong(ReceiverId);
         writer.WriteLong(Timestamp.ToUnixTimeSeconds());
     }
@@ -58,8 +58,8 @@ public record ChatMessage : BasePlayerMessage
 
         Segments = segments;
         SenderId = reader.ReadULong();
-        var name = reader.ReadString();
-        SenderName = string.IsNullOrEmpty(name) ? null : name;
+        var specialName = reader.ReadString();
+        SpecialName = string.IsNullOrEmpty(specialName) ? null : specialName;
         ReceiverId = reader.ReadULong();
         Timestamp = DateTimeOffset.FromUnixTimeSeconds(reader.ReadLong());
     }

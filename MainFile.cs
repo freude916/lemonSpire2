@@ -54,7 +54,6 @@ public partial class MainFile : Node
 
         if (LemonSpireConfig.EnableStatsTracker)
         {
-            harmony.CreateClassProcessor(typeof(PowerCmdPatch)).Patch();
             StatsTrackerManager.Instance.Initialize();
             PlayerTooltipRegistry.Register(new StatsTooltipProvider());
         }
