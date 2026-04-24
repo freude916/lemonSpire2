@@ -5,7 +5,6 @@ using lemonSpire2.Chat.Message;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Logging;
 using MegaCrit.Sts2.Core.Multiplayer.Game;
-using MegaCrit.Sts2.Core.Platform;
 
 namespace lemonSpire2.Chat;
 
@@ -48,12 +47,10 @@ public class ChatStore
         IntentRegistry.Register<IntentSendSegments>(i =>
         {
             var senderId = i.SenderId ?? _netService.NetId;
-            var senderName = PlatformUtil.GetPlayerName(_netService.Platform, senderId);
             var receiverId = i.ReceiverId ?? 0; // default to broadcast
             var msg = new ChatMessage
             {
                 SenderId = senderId,
-                SenderName = senderName,
                 ReceiverId = receiverId,
                 Timestamp = DateTimeOffset.UtcNow,
                 Segments = i.Segments
@@ -142,7 +139,7 @@ public class ChatStore
             Message = new ChatMessage
             {
                 SenderId = 0,
-                SenderName = headerText,
+                SpecialName = headerText,
                 ReceiverId = LocalNetId,
                 Timestamp = DateTimeOffset.UtcNow,
                 Segments =

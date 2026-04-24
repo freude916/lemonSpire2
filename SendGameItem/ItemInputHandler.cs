@@ -334,7 +334,7 @@ public static class ItemInputHandler
     {
         var segments = new List<TooltipSegment>();
         foreach (var hoverTip in IHoverTip.RemoveDupes(hoverTips))
-            segments.AddRange(CreateSegmentsFromHoverTip(hoverTip));
+            segments.AddRange(CreateSegmentsFromHoverTip(hoverTip, true));
         return segments;
     }
 

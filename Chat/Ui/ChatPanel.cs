@@ -9,6 +9,8 @@ using lemonSpire2.SendGameItem;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
+using MegaCrit.Sts2.Core.Platform;
 using DraggableTitleBar = lemonSpire2.util.Ui.DraggableTitleBar;
 using ViewportResizeNotifier = lemonSpire2.util.Ui.ViewportResizeNotifier;
 
@@ -28,6 +30,7 @@ public sealed class ChatPanel : IDisposable
     private readonly ChatInputServices _inputServices;
     private readonly AudioStream? _messageSound;
     private readonly ChatModel _model;
+    private readonly INetGameService _netService;
     private readonly TooltipManager _tooltipManager = new();
     private readonly Control _tooltipParent;
 
@@ -47,11 +50,13 @@ public sealed class ChatPanel : IDisposable
     private DraggableTitleBar _titleBar = null!;
     private VBoxContainer _vboxLayout = null!;
 
-    public ChatPanel(ChatModel model, Action<IIntent> dispatch, IntentHandlerRegistry intentRegistry,
+    public ChatPanel(ChatModel model, INetGameService netService, Action<IIntent> dispatch,
+        IntentHandlerRegistry intentRegistry,
         ChatInputServices inputServices,
         Control tooltipParent)
     {
         _model = model;
+        _netService = netService;
         _dispatch = dispatch;
         _inputServices = inputServices;
         _tooltipParent = tooltipParent;
@@ -294,7 +299,8 @@ public sealed class ChatPanel : IDisposable
 
     private void DisplayMessage(ChatMessage message)
     {
-        ChatUiPatch.Log.Debug($"DisplayMessage: segments={message.Segments.Count}, sender={message.SenderName}");
+        ChatUiPatch.Log.Debug(
+            $"DisplayMessage: segments={message.Segments.Count}, senderId={message.SenderId}, special={message.SpecialName}");
 
         if (_hasWelcome)
         {
@@ -312,7 +318,7 @@ public sealed class ChatPanel : IDisposable
             return;
         }
 
-        var senderName = message.SenderName ?? $"Player {message.SenderId}";
+        var senderName = ResolveSenderName(message);
         var time = message.Timestamp.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
         // [time]
@@ -331,6 +337,19 @@ public sealed class ChatPanel : IDisposable
 
         _messageBuffer.AppendText("\n");
         _messageBuffer.ScrollToLine(_messageBuffer.GetLineCount() - 1);
+    }
+
+    private string ResolveSenderName(ChatMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        if (!string.IsNullOrWhiteSpace(message.SpecialName))
+            return message.SpecialName;
+
+        if (message.SenderId != 0)
+            return PlatformUtil.GetPlayerName(_netService.Platform, message.SenderId);
+
+        return "System";
     }
 
     private bool TryDisplayTextSegment(ChatMessage message)
