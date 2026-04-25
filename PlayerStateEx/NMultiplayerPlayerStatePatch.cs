@@ -80,6 +80,7 @@ public static class NMultiplayerPlayerStatePatch
         }
 
         var tipSet = NHoverTipSet.CreateAndShow(instance, tips);
+        if (tipSet == null) return;
         tipSet.GlobalPosition = instance.GlobalPosition + Vector2.Down * 80f;
     }
 
@@ -105,7 +106,8 @@ public static class NMultiplayerPlayerStatePatch
 
         // 检查是否在目标选择模式
         var targetManager = NTargetManager.Instance;
-        if (targetManager.IsInSelection)
+        if (targetManager.IsInSelection ||
+            targetManager.LastTargetingFinishedFrame == __instance.GetTree().GetFrame())
         {
             LastClickTimes.Remove(__instance);
             return true; // 继续执行原始方法
