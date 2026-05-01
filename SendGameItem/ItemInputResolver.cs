@@ -22,7 +22,7 @@ namespace lemonSpire2.SendGameItem;
 /// <summary>
 ///     物品输入处理器 — 检测 Alt+点击物品并发送消息
 /// </summary>
-public static class ItemInputHandler
+public static class ItemInputResolver
 {
     /// <summary>
     ///     从节点树中查找主物品并创建单个 TooltipSegment

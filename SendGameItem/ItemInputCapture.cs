@@ -81,7 +81,7 @@ public partial class ItemInputCapture : Control
             return;
         }
 
-        var segment = ItemInputHandler.FindItemToTooltipSegment(hovered);
+        var segment = ItemInputResolver.FindItemToTooltipSegment(hovered);
         if (!ItemInputInsertFormatter.TryFormat(segment, out var insertionText))
         {
             Log.Debug("Hovered item is not insertable");
@@ -116,7 +116,7 @@ public partial class ItemInputCapture : Control
             return;
         }
 
-        var segment = ItemInputHandler.FindItemToTooltipSegment(hovered);
+        var segment = ItemInputResolver.FindItemToTooltipSegment(hovered);
         if (segment == null)
         {
             Log.Debug("No item segment found");
@@ -145,7 +145,7 @@ public partial class ItemInputCapture : Control
                 return;
             }
 
-            var hoveredSegments = ItemInputHandler.FindItemAndHoverTipSegments(hovered).ToArray();
+            var hoveredSegments = ItemInputResolver.FindItemAndHoverTipSegments(hovered).ToArray();
             if (hoveredSegments.Length > 0)
             {
                 Log.Info($"Found {hoveredSegments.Length} hovered item segments");
@@ -204,7 +204,7 @@ public partial class ItemInputCapture : Control
     {
         return HoverTipOwnerField?.GetValue(tipSet) is not Node owner
             ? []
-            : ItemInputHandler.FindItemAndHoverTipSegments(owner);
+            : ItemInputResolver.FindItemAndHoverTipSegments(owner);
     }
 
     private Control? GetHoveredControl()

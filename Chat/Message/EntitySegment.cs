@@ -77,7 +77,7 @@ public sealed record EntitySegment : IMsgSegment
     public string Render()
     {
         var text = RenderText();
-        return $"[url={ToMetaString()}]{text}[/url]";
+        return $"[url={ToMetaString()}]@{text}[/url]";
     }
 
     public string RenderText()
