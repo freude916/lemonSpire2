@@ -25,6 +25,7 @@ public static class CardHoverTipHelper
 
         var hoverTip = new CardHoverTip(card);
         var tipSet = NHoverTipSet.CreateAndShow(control, hoverTip, alignment);
+        if (tipSet == null) return;
 
         // 使用 SetFollowOwner 让 tooltip 跟随控件移动
         tipSet.SetFollowOwner();
