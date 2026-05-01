@@ -1,6 +1,7 @@
 using System.Globalization;
 using Godot;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.SyncShop;
 using lemonSpire2.Tooltips;
@@ -209,8 +210,9 @@ public class ShopProvider : IPlayerPanelProvider
 
         var nEntry = NDeckHistoryEntry.Create(card, 1);
         nEntry.Connect(NDeckHistoryEntry.SignalName.Clicked,
-            Callable.From<NDeckHistoryEntry>(_ => OnCardClicked(player, entry, card)));
-        CardHoverTipHelper.BindCardHoverTip(nEntry, () => card, HoverTipAlignment.Right);
+            Callable.From<NDeckHistoryEntry>(clickedEntry => OnCardClicked(clickedEntry, player, entry, card)));
+        CardHoverTipHelper.BindCardHoverTip(nEntry, () => card, HoverTipAlignment.Right,
+            () => OverlayInteractionGuard.IsBlockedByTargetSelection(nEntry));
         row.AddChild(nEntry);
 
         container.AddChild(row);
@@ -264,7 +266,7 @@ public class ShopProvider : IPlayerPanelProvider
 
         // 连接事件
         holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From<Variant>(_ => OnRelicClicked(player, entry, relic)));
+            Callable.From<Variant>(_ => OnRelicClicked(holder, player, entry, relic)));
 
         row.AddChild(container);
     }
@@ -299,7 +301,7 @@ public class ShopProvider : IPlayerPanelProvider
 
         // 连接事件
         holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From<Variant>(_ => OnPotionClicked(player, entry, potion)));
+            Callable.From<Variant>(_ => OnPotionClicked(holder, player, entry, potion)));
     }
 
     private static Label CreatePriceLabel(Player player, ShopItemEntry entry, bool centered = false)
@@ -336,8 +338,12 @@ public class ShopProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnCardClicked(Player player, ShopItemEntry entry, CardModel card)
+    private static void OnCardClicked(NDeckHistoryEntry clickedEntry, Player player, ShopItemEntry entry,
+        CardModel card)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedEntry))
+            return;
+
         PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopCard, card);
         if (!Input.IsKeyPressed(Key.Alt)) return;
         var segment = new TooltipSegment { Tooltip = CardTooltip.FromModel(card) };
@@ -345,8 +351,11 @@ public class ShopProvider : IPlayerPanelProvider
         Log.Debug($"Sent card to chat: {card.Title}");
     }
 
-    private static void OnRelicClicked(Player player, ShopItemEntry entry, RelicModel relic)
+    private static void OnRelicClicked(Control clickedControl, Player player, ShopItemEntry entry, RelicModel relic)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedControl))
+            return;
+
         PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopRelic, relic);
         if (!Input.IsKeyPressed(Key.Alt)) return;
         var segment = new TooltipSegment { Tooltip = RelicTooltip.FromModel(relic) };
@@ -354,8 +363,11 @@ public class ShopProvider : IPlayerPanelProvider
         Log.Debug($"Sent relic to chat: {relic.Id.Entry}");
     }
 
-    private static void OnPotionClicked(Player player, ShopItemEntry entry, PotionModel potion)
+    private static void OnPotionClicked(Control clickedControl, Player player, ShopItemEntry entry, PotionModel potion)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedControl))
+            return;
+
         PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopPotion, potion);
         if (!Input.IsKeyPressed(Key.Alt)) return;
         var segment = new TooltipSegment { Tooltip = PotionTooltip.FromModel(potion) };

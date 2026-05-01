@@ -1,5 +1,6 @@
 using Godot;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.Tooltips;
 using lemonSpire2.util.Ui;
@@ -26,6 +27,9 @@ public class PotionProvider : IPlayerPanelProvider
 
     private static void OnPotionHolderReleased(Player player, NPotionHolder holder, PotionModel potion)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(holder))
+            return;
+
         Log.Debug($"PotionHolder released: {potion.Id.Entry}, Alt={Input.IsKeyPressed(Key.Alt)}");
         PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.Potion, potion);
 
