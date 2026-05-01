@@ -1,5 +1,6 @@
 using Godot;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.Tooltips;
 using lemonSpire2.util;
@@ -25,8 +26,11 @@ public class HandCardProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnEntryClicked(CardModel card, Player player)
+    private static void OnEntryClicked(NDeckHistoryEntry entry, CardModel card, Player player)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(entry))
+            return;
+
         Log.Debug($"OnEntryClicked: {card.Title}, Alt={Input.IsKeyPressed(Key.Alt)}");
         PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.HandCard, card);
 
@@ -120,9 +124,10 @@ public class HandCardProvider : IPlayerPanelProvider
             var entry = NDeckHistoryEntry.Create(card, count);
 
             entry.Connect(NDeckHistoryEntry.SignalName.Clicked,
-                Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e.Card, player)));
+                Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e, e.Card, player)));
 
-            CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left);
+            CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left,
+                () => OverlayInteractionGuard.IsBlockedByTargetSelection(entry));
 
             container.AddChild(entry);
         }

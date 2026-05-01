@@ -2,6 +2,7 @@ using System.Reflection;
 using Godot;
 using lemonSpire2.Chat;
 using lemonSpire2.Chat.Message;
+using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.Tooltips;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Nodes;
@@ -38,6 +39,9 @@ public partial class ItemInputCapture : Control
 
     public override void _Input(InputEvent @event)
     {
+        if (OverlayInteractionGuard.IsBlockedByTargetSelection(this))
+            return;
+
         // MiddleClick: 把当前捕获的物品插入聊天输入框，交给输入解析链继续处理。
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle })
         {
@@ -205,7 +209,8 @@ public partial class ItemInputCapture : Control
 
     private Control? GetHoveredControl()
     {
-        return GetViewport()?.GuiGetHoveredControl();
+        var hovered = GetViewport()?.GuiGetHoveredControl();
+        return hovered != null && IsInstanceValid(hovered) ? hovered : null;
     }
 
     private static List<TooltipSegment> ExtractFromCardContainer(NHoverTipSet tipSet)
@@ -294,7 +299,7 @@ public partial class ItemInputCapture : Control
     /// </summary>
     public static bool IsInsideBlockingControl(Control? control)
     {
-        if (control == null) return false;
+        if (control == null || !IsInstanceValid(control)) return false;
 
         var found = false;
         BlockingControls.ForEachLive(c =>
