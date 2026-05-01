@@ -22,16 +22,15 @@ public class StatsTooltipProvider : ITooltipProvider
 
     public bool ShouldShow(Player player)
     {
-        if (player == null) return false;
+        ArgumentNullException.ThrowIfNull(player);
 
         var stats = StatsTrackerManager.Instance.GetStats(player.NetId);
-        return stats != null && !stats.IsEmpty;
+        return stats is { IsEmpty: false };
     }
 
     public HoverTip? CreateHoverTip(Player player)
     {
-        if (player == null) return null;
-
+        ArgumentNullException.ThrowIfNull(player);
         var stats = StatsTrackerManager.Instance.GetStats(player.NetId);
         if (stats == null || stats.IsEmpty) return null;
 

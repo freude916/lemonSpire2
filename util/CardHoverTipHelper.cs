@@ -46,11 +46,17 @@ public static class CardHoverTipHelper
     /// <param name="getCard">获取卡牌的函数</param>
     /// <param name="alignment">提示对齐方式</param>
     public static void BindCardHoverTip(Control control, Func<CardModel?> getCard,
-        HoverTipAlignment alignment = HoverTipAlignment.None)
+        HoverTipAlignment alignment = HoverTipAlignment.None, Func<bool>? shouldSuppress = null)
     {
         ArgumentNullException.ThrowIfNull(control);
         control.Connect(Control.SignalName.MouseEntered, Callable.From(() =>
         {
+            if (shouldSuppress?.Invoke() == true)
+            {
+                HideCardHoverTip(control);
+                return;
+            }
+
             var card = getCard();
             if (card != null) ShowCardHoverTip(control, card, alignment);
         }));
