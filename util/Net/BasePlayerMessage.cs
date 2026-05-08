@@ -18,6 +18,7 @@ public abstract record BasePlayerMessage : INetMessage
     public virtual bool ShouldBroadcast => true;
     public virtual NetTransferMode Mode => NetTransferMode.Reliable;
     public virtual LogLevel LogLevel => LogLevel.Debug;
+    public virtual bool ShouldBuffer => true;
 
     public abstract void Serialize(PacketWriter writer);
     public abstract void Deserialize(PacketReader reader);

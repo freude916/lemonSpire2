@@ -19,11 +19,10 @@ public static class RewardsScreenPatch
     private static Logger Log => CardRewardNetworkHandler.Log;
 
     [HarmonyPostfix]
-    [HarmonyPatch("SetRewards")]
-    public static void SetRewardsPostfix(NRewardsScreen __instance, IEnumerable<Reward> rewards)
+    [HarmonyPatch("ShowScreen")]
+    public static void ShowScreenPostfix(RewardsSet set)
     {
-        ArgumentNullException.ThrowIfNull(rewards);
-        ArgumentNullException.ThrowIfNull(__instance);
+        ArgumentNullException.ThrowIfNull(set);
         // Reward abstract class
         // ├─ CardReward
         // ├─ SpecialCardReward
@@ -43,7 +42,7 @@ public static class RewardsScreenPatch
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         var groupIndex = 0;
 
-        foreach (var reward in rewards)
+        foreach (var reward in set.Rewards)
             switch (reward)
             {
                 case CardReward cardReward:
