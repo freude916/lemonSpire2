@@ -29,7 +29,7 @@ public static class IndicatorRegistry
         return Entries.GetValueOrDefault(type);
     }
 
-    private static IReadOnlyDictionary<IndicatorType, Entry> CreateEntries()
+    private static Dictionary<IndicatorType, Entry> CreateEntries()
     {
         var entries = new Dictionary<IndicatorType, Entry>();
 

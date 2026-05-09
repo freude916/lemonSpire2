@@ -11,15 +11,15 @@ internal enum ModSound
 
 internal static class ModSoundManager
 {
-    private static readonly IReadOnlyDictionary<ModSound, string> UserPaths = new Dictionary<ModSound, string>
+    private static readonly Dictionary<ModSound, string> UserPaths = new()
     {
         [ModSound.ReceiveMessage] = "user://lemonSpire2/receive-message.mp3",
         [ModSound.AtMessage] = "user://lemonSpire2/at-message.mp3",
         [ModSound.SynergyNotice] = "user://lemonSpire2/synergy-notice.mp3"
     };
 
-    private static readonly IReadOnlyDictionary<ModSound, string> DefaultRelativePaths =
-        new Dictionary<ModSound, string>
+    private static readonly Dictionary<ModSound, string> DefaultRelativePaths =
+        new()
         {
             [ModSound.ReceiveMessage] = Path.Combine("lemonSpire2", "receive-message.mp3"),
             [ModSound.AtMessage] = Path.Combine("lemonSpire2", "at-message.mp3"),

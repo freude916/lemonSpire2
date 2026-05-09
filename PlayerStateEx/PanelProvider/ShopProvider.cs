@@ -1,10 +1,7 @@
 using System.Globalization;
 using Godot;
-using lemonSpire2.Chat.Message;
-using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.SyncShop;
-using lemonSpire2.Tooltips;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -12,7 +9,6 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
@@ -25,7 +21,7 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 ///     显示玩家商店中的卡牌、遗物、药水
 ///     卡牌：横向布局，左价格右卡牌
 ///     遗物/药水：网格布局，物品在上价格在下，一行三个
-///     支持 Alt+Click 发送物品到聊天
+///     支持鼠标点击：左键闪烁、卡牌/遗物右键详情、Alt+Click 发送物品
 /// </summary>
 public class ShopProvider : IPlayerPanelProvider
 {
@@ -209,10 +205,9 @@ public class ShopProvider : IPlayerPanelProvider
         row.AddChild(priceLabel);
 
         var nEntry = NDeckHistoryEntry.Create(card, 1);
-        nEntry.Connect(NDeckHistoryEntry.SignalName.Clicked,
-            Callable.From<NDeckHistoryEntry>(clickedEntry => OnCardClicked(clickedEntry, player, entry, card)));
+        nEntry.GuiInput += @event => OnCardGuiInput(nEntry, player, card, @event);
         CardHoverTipHelper.BindCardHoverTip(nEntry, () => card, HoverTipAlignment.Right,
-            () => OverlayInteractionGuard.IsBlockedByTargetSelection(nEntry));
+            () => StsUtil.IsInSelection(nEntry));
         row.AddChild(nEntry);
 
         container.AddChild(row);
@@ -264,9 +259,7 @@ public class ShopProvider : IPlayerPanelProvider
         var priceLabel = CreatePriceLabel(player, entry, true);
         container.AddChild(priceLabel);
 
-        // 连接事件
-        holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From<Variant>(_ => OnRelicClicked(holder, player, entry, relic)));
+        holder.GuiInput += @event => OnRelicGuiInput(holder, player, relic, @event);
 
         row.AddChild(container);
     }
@@ -299,9 +292,7 @@ public class ShopProvider : IPlayerPanelProvider
         var priceLabel = CreatePriceLabel(player, entry, true);
         container.AddChild(priceLabel);
 
-        // 连接事件
-        holder.Connect(NClickableControl.SignalName.Released,
-            Callable.From<Variant>(_ => OnPotionClicked(holder, player, entry, potion)));
+        holder.GuiInput += @event => OnPotionGuiInput(holder, player, potion, @event);
     }
 
     private static Label CreatePriceLabel(Player player, ShopItemEntry entry, bool centered = false)
@@ -338,41 +329,79 @@ public class ShopProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnCardClicked(NDeckHistoryEntry clickedEntry, Player player, ShopItemEntry entry,
-        CardModel card)
+    private static void OnCardGuiInput(NDeckHistoryEntry clickedEntry, Player player, CardModel card, InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedEntry))
+        if (StsUtil.IsInSelection(clickedEntry))
             return;
 
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopCard, card);
-        if (!Input.IsKeyPressed(Key.Alt)) return;
-        var segment = new TooltipSegment { Tooltip = CardTooltip.FromModel(card) };
-        PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.shopShare", segment);
-        Log.Debug($"Sent card to chat: {card.Title}");
+        switch (@event)
+        {
+            case InputEventMouseButton
+            {
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopCard, card);
+                PlayerPanelChatHelper.SendCardToChat(player, "LEMONSPIRE.chat.shopShare", card);
+                Log.Debug($"Sent card to chat: {card.Title}");
+                clickedEntry.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopCard, card);
+                clickedEntry.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                PlayerPanelChatHelper.OpenCardDetails(card);
+                clickedEntry.GetViewport()?.SetInputAsHandled();
+                break;
+        }
     }
 
-    private static void OnRelicClicked(Control clickedControl, Player player, ShopItemEntry entry, RelicModel relic)
+    private static void OnRelicGuiInput(Control clickedControl, Player player, RelicModel relic, InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedControl))
+        if (StsUtil.IsInSelection(clickedControl))
             return;
 
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopRelic, relic);
-        if (!Input.IsKeyPressed(Key.Alt)) return;
-        var segment = new TooltipSegment { Tooltip = RelicTooltip.FromModel(relic) };
-        PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.shopShare", segment);
-        Log.Debug($"Sent relic to chat: {relic.Id.Entry}");
+        switch (@event)
+        {
+            case InputEventMouseButton
+            {
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                PlayerPanelChatHelper.SendRelicToChat(player, "LEMONSPIRE.chat.shopShare", relic);
+                Log.Debug($"Sent relic to chat: {relic.Id.Entry}");
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopRelic, relic);
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                PlayerPanelChatHelper.OpenRelicDetails(relic);
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+        }
     }
 
-    private static void OnPotionClicked(Control clickedControl, Player player, ShopItemEntry entry, PotionModel potion)
+    private static void OnPotionGuiInput(Control clickedControl, Player player, PotionModel potion, InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(clickedControl))
+        if (StsUtil.IsInSelection(clickedControl))
             return;
 
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopPotion, potion);
-        if (!Input.IsKeyPressed(Key.Alt)) return;
-        var segment = new TooltipSegment { Tooltip = PotionTooltip.FromModel(potion) };
-        PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.shopShare", segment);
-        Log.Debug($"Sent potion to chat: {potion.Id.Entry}");
+        switch (@event)
+        {
+            case InputEventMouseButton
+            {
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                PlayerPanelChatHelper.SendPotionToChat(player, "LEMONSPIRE.chat.shopShare", potion);
+                Log.Debug($"Sent potion to chat: {potion.Id.Entry}");
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.ShopPotion, potion);
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+        }
     }
 
     #endregion

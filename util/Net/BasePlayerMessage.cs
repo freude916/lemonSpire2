@@ -15,9 +15,12 @@ public abstract record BasePlayerMessage : INetMessage
     /// </summary>
     public required ulong SenderId { get; set; }
 
+
     public virtual bool ShouldBroadcast => true;
     public virtual NetTransferMode Mode => NetTransferMode.Reliable;
     public virtual LogLevel LogLevel => LogLevel.Debug;
+
+    public bool ShouldBuffer => false;
 
     public abstract void Serialize(PacketWriter writer);
     public abstract void Deserialize(PacketReader reader);

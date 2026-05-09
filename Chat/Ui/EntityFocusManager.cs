@@ -82,7 +82,7 @@ public sealed class EntityFocusManager
         return creature is not null;
     }
 
-    private void ApplyFocus(NCreature node)
+    private static void ApplyFocus(NCreature node)
     {
         node.ShowSingleSelectReticle();
         node.ShowHoverTips(node.Entity.HoverTips);

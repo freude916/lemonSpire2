@@ -5,8 +5,7 @@
 A mod inspired by Minty Spire, mainly focused on providing Quality of Life (QoL) features for Slay the Spire 2,
 especially in multiplayer mode.
 
-Because I used Alchyr's [BaseLib](https://github.com/Alchyr/BaseLib-StS2/releases) to resolve Linux compatibility
-issues and provide Mod Config, this mod currently seems unable to function correctly without BaseLib installed.
+Softly depends [STS2-RitsuLib](https://github.com/BAKAOLC/STS2-RitsuLib/) to provide config switches.
 
 ## Features
 
@@ -63,14 +62,13 @@ teammates can inspect.
 For the vibe codebase of this feature, thanks to [sts2_typing by Shiroim](https://github.com/Shiroim/sts2_typing)
 (MIT License).
 
-Use `Alt + Right Click` to send the "current HoverTip", which is useful for sharing cards or relics that events are
-about to force on you, or buffs attached to cards in your hand.
+Use `Alt + Right Click` to send the current item and all associated HoverTips. This is useful for sharing cards or
+relics that events are about to force on you, or buffs attached to cards in your hand.
 
-- The right-click path is very accurate when reading cards, but the game's internal storage for events and card text is
-  a bit messy, so I cut corners here.
-- The current implementation is extremely brute-force: it literally reads the text from the HoverTip. That means you
-  cannot recover the original object data later, extensibility is terrible, and it also breaks i18n.
-- Right now this thing only reads a single HoverTip at a time. I still need to think through a better design.
+- The right-click path is very accurate when reading event cards, relics, and similar data, but the game seems to have
+  some static HoverTips with no item source, so I kept a bit of fallback logic:
+- If the item behind a HoverTip cannot be found, the mod falls back to reading the HoverTip text directly and sending
+  that, which means i18n no longer works in that case.
 
 #### Send Anything - Keyboard
 
@@ -140,10 +138,12 @@ By the way, the items currently shown inside this hover panel also support `Alt 
 
 #### Pointing Fingers
 
-Now, pressing `Alt + Left Click` can make your teammate's hand cards, potions, or shop items flash green, telling them
-to play or buy that thing.
+Now, a plain left click can make your teammate's hand cards, potions, or shop items flash green, telling them to play
+or buy that thing.
 
-Extremely loud newcomer-coaching energy, fully deployed!
+I kept the right-click detail page behavior.
+
+Maximum backseating energy, fully deployed!
 
 This part has not been tested properly yet. If you can help fix it, that would be ideal! see
 `PlayerStateEx.RemoteFlash`.

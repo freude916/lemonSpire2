@@ -2,7 +2,6 @@ using System.Reflection;
 using Godot;
 using lemonSpire2.Chat;
 using lemonSpire2.Chat.Message;
-using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.Tooltips;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Nodes;
@@ -39,28 +38,23 @@ public partial class ItemInputCapture : Control
 
     public override void _Input(InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(this))
+        if (StsUtil.IsInSelection(this))
             return;
 
-        // MiddleClick: 把当前捕获的物品插入聊天输入框，交给输入解析链继续处理。
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle })
+        switch (@event)
         {
-            HandleMiddleClick();
-            return;
-        }
-
-        // Alt+LeftClick: 从悬停的节点发送物品
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, AltPressed: true })
-        {
-            HandleAltLeftClick();
-            return;
-        }
-
-        // Alt+RightClick: 从当前显示的 HoverTip 发送
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right, AltPressed: true })
-        {
-            HandleAltRightClick();
-            return;
+            // MiddleClick: 把当前捕获的物品插入聊天输入框，交给输入解析链继续处理。
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle }:
+                HandleMiddleClick();
+                return;
+            // Alt+LeftClick: 从悬停的节点发送物品
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left, AltPressed: true }:
+                HandleAltLeftClick();
+                return;
+            // Alt+RightClick: 从当前显示的 HoverTip 发送
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right, AltPressed: true }:
+                HandleAltRightClick();
+                return;
         }
     }
 

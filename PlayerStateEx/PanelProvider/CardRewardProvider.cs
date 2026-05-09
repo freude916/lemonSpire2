@@ -1,8 +1,6 @@
 using Godot;
-using lemonSpire2.Chat.Message;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.SyncReward;
-using lemonSpire2.Tooltips;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -17,7 +15,7 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 /// <summary>
 ///     卡牌奖励显示提供者
 ///     显示其他玩家当前可选择的卡牌奖励
-///     支持分组显示、滚动条、Alt+Click 发送
+///     支持分组显示、滚动条，以及鼠标点击：左键闪烁、右键详情、Alt+Click 发送
 /// </summary>
 public class CardRewardProvider : IPlayerPanelProvider
 {
@@ -25,17 +23,31 @@ public class CardRewardProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnCardClicked(Player player, CardModel card)
+    private static void OnCardGuiInput(Control cardControl, Player player, CardModel card, InputEvent @event)
     {
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.CardReward, card);
-        if (!Input.IsKeyPressed(Key.Alt)) return;
+        if (StsUtil.IsInSelection(cardControl))
+            return;
 
-        var segment = new TooltipSegment
+        switch (@event)
         {
-            Tooltip = CardTooltip.FromModel(card)
-        };
-        PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.cardRewardShare", segment);
-        Log.Debug($"Sent card to chat: {card.Title}");
+            case InputEventMouseButton
+            {
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.CardReward, card);
+                PlayerPanelChatHelper.SendCardToChat(player, "LEMONSPIRE.chat.cardRewardShare", card);
+                Log.Debug($"Sent card to chat: {card.Title}");
+                cardControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.CardReward, card);
+                cardControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                PlayerPanelChatHelper.OpenCardDetails(card);
+                cardControl.GetViewport()?.SetInputAsHandled();
+                break;
+        }
     }
 
     #endregion
@@ -218,9 +230,7 @@ public class CardRewardProvider : IPlayerPanelProvider
 
         var entry = NDeckHistoryEntry.Create(card, 1);
 
-        // 订阅点击事件
-        entry.Connect(NDeckHistoryEntry.SignalName.Clicked,
-            Callable.From<NDeckHistoryEntry>(_ => OnCardClicked(player, card)));
+        entry.GuiInput += @event => OnCardGuiInput(entry, player, card, @event);
 
         // 添加悬浮提示
         CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left);

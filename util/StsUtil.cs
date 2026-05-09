@@ -3,10 +3,27 @@ using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Potions;
 using MegaCrit.Sts2.Core.Entities.Relics;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace lemonSpire2.util;
+
+public static class RarityColor
+{
+    public static readonly Color None = new("FF0000FF");
+    public static readonly Color Basic = new("9C9C9CFF");
+    public static readonly Color Common = new("FFFFFFFF");
+    public static readonly Color Uncommon = new("64FFFFFF");
+    public static readonly Color Rare = new("FFDA36FF");
+    public static readonly Color Curse = new("E669FFFF");
+    public static readonly Color Event = new("13BE1AFF");
+    public static readonly Color Quest = new("F46836FF");
+    public static readonly Color Ancient = new("2B994EFF");
+    public static readonly Color Token = new("497EA3FF");
+    public static readonly Color Status = new("A34949FF");
+    public static readonly Color Shop = new("298BCCFF");
+}
 
 public static class StsUtil
 {
@@ -67,19 +84,13 @@ public static class StsUtil
         };
     }
 
-    public static class RarityColor
+
+    public static bool IsInSelection(Node? context = null)
     {
-        public static readonly Color None = new("FF0000FF");
-        public static readonly Color Basic = new("9C9C9CFF");
-        public static readonly Color Common = new("FFFFFFFF");
-        public static readonly Color Uncommon = new("64FFFFFF");
-        public static readonly Color Rare = new("FFDA36FF");
-        public static readonly Color Curse = new("E669FFFF");
-        public static readonly Color Event = new("13BE1AFF");
-        public static readonly Color Quest = new("F46836FF");
-        public static readonly Color Ancient = new("2B994EFF");
-        public static readonly Color Token = new("497EA3FF");
-        public static readonly Color Status = new("A34949FF");
-        public static readonly Color Shop = new("298BCCFF");
+        var targetManager = NTargetManager.Instance;
+        if (targetManager.IsInSelection) return true;
+
+        if (context?.GetTree() == null) return false;
+        return targetManager.LastTargetingFinishedFrame == context.GetTree().GetFrame();
     }
 }
