@@ -3,11 +3,15 @@
   "name": "Lemon Spire 2",
   "author": "freude916",
   "description": "A collection of multiplayer QoL: Chat, State, Damage Tracker",
-  "version": "v0.7.1",
+  "version": "v0.7.4",
   "has_pck": true,
   "has_dll": true,
   "dependencies": [
-    "BaseLib"
+    {
+      "id": "STS2-RitsuLib",
+      "min_version": "0.2.25"
+    }
   ],
-  "affects_gameplay": true
+  "affects_gameplay": true,
+  "min_game_version": "0.105.0"
 }

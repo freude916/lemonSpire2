@@ -1,13 +1,10 @@
 using Godot;
-using lemonSpire2.Chat.Message;
-using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
-using lemonSpire2.Tooltips;
+using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes.GodotExtensions;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
@@ -16,7 +13,7 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 /// <summary>
 ///     药水显示提供者
 ///     显示玩家的药水栏
-///     支持 Alt+Click 发送药水到聊天
+///     支持鼠标点击：左键闪烁、Alt+Click 发送药水到聊天
 /// </summary>
 public class PotionProvider : IPlayerPanelProvider
 {
@@ -25,24 +22,29 @@ public class PotionProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnPotionHolderReleased(Player player, NPotionHolder holder, PotionModel potion)
+    private static void OnPotionHolderGuiInput(Player player, NPotionHolder holder, PotionModel potion,
+        InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(holder))
+        if (StsUtil.IsInSelection(holder))
             return;
 
-        Log.Debug($"PotionHolder released: {potion.Id.Entry}, Alt={Input.IsKeyPressed(Key.Alt)}");
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.Potion, potion);
-
-        if (Input.IsKeyPressed(Key.Alt))
+        switch (@event)
         {
-            // Alt+Click: 发送药水到聊天
-            var segment = new TooltipSegment
+            case InputEventMouseButton
             {
-                Tooltip = PotionTooltip.FromModel(potion)
-            };
-            PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.potionShare", segment);
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                Log.Debug(
+                    $"PotionHolder alt-clicked: {potion.Id.Entry}, Button={((InputEventMouseButton)@event).ButtonIndex}");
+                PlayerPanelChatHelper.SendPotionToChat(player, "LEMONSPIRE.chat.potionShare", potion);
+                holder.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                Log.Debug($"PotionHolder left-clicked: {potion.Id.Entry}");
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.Potion, potion);
+                holder.GetViewport()?.SetInputAsHandled();
+                break;
         }
-        // 普通点击：不处理（holder 创建时 isUsable=false，不会打开使用弹窗）
     }
 
     #endregion
@@ -124,9 +126,7 @@ public class PotionProvider : IPlayerPanelProvider
 
             var holder = NPotionHolder.Create(false);
 
-            // 订阅点击事件，支持 Alt+Click 发送药水到聊天
-            holder.Connect(NClickableControl.SignalName.Released,
-                Callable.From<Variant>(_ => OnPotionHolderReleased(player, holder, potion)));
+            holder.GuiInput += @event => OnPotionHolderGuiInput(player, holder, potion, @event);
 
             container.AddChild(holder);
             holder.AddPotion(nPotion);

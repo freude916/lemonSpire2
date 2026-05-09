@@ -1,15 +1,11 @@
 using Godot;
-using lemonSpire2.Chat.Message;
-using lemonSpire2.PlayerStateEx.OverlayPanel;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
-using lemonSpire2.Tooltips;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
-using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
@@ -18,7 +14,7 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 /// <summary>
 ///     手牌显示提供者
 ///     在战斗中显示玩家的手牌，使用 NDeckHistoryEntry 组件
-///     支持 Click 打开详情、Alt+Click 发送卡牌
+///     支持鼠标点击：左键闪烁、右键详情、Alt+Click 发送卡牌且不闪烁
 /// </summary>
 public class HandCardProvider : IPlayerPanelProvider
 {
@@ -26,32 +22,32 @@ public class HandCardProvider : IPlayerPanelProvider
 
     #region Event Handlers
 
-    private static void OnEntryClicked(NDeckHistoryEntry entry, CardModel card, Player player)
+    private static void OnEntryGuiInput(NDeckHistoryEntry entry, CardModel card, Player player, InputEvent @event)
     {
-        if (OverlayInteractionGuard.IsBlockedByTargetSelection(entry))
+        if (StsUtil.IsInSelection(entry))
             return;
 
-        Log.Debug($"OnEntryClicked: {card.Title}, Alt={Input.IsKeyPressed(Key.Alt)}");
-        PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.HandCard, card);
-
-        // 每次点击时重新获取手牌列表，确保是最新的
-        var cards = player.PlayerCombatState?.Hand.Cards.ToList() ?? new List<CardModel>();
-
-        if (Input.IsKeyPressed(Key.Alt))
+        switch (@event)
         {
-            // Alt+Click: 发送卡牌到聊天
-            var tooltip = new TooltipSegment
+            case InputEventMouseButton
             {
-                Tooltip = CardTooltip.FromModel(card)
-            };
-
-            PlayerPanelChatHelper.SendPlayerItemToChat(player, "LEMONSPIRE.chat.handCardShare", tooltip);
-        }
-        else
-        {
-            // 普通点击: 打开卡牌详情界面
-            var index = cards.IndexOf(card);
-            if (index >= 0) NGame.Instance?.GetInspectCardScreen().Open(cards, index);
+                Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
+            }:
+                Log.Debug($"OnEntryAltClicked: {card.Title} ");
+                PlayerPanelChatHelper.SendCardToChat(player, "LEMONSPIRE.chat.handCardShare", card);
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.HandCard, card);
+                entry.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                Log.Debug($"OnEntryLeftClicked: {card.Title}");
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.HandCard, card);
+                entry.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
+                Log.Debug($"OnEntryRightClicked: {card.Title}");
+                PlayerPanelChatHelper.OpenHandCardDetails(player, card);
+                entry.GetViewport()?.SetInputAsHandled();
+                break;
         }
     }
 
@@ -123,11 +119,10 @@ public class HandCardProvider : IPlayerPanelProvider
             var count = groupCards ? cardModels.Length : 1;
             var entry = NDeckHistoryEntry.Create(card, count);
 
-            entry.Connect(NDeckHistoryEntry.SignalName.Clicked,
-                Callable.From<NDeckHistoryEntry>(e => OnEntryClicked(e, e.Card, player)));
+            entry.GuiInput += @event => OnEntryGuiInput(entry, entry.Card, player, @event);
 
             CardHoverTipHelper.BindCardHoverTip(entry, () => card, HoverTipAlignment.Left,
-                () => OverlayInteractionGuard.IsBlockedByTargetSelection(entry));
+                () => StsUtil.IsInSelection(entry));
 
             container.AddChild(entry);
         }

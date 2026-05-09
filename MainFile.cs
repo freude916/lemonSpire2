@@ -1,4 +1,3 @@
-using BaseLib.Config;
 using Godot;
 using HarmonyLib;
 using lemonSpire2.Chat;
@@ -26,7 +25,7 @@ public partial class MainFile : Node
 
     public static void Initialize()
     {
-        ModConfigRegistry.Register(ModId, new LemonSpireConfig());
+        LemonSpireConfig.TryInitializeRitsuLibBackends();
         ModSoundManager.Initialize();
 
         // 设置日志级别为 Debug，启用所有模块的调试日志

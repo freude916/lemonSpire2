@@ -74,8 +74,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Alchyr.Sts2.BaseLib" Version="*" PrivateAssets="All"/>
+        <PackageReference Include="STS2.RitsuLib" Version="0.2.27" PrivateAssets="All" GeneratePathProperty="true"/>
         <AdditionalFiles Include="lemonSpire2/localization/**/*.json"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyMetadata Include="RitsuLib.ModSettingsInterop.ProviderType" Value="lemonSpire2.LemonSpireConfig"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -125,11 +129,11 @@
         <Copy SourceFiles="lemonSpire2.json" DestinationFolder="$(ModsPath)$(MSBuildProjectName)/"/>
         <Copy SourceFiles="@(SoundFiles)"
               DestinationFiles="@(SoundFiles->'$(ModsPath)$(MSBuildProjectName)/lemonSpire2/%(Filename)%(Extension)')"/>
-        <Message Text="Copying BaseLib to mods folder." Importance="high"/>
+        <Message Text="Copying RitsuLib to mods folder." Importance="high"/>
         <ItemGroup>
-            <BaseLibFiles Include="$(NuGetPackageRoot)/alchyr.sts2.baselib/**/lib/**/BaseLib.dll;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.pck;$(NuGetPackageRoot)/alchyr.sts2.baselib/**/Content/BaseLib.json;"/>
+            <RitsuLibFiles Include="$(PkgSTS2_RitsuLib)/lib/net9.0/STS2-RitsuLib.dll;$(PkgSTS2_RitsuLib)/lib/net9.0/STS2-RitsuLib.runtimeconfig.json;$(PkgSTS2_RitsuLib)/contentFiles/any/any/mod_manifest.json"/>
         </ItemGroup>
-        <Copy SourceFiles="@(BaseLibFiles)" DestinationFolder="$(ModsPath)BaseLib/"/>
+        <Copy SourceFiles="@(RitsuLibFiles)" DestinationFolder="$(ModsPath)STS2-RitsuLib/"/>
     </Target>
 
     <Target Name="GodotPublish" AfterTargets="Publish" Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">

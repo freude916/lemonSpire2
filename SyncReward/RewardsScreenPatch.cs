@@ -19,11 +19,13 @@ public static class RewardsScreenPatch
     private static Logger Log => CardRewardNetworkHandler.Log;
 
     [HarmonyPostfix]
-    [HarmonyPatch("SetRewards")]
-    public static void SetRewardsPostfix(NRewardsScreen __instance, IEnumerable<Reward> rewards)
+    [HarmonyPatch("ShowScreen")]
+    public static void ShowScreenPostfix(RewardsSet set)
     {
-        ArgumentNullException.ThrowIfNull(rewards);
-        ArgumentNullException.ThrowIfNull(__instance);
+        ArgumentNullException.ThrowIfNull(set);
+
+        if (!LocalContext.IsMe(set.Player)) return;
+
         // Reward abstract class
         // ├─ CardReward
         // ├─ SpecialCardReward
@@ -39,31 +41,30 @@ public static class RewardsScreenPatch
             return;
         }
 
-        var playerNetId = LocalContext.NetId.Value;
-        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var rewards = set.Rewards;
+        var rewardsSetId = set.Id >= 0 ? set.Id.ToString() : DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
         var groupIndex = 0;
 
         foreach (var reward in rewards)
             switch (reward)
             {
                 case CardReward cardReward:
-                    ProcessCardReward(cardReward, playerNetId, timestamp, ref groupIndex);
+                    ProcessCardReward(cardReward, rewardsSetId, ref groupIndex);
                     break;
                 case SpecialCardReward specialReward:
-                    ProcessSpecialCardReward(specialReward, playerNetId, timestamp, ref groupIndex);
+                    ProcessSpecialCardReward(specialReward, rewardsSetId, ref groupIndex);
                     break;
             }
     }
 
-    private static void ProcessCardReward(CardReward cardReward, ulong playerNetId, long timestamp,
-        ref int groupIndex)
+    private static void ProcessCardReward(CardReward cardReward, string rewardsSetId, ref int groupIndex)
     {
         var cards = cardReward.Cards.ToList();
         if (cards.Count == 0) return;
 
         var group = new CardRewardGroup
         {
-            GroupId = $"{timestamp}_{groupIndex++}",
+            GroupId = $"{rewardsSetId}_{groupIndex++}",
             Source = CardRewardSourceType.Normal,
             Cards =
             [
@@ -79,7 +80,7 @@ public static class RewardsScreenPatch
         Log.Debug($"Captured CardReward with {cards.Count} cards");
     }
 
-    private static void ProcessSpecialCardReward(SpecialCardReward specialReward, ulong playerNetId, long timestamp,
+    private static void ProcessSpecialCardReward(SpecialCardReward specialReward, string rewardsSetId,
         ref int groupIndex)
     {
         // 使用反射获取 _card 和 _customDescriptionEncounterSourceId
@@ -101,7 +102,7 @@ public static class RewardsScreenPatch
         // 判断是否是盗牌归还
         var group = new CardRewardGroup
         {
-            GroupId = $"{timestamp}_{groupIndex++}",
+            GroupId = $"{rewardsSetId}_{groupIndex++}",
             Source = CardRewardSourceType.Special,
             Cards =
             [

@@ -10,8 +10,9 @@ public class BlockIndicatorProvider : IIndicatorProvider
 
     public bool ShouldShow(IEnumerable<CardModel> handCards)
     {
-        return handCards.Any(card => IIndicatorProvider.CardHasVarToAllies(card, nameof(DynamicVarSet.Block)))
-               || handCards.Any(card => card.Id.Entry == "DEMONIC_SHIELD")
+        var cardModels = handCards as CardModel[] ?? [.. handCards];
+        return cardModels.Any(card => IIndicatorProvider.CardHasVarToAllies(card, nameof(DynamicVarSet.Block))) ||
+               cardModels.Any(card => card.Id.Entry == "DEMONIC_SHIELD")
             ;
     }
 }
