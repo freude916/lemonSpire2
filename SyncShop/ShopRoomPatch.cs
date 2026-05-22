@@ -1,3 +1,4 @@
+using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
@@ -12,7 +13,8 @@ namespace lemonSpire2.SyncShop;
 [HarmonyPatch(typeof(NMerchantRoom))]
 public static class ShopRoomPatch
 {
-    private static Logger Log => ShopNetworkHandler.Log;
+    private static SceneTreeTimer? _refreshTimer;
+    private static Logger Log => MainFile.Log;
 
     [HarmonyPostfix]
     [HarmonyPatch("_Ready")]
@@ -20,9 +22,10 @@ public static class ShopRoomPatch
     {
         ArgumentNullException.ThrowIfNull(__instance);
         Log.Debug("NMerchantRoom._Ready");
-        // 使用 SceneTree 创建一个短暂延迟来确保 Inventory 已初始化
-        var timer = __instance.GetTree().CreateTimer(0.1);
-        timer.Timeout += ShopSynchronizer.SyncIfNeeded;
+
+        RefreshFromCurrentRoom();
+        _refreshTimer = __instance.GetTree().CreateTimer(0.25);
+        _refreshTimer.Timeout += RefreshLoop;
     }
 
     [HarmonyPostfix]
@@ -30,6 +33,25 @@ public static class ShopRoomPatch
     public static void ExitTreePostfix()
     {
         Log.Debug("NMerchantRoom._ExitTree");
-        ShopSynchronizer.BroadcastClearInventory();
+        _refreshTimer = null;
+        ShopManager.Instance.ClearAllInventories();
+    }
+
+    private static void RefreshLoop()
+    {
+        RefreshFromCurrentRoom();
+
+        var room = NMerchantRoom.Instance;
+        if (room?.IsInsideTree() != true)
+            return;
+
+        _refreshTimer = room.GetTree().CreateTimer(0.25);
+        _refreshTimer.Timeout += RefreshLoop;
+    }
+
+    private static void RefreshFromCurrentRoom()
+    {
+        var room = NMerchantRoom.Instance?.Room;
+        ShopManager.Instance.RefreshFromMerchantRoom(room);
     }
 }

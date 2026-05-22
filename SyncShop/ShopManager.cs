@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
+using MegaCrit.Sts2.Core.Rooms;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace lemonSpire2.SyncShop;
@@ -21,7 +22,7 @@ public class ShopManager
     {
     }
 
-    private static Logger Log => ShopNetworkHandler.Log;
+    private static Logger Log => MainFile.Log;
 
     public static ShopManager Instance { get; } = new();
 
@@ -127,12 +128,35 @@ public class ShopManager
         return NMerchantRoom.Instance != null;
     }
 
+    public void RefreshFromMerchantRoom(MerchantRoom? room)
+    {
+        if (room == null || room.Inventories.Count == 0)
+            return;
+
+        foreach (var inventory in room.Inventories)
+        {
+            var entries = CreateEntriesFromInventory(inventory);
+            UpdateInventory(inventory.Player.NetId, entries);
+        }
+    }
+
+    public void ClearAllInventories()
+    {
+        if (_shopInventories.IsEmpty)
+            return;
+
+        var netIds = _shopInventories.Keys.ToArray();
+        _shopInventories.Clear();
+        foreach (var netId in netIds)
+            InventoryUpdated?.Invoke(netId);
+    }
+
     /// <summary>
     ///     重置数据（只清除数据，不创建新实例，保留事件订阅者）
     /// </summary>
     public static void Reset()
     {
-        Instance._shopInventories.Clear();
-        Log.Debug("Reset: cleared all inventories");
+        Instance.ClearAllInventories();
+        Log.Debug("Reset: cleared all inventories and notified listeners");
     }
 }
