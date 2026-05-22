@@ -18,6 +18,7 @@
 
 - BaseLib 项目，是二代的 ModTheSpire+stslib 的合体，里面有一些工具类和一些对游戏的反射封装，
 - BaseLib-Wiki 是 BaseLib 的文档，里面有一些使用说明。
+- RitsuLib 项目，是更新频率更快的 BaseLib ，而且写得更显式一些，代码质量也更好一些。
 
 拿不准的可以去参考。 （注意参考前最好 ls -l 看看文件的修改时间，如果超过一周了可能就过时了，对于 Mod 项目来说你可以试试 git
 pull 来更新一下）

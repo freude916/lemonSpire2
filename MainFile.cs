@@ -59,7 +59,6 @@ public partial class MainFile : Node
 
         if (LemonSpireConfig.EnableSync)
         {
-            harmony.CreateClassProcessor(typeof(ShopNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
             harmony.CreateClassProcessor(typeof(CardRewardNetworkInitPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RewardsScreenPatch)).Patch();

@@ -42,7 +42,9 @@ public static class ItemInputResolver
             switch (node)
             {
                 case NEventOptionButton { Option: { } option }:
-                    return CreateEventOptionPrimarySegment(option);
+                    return option.Relic != null
+                        ? CreateSegmentFromModel(option.Relic)
+                        : CreateEventOptionPrimarySegment(option);
                 case NDeckHistoryEntry { Card: { } card }:
                     return CreateSegmentFromModel(card);
                 case NOrb { Model: { } orb }:
