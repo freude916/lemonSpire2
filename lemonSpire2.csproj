@@ -74,7 +74,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="STS2.RitsuLib" Version="0.2.27" PrivateAssets="All" GeneratePathProperty="true"/>
+        <PackageReference Include="STS2.RitsuLib" Version="0.2.28" PrivateAssets="All" GeneratePathProperty="true"/>
         <AdditionalFiles Include="lemonSpire2/localization/**/*.json"/>
     </ItemGroup>
 

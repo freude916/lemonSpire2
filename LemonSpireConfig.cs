@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace lemonSpire2;
 
 [AttributeUsage(AttributeTargets.All)]
@@ -61,28 +63,19 @@ internal static class LemonSpireConfig
         return new
         {
             modId = MainFile.ModId,
-            modDisplayName = Loc("LEMONSPIRE2.mod_title", "Lemon Spire 2"),
+            modDisplayName = LocString("LEMONSPIRE2.mod_title", "Lemon Spire 2"),
             pages = new object[]
             {
                 new
                 {
                     pageId = MainFile.ModId,
-                    title = new
-                    {
-                        langMap = new
-                        {
-                            eng = "Settings",
-                            zhs = "设置",
-                            rus = "Настройки"
-                        },
-                        fallback = "Settings"
-                    },
+                    title = LocString("LEMONSPIRE2.page.title", "Settings"),
                     sections = new object[]
                     {
                         new
                         {
                             id = "feature_flags",
-                            title = Loc("LEMONSPIRE2-FEATURE_FLAGS.title", "Feature Flags"),
+                            title = LocString("LEMONSPIRE2-FEATURE_FLAGS.title", "Feature Flags"),
                             entries = new object[]
                             {
                                 new
@@ -90,21 +83,21 @@ internal static class LemonSpireConfig
                                     id = "enable_qol",
                                     type = "toggle",
                                     key = nameof(EnableQoL),
-                                    label = Loc("LEMONSPIRE2-ENABLE_QO_L.title", "Enable QoL")
+                                    label = LocString("LEMONSPIRE2-ENABLE_QO_L.title", "Enable QoL")
                                 },
                                 new
                                 {
                                     id = "enable_chat",
                                     type = "toggle",
                                     key = nameof(EnableChat),
-                                    label = Loc("LEMONSPIRE2-ENABLE_CHAT.title", "Enable Chat")
+                                    label = LocString("LEMONSPIRE2-ENABLE_CHAT.title", "Enable Chat")
                                 },
                                 new
                                 {
                                     id = "enable_synergy_indicator",
                                     type = "toggle",
                                     key = nameof(EnableSynergyIndicator),
-                                    label = Loc("LEMONSPIRE2-ENABLE_SYNERGY_INDICATOR.title",
+                                    label = LocString("LEMONSPIRE2-ENABLE_SYNERGY_INDICATOR.title",
                                         "Enable Synergy Indicator")
                                 },
                                 new
@@ -112,7 +105,7 @@ internal static class LemonSpireConfig
                                     id = "enable_stats_tracker",
                                     type = "toggle",
                                     key = nameof(EnableStatsTracker),
-                                    label = Loc("LEMONSPIRE2-ENABLE_STATS_TRACKER.title",
+                                    label = LocString("LEMONSPIRE2-ENABLE_STATS_TRACKER.title",
                                         "Enable Damage Stats Tracker")
                                 },
                                 new
@@ -120,14 +113,14 @@ internal static class LemonSpireConfig
                                     id = "enable_sync",
                                     type = "toggle",
                                     key = nameof(EnableSync),
-                                    label = Loc("LEMONSPIRE2-ENABLE_SYNC.title", "Enable Sync")
+                                    label = LocString("LEMONSPIRE2-ENABLE_SYNC.title", "Enable Sync")
                                 },
                                 new
                                 {
                                     id = "enable_player_color",
                                     type = "toggle",
                                     key = nameof(EnablePlayerColor),
-                                    label = Loc("LEMONSPIRE2-ENABLE_PLAYER_COLOR.title",
+                                    label = LocString("LEMONSPIRE2-ENABLE_PLAYER_COLOR.title",
                                         "Enable Player Color")
                                 }
                             }
@@ -135,7 +128,7 @@ internal static class LemonSpireConfig
                         new
                         {
                             id = "panel_flags",
-                            title = Loc("LEMONSPIRE2-PANEL_FLAGS.title", "Panel Flags"),
+                            title = LocString("LEMONSPIRE2-PANEL_FLAGS.title", "Panel Flags"),
                             entries = new object[]
                             {
                                 new
@@ -143,7 +136,7 @@ internal static class LemonSpireConfig
                                     id = "group_hand_cards",
                                     type = "toggle",
                                     key = nameof(GroupHandCards),
-                                    label = Loc("LEMONSPIRE2-GROUP_HAND_CARDS.title", "Group Hand Cards")
+                                    label = LocString("LEMONSPIRE2-GROUP_HAND_CARDS.title", "Group Hand Cards")
                                 }
                             }
                         }
@@ -263,15 +256,15 @@ internal static class LemonSpireConfig
         update(FallbackSettings);
     }
 
-    private static object Loc(string key, string fallback)
+    private static object LocString(string key, string fallback)
     {
-        return new
+        return new Hashtable
         {
-            locString = new
+            ["locString"] = new Hashtable
             {
-                table = "settings_ui",
-                key,
-                fallback
+                ["table"] = "settings_ui",
+                ["key"] = key,
+                ["fallback"] = fallback
             }
         };
     }
