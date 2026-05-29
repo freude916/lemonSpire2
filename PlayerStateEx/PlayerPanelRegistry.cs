@@ -23,6 +23,7 @@ public static class PlayerPanelRegistry
         Register(new PotionProvider());
         Register(new ShopProvider());
         Register(new CardRewardProvider());
+        Register(new AncientRelicChoiceProvider());
 
         Log.Info($"PlayerPanelRegistry initialized with {Registry.Items.Count} providers");
     }
