@@ -208,25 +208,17 @@ public class CardRewardProvider : IPlayerPanelProvider
 
     private static Control CreateCardControl(Player player, CardEntry cardEntry)
     {
-        var card = StsUtil.ResolveModel<CardModel>(cardEntry.ModelId);
+        var card = cardEntry.Snapshot.Id == null ? null : CardModel.FromSerializable(cardEntry.Snapshot);
         if (card == null)
         {
             var brokenLabel = new Label
             {
-                Text = $"[{cardEntry.ModelId}]",
+                Text = $"[{cardEntry.Snapshot.Id?.Entry ?? "unknown"}]",
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
             brokenLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.2f, 0.2f));
             return brokenLabel;
         }
-
-        // 应用升级等级
-        if (cardEntry.UpgradeLevel > 0 && card.CurrentUpgradeLevel < cardEntry.UpgradeLevel)
-        {
-            card = card.ToMutable();
-            card._currentUpgradeLevel = cardEntry.UpgradeLevel;
-        }
-
 
         var entry = NDeckHistoryEntry.Create(card, 1);
 

@@ -68,11 +68,7 @@ public static class RewardsScreenPatch
             Source = CardRewardSourceType.Normal,
             Cards =
             [
-                .. cards.Select(c => new CardEntry
-                {
-                    ModelId = c.Id.Entry,
-                    UpgradeLevel = c.CurrentUpgradeLevel
-                })
+                .. cards.Select(CardEntry.FromModel)
             ]
         };
 
@@ -106,11 +102,7 @@ public static class RewardsScreenPatch
             Source = CardRewardSourceType.Special,
             Cards =
             [
-                new CardEntry
-                {
-                    ModelId = card.Id.Entry,
-                    UpgradeLevel = card.CurrentUpgradeLevel
-                }
+                CardEntry.FromModel(card)
             ]
         };
 
