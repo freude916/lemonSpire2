@@ -1,4 +1,5 @@
 using Godot;
+using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Entities.Players;
@@ -111,15 +112,19 @@ public class AncientRelicChoiceProvider : IPlayerPanelProvider
             {
                 Pressed: true, AltPressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right
             }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.AncientRelicChoice, relic);
                 PlayerPanelChatHelper.SendRelicToChat(player, "LEMONSPIRE.chat.ancientRelicShare", relic);
                 Log.Debug($"Sent Ancient relic choice to chat: {relic.Id.Entry}");
+                clickedControl.GetViewport()?.SetInputAsHandled();
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }:
+                PlayerPanelChatHelper.RequestRemoteFlash(player, RemoteUiFlashKind.AncientRelicChoice, relic);
                 clickedControl.GetViewport()?.SetInputAsHandled();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
                 PlayerPanelChatHelper.OpenRelicDetails(relic);
                 clickedControl.GetViewport()?.SetInputAsHandled();
                 break;
-            // TODO: Implement left-click remote flashing after Ancient option buttons can be resolved reliably.
         }
     }
 }

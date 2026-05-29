@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
+using MegaCrit.Sts2.Core.Nodes.Events;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
@@ -28,6 +29,7 @@ public static class RemoteUiFlashResolver
             RemoteUiFlashKind.ShopPotion => FindShopPotionTarget(message.Potion),
             RemoteUiFlashKind.ShopRelic => FindShopRelicTarget(message.Relic),
             RemoteUiFlashKind.CardReward => FindRewardCardTarget(message.Card),
+            RemoteUiFlashKind.AncientRelicChoice => FindAncientRelicChoiceTarget(message.Relic),
             _ => null
         };
     }
@@ -135,6 +137,20 @@ public static class RemoteUiFlashResolver
         }
 
         return null;
+    }
+
+    private static NEventOptionButton? FindAncientRelicChoiceTarget(SerializableRelic? expected)
+    {
+        if (expected == null) return null;
+
+        var layout = NEventRoom.Instance?.Layout;
+        if (layout == null || !layout.IsVisibleInTree()) return null;
+
+        return layout.OptionButtons.FirstOrDefault(button =>
+            button.IsVisibleInTree() &&
+            button.Event is AncientEventModel &&
+            button.Option.Relic != null &&
+            RemoteUiFlashSnapshotMatcher.MatchesRelic(expected, button.Option.Relic.ToSerializable()));
     }
 
     private static Player? GetLocalPlayer()
