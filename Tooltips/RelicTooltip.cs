@@ -2,6 +2,7 @@ using Godot;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
+using MegaCrit.Sts2.Core.Saves.Runs;
 
 namespace lemonSpire2.Tooltips;
 
@@ -9,14 +10,15 @@ public sealed class RelicTooltip : Tooltip
 {
     protected override string TypeTag => "relic";
 
-    public required string ModelIdStr { get; set; }
+    public required SerializableRelic Snapshot { get; set; }
 
     public static RelicTooltip FromModel(RelicModel relic)
     {
         ArgumentNullException.ThrowIfNull(relic);
+        var snapshotSource = relic.IsMutable ? relic : (RelicModel)relic.MutableClone();
         return new RelicTooltip
         {
-            ModelIdStr = relic.Id.Entry
+            Snapshot = snapshotSource.ToSerializable()
         };
     }
 
@@ -34,13 +36,13 @@ public sealed class RelicTooltip : Tooltip
     public override void Serialize(PacketWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
-        writer.WriteString(ModelIdStr);
+        writer.Write(Snapshot);
     }
 
     public override void Deserialize(PacketReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
-        ModelIdStr = reader.ReadString();
+        Snapshot = reader.Read<SerializableRelic>();
     }
 
     public override Control? CreatePreview()
@@ -51,6 +53,6 @@ public sealed class RelicTooltip : Tooltip
 
     private RelicModel? ResolveModel()
     {
-        return StsUtil.ResolveModel<RelicModel>(ModelIdStr);
+        return Snapshot.Id == null ? null : RelicModel.FromSerializable(Snapshot);
     }
 }

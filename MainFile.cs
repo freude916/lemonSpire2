@@ -75,6 +75,7 @@ public partial class MainFile : Node
         }
 
         harmony.CreateClassProcessor(typeof(RemoteUiFlashInitPatch)).Patch();
+        harmony.CreateClassProcessor(typeof(AncientRelicChoicePatch)).Patch();
         harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();
 
         Log.Info("lemonSpire2 mod initialized");

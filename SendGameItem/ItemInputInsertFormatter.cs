@@ -25,7 +25,7 @@ public static class ItemInputInsertFormatter
             case PotionTooltip { ModelIdStr: { Length: > 0 } modelId }:
                 text = $"<potion:{modelId}>";
                 return true;
-            case RelicTooltip { ModelIdStr: { Length: > 0 } modelId }:
+            case RelicTooltip { Snapshot.Id.Entry: { Length: > 0 } modelId }:
                 text = $"<relic:{modelId}>";
                 return true;
             default:
