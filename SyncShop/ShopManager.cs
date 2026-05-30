@@ -36,7 +36,12 @@ public class ShopManager
     /// </summary>
     public void UpdateInventory(ulong playerNetId, Collection<ShopItemEntry> items)
     {
-        _shopInventories[playerNetId] = items ?? throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
+
+        if (_shopInventories.TryGetValue(playerNetId, out var oldItems) && AreEqual(oldItems, items))
+            return;
+
+        _shopInventories[playerNetId] = items;
         Log.Debug($"UpdateInventory: player={playerNetId}, items={items.Count}");
         InventoryUpdated?.Invoke(playerNetId);
     }
@@ -46,7 +51,9 @@ public class ShopManager
     /// </summary>
     public void ClearInventory(ulong playerNetId)
     {
-        _shopInventories.TryRemove(playerNetId, out _);
+        if (!_shopInventories.TryRemove(playerNetId, out _))
+            return;
+
         Log.Debug($"ClearInventory: player={playerNetId}");
         InventoryUpdated?.Invoke(playerNetId);
     }
@@ -149,6 +156,16 @@ public class ShopManager
         _shopInventories.Clear();
         foreach (var netId in netIds)
             InventoryUpdated?.Invoke(netId);
+    }
+
+    private static bool AreEqual(Collection<ShopItemEntry> left, Collection<ShopItemEntry> right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+        if (left.Count != right.Count)
+            return false;
+
+        return left.SequenceEqual(right);
     }
 
     /// <summary>
