@@ -13,5 +13,10 @@ public enum CardRewardSourceType
     /// <summary>
     ///     特殊卡牌奖励（固定牌）
     /// </summary>
-    Special
+    Special,
+
+    /// <summary>
+    ///     卡牌网格奖励（来自事件、遗物等的选牌界面）
+    /// </summary>
+    CardGrid
 }

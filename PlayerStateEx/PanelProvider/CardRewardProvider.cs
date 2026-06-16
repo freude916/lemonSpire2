@@ -177,6 +177,7 @@ public class CardRewardProvider : IPlayerPanelProvider
         /*var sourceText = group.Source switch
         {
             CardRewardSourceType.Special => new LocString("gameplay_ui", "LEMONSPIRE.cardRewards.special").GetFormattedText(),
+            CardRewardSourceType.CardGrid => new LocString("gameplay_ui", "LEMONSPIRE.cardRewards.cardGrid").GetFormattedText(),
             _ => new LocString("gameplay_ui", "LEMONSPIRE.cardRewards.normal").GetFormattedText()
         };
 

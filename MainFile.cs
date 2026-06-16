@@ -3,11 +3,11 @@ using HarmonyLib;
 using lemonSpire2.Chat;
 using lemonSpire2.ColorEx;
 using lemonSpire2.PlayerStateEx;
+using lemonSpire2.PlayerStateEx.PanelProvider;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.SendGameItem;
 using lemonSpire2.StatsTracker;
 using lemonSpire2.SyncReward;
-using lemonSpire2.SyncShop;
 using lemonSpire2.SynergyIndicator;
 using lemonSpire2.util;
 using MegaCrit.Sts2.Core.Logging;
@@ -59,8 +59,8 @@ public partial class MainFile : Node
 
         if (LemonSpireConfig.EnableSync)
         {
-            harmony.CreateClassProcessor(typeof(ShopRoomPatch)).Patch();
             harmony.CreateClassProcessor(typeof(CardRewardNetworkInitPatch)).Patch();
+            harmony.CreateClassProcessor(typeof(SimpleCardSelectScreenPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RewardsScreenPatch)).Patch();
             harmony.CreateClassProcessor(typeof(RunManagerPatch)).Patch();
         }
@@ -74,6 +74,7 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(PlayerColorButtonPatch)).Patch();
         }
 
+        harmony.CreateClassProcessor(typeof(ShopProvider)).Patch();
         harmony.CreateClassProcessor(typeof(RemoteUiFlashInitPatch)).Patch();
         harmony.CreateClassProcessor(typeof(AncientRelicChoicePatch)).Patch();
         harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();

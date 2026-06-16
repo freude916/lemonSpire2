@@ -15,6 +15,7 @@
   "LEMONSPIRE.chat.title": "Lemon Chat",
   "LEMONSPIRE.chat.handCardShare": "{Player}: {Item} в руке",
   "LEMONSPIRE.chat.cardRewardShare": "{Player}: {Item} в наградах",
+  "LEMONSPIRE.chat.cardGridRewardShare": "{Player}: выбор карты {Item}",
   "LEMONSPIRE.chat.ancientRelicShare": "{Player}: древняя реликвия {Item}",
   "LEMONSPIRE.chat.potionShare": "{Player}: есть зелье {Item}",
   "LEMONSPIRE.chat.shopShare": "{Player}: {Item} в магазине",
@@ -49,5 +50,6 @@
   "LEMONSPIRE.shop.gold": "Золото",
   "LEMONSPIRE.cardRewards.empty": "Наград нет",
   "LEMONSPIRE.cardRewards.normal": "Награда",
-  "LEMONSPIRE.cardRewards.special": "Особая"
+  "LEMONSPIRE.cardRewards.special": "Особая",
+  "LEMONSPIRE.cardRewards.cardGrid": "Выбор карты"
 }

@@ -15,6 +15,7 @@
   "LEMONSPIRE.chat.title": "Lemon Chat",
   "LEMONSPIRE.chat.handCardShare": "{Player}'s hand card {Item}",
   "LEMONSPIRE.chat.cardRewardShare": "{Player}'s card reward {Item}",
+  "LEMONSPIRE.chat.cardGridRewardShare": "{Player}'s card choice {Item}",
   "LEMONSPIRE.chat.ancientRelicShare": "{Player}'s Ancient relic reward {Item}",
   "LEMONSPIRE.chat.potionShare": "{Player}'s potion {Item}",
   "LEMONSPIRE.chat.shopShare": "{Player}'s shop item {Item}",
@@ -49,5 +50,6 @@
   "LEMONSPIRE.shop.gold": "Gold",
   "LEMONSPIRE.cardRewards.empty": "No rewards",
   "LEMONSPIRE.cardRewards.normal": "Reward",
-  "LEMONSPIRE.cardRewards.special": "Special"
+  "LEMONSPIRE.cardRewards.special": "Special",
+  "LEMONSPIRE.cardRewards.cardGrid": "Card Choice"
 }

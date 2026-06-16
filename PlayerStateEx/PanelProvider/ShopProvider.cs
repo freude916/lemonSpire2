@@ -1,9 +1,10 @@
 using System.Globalization;
 using Godot;
+using HarmonyLib;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
-using lemonSpire2.SyncShop;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
+using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
@@ -11,6 +12,7 @@ using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
+using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
@@ -23,11 +25,70 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 ///     遗物/药水：网格布局，物品在上价格在下，一行三个
 ///     支持鼠标点击：左键闪烁、卡牌/遗物右键详情、Alt+Click 发送物品
 /// </summary>
+[HarmonyPatchCategory("ShopSync")]
+[HarmonyPatch(typeof(NMerchantRoom))]
 public class ShopProvider : IPlayerPanelProvider
 {
     private const int ItemsPerRow = 3;
     private const string GoldIconPath = "res://images/packed/sprite_fonts/gold_icon.png";
+
+    private static SceneTreeTimer? _refreshTimer;
     private static Logger Log => PlayerPanelRegistry.Log;
+
+    public static event Action<ulong>? ShopUpdated;
+
+
+    [HarmonyPostfix]
+    [HarmonyPatch("_Ready")]
+    public static void ReadyPostfix(NMerchantRoom __instance)
+    {
+        ArgumentNullException.ThrowIfNull(__instance);
+        Log.Debug("NMerchantRoom._Ready");
+
+        RefreshShopData();
+        _refreshTimer = __instance.GetTree().CreateTimer(0.25);
+        _refreshTimer.Timeout += RefreshLoop;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch("_ExitTree")]
+    public static void ExitTreePostfix()
+    {
+        Log.Debug("NMerchantRoom._ExitTree");
+        _refreshTimer = null;
+
+        // 通知所有当前面板：商店已离开，ShouldShow 将返回 false
+        var room = NMerchantRoom.Instance?.Room;
+        if (room != null)
+            foreach (var inv in room.Inventories)
+                ShopUpdated?.Invoke(inv.Player.NetId);
+    }
+
+    private static void RefreshShopData()
+    {
+        var room = NMerchantRoom.Instance?.Room;
+        if (room == null || room.Inventories.Count == 0)
+            return;
+
+        foreach (var inventory in room.Inventories)
+        {
+            Log.Debug(
+                $"RefreshShopData: player={inventory.Player.NetId}, items={inventory.CardEntries.Count() + inventory.RelicEntries.Count + inventory.PotionEntries.Count}");
+            ShopUpdated?.Invoke(inventory.Player.NetId);
+        }
+    }
+
+    private static void RefreshLoop()
+    {
+        RefreshShopData();
+
+        var room = NMerchantRoom.Instance;
+        if (room?.IsInsideTree() != true)
+            return;
+
+        _refreshTimer = room.GetTree().CreateTimer(0.25);
+        _refreshTimer.Timeout += RefreshLoop;
+    }
 
     #region IPlayerPanelProvider Implementation
 
@@ -38,7 +99,7 @@ public class ShopProvider : IPlayerPanelProvider
     public bool ShouldShow(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
-        return ShopManager.Instance.HasInventory(player.NetId);
+        return NMerchantRoom.Instance?.Room?.Inventories.Any(inv => inv.Player.NetId == player.NetId) == true;
     }
 
     public Control CreateContent(Player player)
@@ -63,8 +124,10 @@ public class ShopProvider : IPlayerPanelProvider
         // 显示对方金币
         container.AddChild(CreateGoldRow(player));
 
-        var items = ShopManager.Instance.GetInventory(player.NetId);
-        if (items == null || items.Count == 0)
+        var inventory =
+            NMerchantRoom.Instance?.Room.Inventories.FirstOrDefault(inv => inv.Player.NetId == player.NetId);
+        if (inventory == null ||
+            !(inventory.CardEntries.Any() || inventory.RelicEntries.Any() || inventory.PotionEntries.Any()))
         {
             var emptyLabel = new Label
             {
@@ -76,25 +139,23 @@ public class ShopProvider : IPlayerPanelProvider
             return;
         }
 
-        // 分组显示
-        var cards = items.Where(i => i is { Type: ShopItemType.Card, IsStocked: true }).ToList();
-        var relics = items.Where(i => i is { Type: ShopItemType.Relic, IsStocked: true }).ToList();
-        var potions = items.Where(i => i is { Type: ShopItemType.Potion, IsStocked: true }).ToList();
-
         // 卡牌：横向布局
-        foreach (var card in cards)
-            AddCardRow(container, player, card);
+        foreach (var entry in inventory.CardEntries)
+            if (entry is { CreationResult.Card: { } card, IsStocked: true })
+                AddCardRow(container, player, entry, card);
 
-        // 遗物：网格布局，物品在上价格在下
+        // 遗物：网格布局
+        var relics = inventory.RelicEntries.Where(e => e is { Model: not null, IsStocked: true }).ToList();
         if (relics.Count > 0)
             AddItemGrid(container, player, relics, AddRelicItem);
 
-        // 药水：网格布局，物品在上价格在下
+        // 药水：网格布局
+        var potions = inventory.PotionEntries.Where(e => e is { Model: not null, IsStocked: true }).ToList();
         if (potions.Count > 0)
             AddItemGrid(container, player, potions, AddPotionItem);
 
         Log.Debug(
-            $"Updated content for player {player.NetId}: {cards.Count} cards, {relics.Count} relics, {potions.Count} potions");
+            $"Updated content for player {player.NetId}: {inventory.CardEntries.Count()} cards, {inventory.RelicEntries.Count} relics, {inventory.PotionEntries.Count} potions");
     }
 
     public Action SubscribeEvents(Player player, Action onUpdate)
@@ -104,47 +165,40 @@ public class ShopProvider : IPlayerPanelProvider
 
         Log.Debug($"SubscribeEvents for player {player.NetId}");
 
-        var unsubscribeInventory = SubscribeInventoryEvents(player, onUpdate, true);
-        player.GoldChanged += OnGoldChanged;
+        void OnShopUpdated(ulong netId)
+        {
+            if (netId == player.NetId) onUpdate();
+        }
+
+        ShopUpdated += OnShopUpdated;
+        player.GoldChanged += onUpdate;
 
         return () =>
         {
             Log.Debug($"UnsubscribeEvents for player {player.NetId}");
-            unsubscribeInventory();
-            player.GoldChanged -= OnGoldChanged;
+            ShopUpdated -= OnShopUpdated;
+            player.GoldChanged -= onUpdate;
         };
-
-        void OnGoldChanged()
-        {
-            Log.Debug($"OnGoldChanged for player {player.NetId}");
-            onUpdate();
-        }
     }
 
     public Action SubscribeVisibilityEvents(Player player, Action onVisibilityChanged)
     {
         ArgumentNullException.ThrowIfNull(player);
         ArgumentNullException.ThrowIfNull(onVisibilityChanged);
-        return SubscribeInventoryEvents(player, onVisibilityChanged, false);
+
+        void OnShopUpdated(ulong netId)
+        {
+            if (netId == player.NetId) onVisibilityChanged();
+        }
+
+        ShopUpdated += OnShopUpdated;
+        return () => ShopUpdated -= OnShopUpdated;
     }
 
     public void Cleanup(Control content)
     {
         ArgumentNullException.ThrowIfNull(content);
         UiUtils.ClearChildren(content);
-    }
-
-    private static Action SubscribeInventoryEvents(Player player, Action onUpdate, bool shouldLog)
-    {
-        void OnInventoryUpdated(ulong netId)
-        {
-            if (shouldLog)
-                Log.Debug($"OnInventoryUpdated: netId={netId}, player.NetId={player.NetId}");
-            if (netId == player.NetId) onUpdate();
-        }
-
-        ShopManager.Instance.InventoryUpdated += OnInventoryUpdated;
-        return () => ShopManager.Instance.InventoryUpdated -= OnInventoryUpdated;
     }
 
     #endregion
@@ -190,18 +244,14 @@ public class ShopProvider : IPlayerPanelProvider
     /// <summary>
     ///     卡牌：横向布局，左价格右卡牌
     /// </summary>
-    private static void AddCardRow(VBoxContainer container, Player player, ShopItemEntry entry)
+    private static void AddCardRow(VBoxContainer container, Player player, MerchantCardEntry entry, CardModel card)
     {
-        var card = StsUtil.ResolveModel<CardModel>(entry.ModelId);
-        if (card == null) return;
-
-        if (entry.UpgradeLevel > 0 && card.CurrentUpgradeLevel < entry.UpgradeLevel)
-            card = card.ToMutable();
+        card = card.ToMutable();
 
         var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         row.AddThemeConstantOverride("separation", 4);
 
-        var priceLabel = CreatePriceLabel(player, entry);
+        var priceLabel = CreatePriceLabel(player, entry.Cost, entry.IsOnSale);
         row.AddChild(priceLabel);
 
         var nEntry = NDeckHistoryEntry.Create(card, 1);
@@ -216,8 +266,8 @@ public class ShopProvider : IPlayerPanelProvider
     /// <summary>
     ///     网格布局：物品在上价格在下，一行多个
     /// </summary>
-    private static void AddItemGrid(VBoxContainer container, Player player,
-        List<ShopItemEntry> items, Action<Player, ShopItemEntry, HBoxContainer> addItem)
+    private static void AddItemGrid<T>(VBoxContainer container, Player player,
+        List<T> items, Action<Player, T, HBoxContainer> addItem)
     {
         for (var i = 0; i < items.Count; i += ItemsPerRow)
         {
@@ -238,9 +288,9 @@ public class ShopProvider : IPlayerPanelProvider
     /// <summary>
     ///     添加遗物项到行：物品在上，价格在下
     /// </summary>
-    private static void AddRelicItem(Player player, ShopItemEntry entry, HBoxContainer row)
+    private static void AddRelicItem(Player player, MerchantRelicEntry entry, HBoxContainer row)
     {
-        var relic = StsUtil.ResolveModel<RelicModel>(entry.ModelId);
+        var relic = entry.Model;
         if (relic == null) return;
 
         var holder = NRelicBasicHolder.Create(relic.ToMutable());
@@ -256,7 +306,7 @@ public class ShopProvider : IPlayerPanelProvider
         container.AddChild(holder);
 
         // 价格在下
-        var priceLabel = CreatePriceLabel(player, entry, true);
+        var priceLabel = CreatePriceLabel(player, entry.Cost, false, true);
         container.AddChild(priceLabel);
 
         holder.GuiInput += @event => OnRelicGuiInput(holder, player, relic, @event);
@@ -267,9 +317,9 @@ public class ShopProvider : IPlayerPanelProvider
     /// <summary>
     ///     添加药水项到行：物品在上，价格在下
     /// </summary>
-    private static void AddPotionItem(Player player, ShopItemEntry entry, HBoxContainer row)
+    private static void AddPotionItem(Player player, MerchantPotionEntry entry, HBoxContainer row)
     {
-        var potion = StsUtil.ResolveModel<PotionModel>(entry.ModelId);
+        var potion = entry.Model;
         if (potion == null) return;
 
         var nPotion = NPotion.Create(potion.ToMutable());
@@ -283,25 +333,25 @@ public class ShopProvider : IPlayerPanelProvider
         };
         container.AddThemeConstantOverride("separation", 2);
 
-        // 物品在上（先加入场景树）
+        // 先加入场景树
         row.AddChild(container);
         container.AddChild(holder);
         holder.AddPotion(nPotion);
         nPotion.Position = Vector2.Zero;
         // 价格在下
-        var priceLabel = CreatePriceLabel(player, entry, true);
+        var priceLabel = CreatePriceLabel(player, entry.Cost, false, true);
         container.AddChild(priceLabel);
 
         holder.GuiInput += @event => OnPotionGuiInput(holder, player, potion, @event);
     }
 
-    private static Label CreatePriceLabel(Player player, ShopItemEntry entry, bool centered = false)
+    private static Label CreatePriceLabel(Player player, int cost, bool isOnSale = false, bool centered = false)
     {
         Label priceLabel;
         if (centered)
             priceLabel = new Label
             {
-                Text = $"{entry.Cost}g",
+                Text = $"{cost}g",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 MouseFilter = Control.MouseFilterEnum.Ignore
@@ -309,14 +359,14 @@ public class ShopProvider : IPlayerPanelProvider
         else
             priceLabel = new Label
             {
-                Text = $"{entry.Cost}g",
+                Text = $"{cost}g",
                 CustomMinimumSize = new Vector2(36, 0),
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
 
-        if (player.Gold < entry.Cost)
+        if (player.Gold < cost)
             priceLabel.AddThemeColorOverride("font_color", StsColors.red);
-        else if (entry.IsOnSale)
+        else if (isOnSale)
             priceLabel.AddThemeColorOverride("font_color", StsColors.green);
         else
             priceLabel.AddThemeColorOverride("font_color", StsColors.cream);

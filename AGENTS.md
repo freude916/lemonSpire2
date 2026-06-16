@@ -8,22 +8,28 @@
 
 现在是 2026 年。 杀戮尖塔2 使用的是 Godot + .NET 9.0 了，您应该多用一些 C# 9.0 的特性来写代码，比如 var 和 switch ，能让代码更简洁。
 
+杀戮尖塔2 目前处于 Early Access 阶段，游戏的很多接口都在不断地变化，如果出错了改就是了，不要保留过时的代码或者过时的接口，保持代码的整洁和简洁。
+
 # 开发资源
 
 理论上有一个 .reference 目录，里面放了一些参考项目。
 
 另外走到 ~/Documents/MTSII/ ，你可以看到 sts2src 和 sts2res 两个目录，里面分别放了游戏的反编译源代码和资源文件（图片、场景等），还有一些反编译工具。
 
-以及走到上级目录，这里有很多 Mod 项目，其中最重要的：
+请注意，由于方便处理接口更新，sts2src 里存放了多个版本的游戏源代码。
+例如 /sts2src/106 或 ./107 等等。您不是处理兼容性的时候，使用数字最大的即可。
+
+以及走到上级目录 RiderProjects ，这里有很多 Mod 项目，其中最重要的：
 
 - BaseLib 项目，是二代的 ModTheSpire+stslib 的合体，里面有一些工具类和一些对游戏的反射封装，
 - BaseLib-Wiki 是 BaseLib 的文档，里面有一些使用说明。
 - RitsuLib 项目，是更新频率更快的 BaseLib ，而且写得更显式一些，代码质量也更好一些。
 
-拿不准的可以去参考。 （注意参考前最好 ls -l 看看文件的修改时间，如果超过一周了可能就过时了，对于 Mod 项目来说你可以试试 git
+拿不准的可以去参考。 （如果这是对话里第一次参考，先 ls -l 看看文件的修改时间，如果超过一周了可能就过时了，对于 Mod 项目来说你可以试试
+git
 pull 来更新一下）
 
-请您优先执行 dotcheck.sh 代替 dotnet build 来构建项目，它不返回 Warning，能加快 check 速度和减少上下文浪费。
+请您总是执行 dotcheck.sh 代替 dotnet build 来构建项目，它不返回 Warning，能加快 check 速度和减少上下文浪费。
 
 # 项目结构
 
@@ -37,7 +43,6 @@ sts2.dll 的启动需要 Godot Runtime ，所以测试主机崩溃是常态，�
 基础库部分
 
 - SyncReward - 同步战后奖励。
-- SyncShop - 同步商店。
 
 独立模块
 
@@ -48,7 +53,13 @@ sts2.dll 的启动需要 Godot Runtime ，所以测试主机崩溃是常态，�
 相对耦合的模块：
 
 - Chat - 聊天面板，目前包含了一个简单的聊天系统和一些命令解析功能。
-- PlayerStateEx - 玩家状态面板，包含了一个新的面板来显示玩家的状态信息，如手牌。
+- PlayerStateEx - 玩家战斗状态增强，包含一个悬浮提示和一个持久状态面板。
+-
+    - OverlayPanel - 持久状态面板基础 Ui
+-
+    - PanelProvider - 持久状态面板的内容提供者。
+-
+    - RemoteFlash - 让其它玩家的 Ui 发生绿色闪烁来提示他们操作。
 - Tooltips - 提供了一些新的 HoverTip 来显示一些额外的信息。
 - SendItem - 将游戏内物品发送到聊天面板。
 
@@ -75,11 +86,7 @@ sts2.dll 的启动需要 Godot Runtime ，所以测试主机崩溃是常态，�
 INetMessage 的 broadcast 实际上是提交到 host ，然后 host 执行广播，意味着 host 自己 broadcast 的时候 host 收不到（client 广播
 client 能）。
 
-永远不要更新本地。永远在发送之后立刻执行 OnReceiveMessage
-
-### Log
-
-Sts2 Mod 的 Log 没有
+永远不要手动更新本地。永远在发送之后立刻执行 OnReceiveMessage。
 
 ## Godot 开发经验
 

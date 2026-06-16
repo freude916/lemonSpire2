@@ -15,6 +15,7 @@
   "LEMONSPIRE.chat.title": "柠檬聊天",
   "LEMONSPIRE.chat.handCardShare": "{Player}的手牌 {Item}",
   "LEMONSPIRE.chat.cardRewardShare": "{Player}的卡牌奖励 {Item}",
+  "LEMONSPIRE.chat.cardGridRewardShare": "{Player}的卡牌选择 {Item}",
   "LEMONSPIRE.chat.ancientRelicShare": "{Player}的先古遗物奖励 {Item}",
   "LEMONSPIRE.chat.potionShare": "{Player}的药水 {Item}",
   "LEMONSPIRE.chat.shopShare": "{Player}的商店物品 {Item}",
@@ -49,5 +50,6 @@
   "LEMONSPIRE.shop.gold": "金币",
   "LEMONSPIRE.cardRewards.empty": "暂无奖励",
   "LEMONSPIRE.cardRewards.normal": "奖励",
-  "LEMONSPIRE.cardRewards.special": "特殊"
+  "LEMONSPIRE.cardRewards.special": "特殊",
+  "LEMONSPIRE.cardRewards.cardGrid": "卡牌选择"
 }
