@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Text.Json;
+using Godot;
 
 namespace lemonSpire2;
 
@@ -7,8 +9,10 @@ internal sealed class UsedImplicitlyAttribute : Attribute;
 
 internal static class LemonSpireConfig
 {
-    internal const string SettingsDataKey = "settings";
-    private static readonly SettingsModel FallbackSettings = CreateDefaultSettingsModel();
+    private const string SettingsPath = "user://lemonSpire2/settings.json";
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly Lock SettingsGate = new();
+    private static SettingsModel? _settings;
 
     public static bool EnableQoL
     {
@@ -221,10 +225,7 @@ internal static class LemonSpireConfig
     [UsedImplicitly]
     public static void SaveRitsuLibSettings()
     {
-        if (!RitsuLibBridge.IsAvailable)
-            return;
-
-        RitsuLibBridge.SaveSettings();
+        SaveSettings();
     }
 
     internal static void TryInitializeRitsuLibBackends()
@@ -242,18 +243,60 @@ internal static class LemonSpireConfig
 
     private static SettingsModel GetSettings()
     {
-        return RitsuLibBridge.IsAvailable ? RitsuLibBridge.GetSettings() : FallbackSettings;
+        lock (SettingsGate)
+        {
+            return _settings ??= LoadSettings();
+        }
     }
 
     private static void Update(Action<SettingsModel> update)
     {
-        if (RitsuLibBridge.IsAvailable)
-        {
-            RitsuLibBridge.ModifySettings(update);
-            return;
-        }
+        ArgumentNullException.ThrowIfNull(update);
 
-        update(FallbackSettings);
+        lock (SettingsGate)
+        {
+            update(_settings ??= LoadSettings());
+        }
+    }
+
+    private static void SaveSettings()
+    {
+        lock (SettingsGate)
+        {
+            SaveSettingsCore(_settings ??= LoadSettings());
+        }
+    }
+
+    private static SettingsModel LoadSettings()
+    {
+        try
+        {
+            var path = ProjectSettings.GlobalizePath(SettingsPath);
+            if (!File.Exists(path))
+                return CreateDefaultSettingsModel();
+
+            var settings = JsonSerializer.Deserialize<SettingsModel>(File.ReadAllText(path), JsonOptions);
+            return settings ?? CreateDefaultSettingsModel();
+        }
+        catch (Exception ex)
+        {
+            MainFile.Log.Info($"Failed to read lemonSpire settings, using defaults: {ex.Message}");
+            return CreateDefaultSettingsModel();
+        }
+    }
+
+    private static void SaveSettingsCore(SettingsModel settings)
+    {
+        try
+        {
+            var path = ProjectSettings.GlobalizePath(SettingsPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(settings, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            MainFile.Log.Info($"Failed to save lemonSpire settings: {ex.Message}");
+        }
     }
 
     private static object LocString(string key, string fallback)
