@@ -74,7 +74,7 @@ public partial class MainFile : Node
             harmony.CreateClassProcessor(typeof(PlayerColorButtonPatch)).Patch();
         }
 
-        harmony.CreateClassProcessor(typeof(ShopProvider)).Patch();
+        harmony.CreateClassProcessor(typeof(ShopProviderPatch)).Patch();
         harmony.CreateClassProcessor(typeof(RemoteUiFlashInitPatch)).Patch();
         harmony.CreateClassProcessor(typeof(AncientRelicChoicePatch)).Patch();
         harmony.CreateClassProcessor(typeof(NMultiplayerPlayerStatePatch)).Patch();

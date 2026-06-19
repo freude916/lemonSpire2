@@ -1,6 +1,5 @@
 using System.Globalization;
 using Godot;
-using HarmonyLib;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
@@ -25,46 +24,27 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 ///     遗物/药水：网格布局，物品在上价格在下，一行三个
 ///     支持鼠标点击：左键闪烁、卡牌/遗物右键详情、Alt+Click 发送物品
 /// </summary>
-[HarmonyPatchCategory("ShopSync")]
-[HarmonyPatch(typeof(NMerchantRoom))]
 public class ShopProvider : IPlayerPanelProvider
 {
     private const int ItemsPerRow = 3;
     private const string GoldIconPath = "res://images/packed/sprite_fonts/gold_icon.png";
 
-    private static SceneTreeTimer? _refreshTimer;
     private static Logger Log => PlayerPanelRegistry.Log;
 
-    public static event Action<ulong>? ShopUpdated;
+    internal static event Action<ulong>? ShopUpdated;
 
-
-    [HarmonyPostfix]
-    [HarmonyPatch("_Ready")]
-    public static void ReadyPostfix(NMerchantRoom __instance)
+    /// <summary>
+    ///     由 ShopProviderPatch 调用，通知指定玩家的商店数据已变化
+    /// </summary>
+    internal static void NotifyShopUpdated(ulong netId)
     {
-        ArgumentNullException.ThrowIfNull(__instance);
-        Log.Debug("NMerchantRoom._Ready");
-
-        RefreshShopData();
-        _refreshTimer = __instance.GetTree().CreateTimer(0.25);
-        _refreshTimer.Timeout += RefreshLoop;
+        ShopUpdated?.Invoke(netId);
     }
 
-    [HarmonyPostfix]
-    [HarmonyPatch("_ExitTree")]
-    public static void ExitTreePostfix()
-    {
-        Log.Debug("NMerchantRoom._ExitTree");
-        _refreshTimer = null;
-
-        // 通知所有当前面板：商店已离开，ShouldShow 将返回 false
-        var room = NMerchantRoom.Instance?.Room;
-        if (room != null)
-            foreach (var inv in room.Inventories)
-                ShopUpdated?.Invoke(inv.Player.NetId);
-    }
-
-    private static void RefreshShopData()
+    /// <summary>
+    ///     由 ShopProviderPatch 调用，触发商店数据刷新
+    /// </summary>
+    internal static void RequestRefresh()
     {
         var room = NMerchantRoom.Instance?.Room;
         if (room == null || room.Inventories.Count == 0)
@@ -74,20 +54,8 @@ public class ShopProvider : IPlayerPanelProvider
         {
             Log.Debug(
                 $"RefreshShopData: player={inventory.Player.NetId}, items={inventory.CardEntries.Count() + inventory.RelicEntries.Count + inventory.PotionEntries.Count}");
-            ShopUpdated?.Invoke(inventory.Player.NetId);
+            NotifyShopUpdated(inventory.Player.NetId);
         }
-    }
-
-    private static void RefreshLoop()
-    {
-        RefreshShopData();
-
-        var room = NMerchantRoom.Instance;
-        if (room?.IsInsideTree() != true)
-            return;
-
-        _refreshTimer = room.GetTree().CreateTimer(0.25);
-        _refreshTimer.Timeout += RefreshLoop;
     }
 
     #region IPlayerPanelProvider Implementation
