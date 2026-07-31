@@ -214,8 +214,6 @@ public class ShopProvider : IPlayerPanelProvider
     /// </summary>
     private static void AddCardRow(VBoxContainer container, Player player, MerchantCardEntry entry, CardModel card)
     {
-        card = card.ToMutable();
-
         var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         row.AddThemeConstantOverride("separation", 4);
 
@@ -261,7 +259,7 @@ public class ShopProvider : IPlayerPanelProvider
         var relic = entry.Model;
         if (relic == null) return;
 
-        var holder = NRelicBasicHolder.Create(relic.ToMutable());
+        var holder = NRelicBasicHolder.Create(relic);
         if (holder == null) return;
 
         var container = new VBoxContainer
@@ -290,7 +288,7 @@ public class ShopProvider : IPlayerPanelProvider
         var potion = entry.Model;
         if (potion == null) return;
 
-        var nPotion = NPotion.Create(potion.ToMutable());
+        var nPotion = NPotion.Create(potion);
         if (nPotion == null) return;
 
         var holder = NPotionHolder.Create(false);

@@ -13,7 +13,7 @@ namespace lemonSpire2.Tooltips;
 ///     Base class for serializable tooltips.
 ///     Implementations should provide CreatePreview() for UI rendering.
 /// </summary>
-public abstract class Tooltip
+public abstract class Tooltip : IPacketSerializable
 {
     private static int _nextRegistryId = 1;
     private static readonly Dictionary<int, WeakReference<Tooltip>> Registry = new();
@@ -35,10 +35,10 @@ public abstract class Tooltip
     /// </summary>
     public int RegistryId { get; }
 
-    public abstract string Render();
-
     public abstract void Serialize(PacketWriter writer);
     public abstract void Deserialize(PacketReader reader);
+
+    public abstract string Render();
 
     public IEnumerable<TooltipSegment> ToTooltipSegments()
     {

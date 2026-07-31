@@ -254,6 +254,17 @@ public static class ItemInputResolver
     {
         ArgumentNullException.ThrowIfNull(option);
 
+        // LocString 的 _variables 在序列化时会丢失（LocTooltip 只写 LocTable+LocEntryKey）。
+        // 如果有 SmartFormat 变量（如事件里的 {Potion} {Relic}），用 RichTextTooltip
+        // 发预格式化纯文本，避免接收端看到原始占位符。
+        if (option.Title.Variables.Count > 0 || option.Description.Variables.Count > 0)
+            return new RichTextTooltip
+            {
+                Title = option.Title.GetFormattedText(),
+                Description = option.Description.GetFormattedText(),
+                IsDebuff = false
+            }.ToTooltipSegment();
+
         return new LocTooltip
         {
             Title = option.Title,

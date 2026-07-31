@@ -74,7 +74,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="STS2.RitsuLib" Version="0.4.16" PrivateAssets="All" GeneratePathProperty="true"/>
+        <PackageReference Include="STS2.RitsuLib" Version="0.4.25" PrivateAssets="All" GeneratePathProperty="true"/>
         <AdditionalFiles Include="lemonSpire2/localization/**/*.json"/>
     </ItemGroup>
 
@@ -130,10 +130,6 @@
         <Copy SourceFiles="@(SoundFiles)"
               DestinationFiles="@(SoundFiles->'$(ModsPath)$(MSBuildProjectName)/lemonSpire2/%(Filename)%(Extension)')"/>
         <Message Text="Copying RitsuLib to mods folder." Importance="high"/>
-        <ItemGroup>
-            <RitsuLibFiles Include="$(PkgSTS2_RitsuLib)/lib/net9.0/STS2-RitsuLib.dll;$(PkgSTS2_RitsuLib)/lib/net9.0/STS2-RitsuLib.runtimeconfig.json;$(PkgSTS2_RitsuLib)/contentFiles/any/any/mod_manifest.json"/>
-        </ItemGroup>
-        <Copy SourceFiles="@(RitsuLibFiles)" DestinationFolder="$(ModsPath)STS2-RitsuLib/"/>
     </Target>
 
     <Target Name="GodotPublish" AfterTargets="Publish" Condition="'$(GodotPath)' != '' and Exists('$(GodotPath)') and '$(IsInnerGodotExport)' != 'true'">
