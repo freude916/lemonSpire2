@@ -103,6 +103,7 @@ public class ShopProvider : IPlayerPanelProvider
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
             emptyLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.5f));
+            StsUiFonts.Apply(emptyLabel);
             container.AddChild(emptyLabel);
             return;
         }
@@ -195,6 +196,7 @@ public class ShopProvider : IPlayerPanelProvider
         };
         goldLabel.AddThemeColorOverride("font_color", StsColors.gold);
         goldLabel.AddThemeFontSizeOverride("font_size", 16);
+        StsUiFonts.Apply(goldLabel);
         row.AddChild(goldLabel);
 
         var titleLabel = new Label
@@ -204,6 +206,7 @@ public class ShopProvider : IPlayerPanelProvider
         };
         titleLabel.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f));
         titleLabel.AddThemeFontSizeOverride("font_size", 16);
+        StsUiFonts.Apply(titleLabel);
         row.AddChild(titleLabel);
 
         return row;
@@ -338,6 +341,7 @@ public class ShopProvider : IPlayerPanelProvider
             priceLabel.AddThemeColorOverride("font_color", StsColors.cream);
 
         priceLabel.AddThemeFontSizeOverride("font_size", 14);
+        StsUiFonts.Apply(priceLabel);
         return priceLabel;
     }
 
