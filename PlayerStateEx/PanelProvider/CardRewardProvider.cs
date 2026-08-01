@@ -218,6 +218,7 @@ public class CardRewardProvider : IPlayerPanelProvider
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
             brokenLabel.AddThemeColorOverride("font_color", new Color(0.8f, 0.2f, 0.2f));
+            StsUiFonts.Apply(brokenLabel);
             return brokenLabel;
         }
 
