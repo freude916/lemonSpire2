@@ -97,6 +97,25 @@ internal static class PlayerPanelChatHelper
         NGame.Instance?.GetInspectRelicScreen().Open([relic], relic);
     }
 
+    public static void RequestRemoteFlash(Player player, BlitzMerchantEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(entry);
+        if (entry.Id is not { } entryId || RunManager.Instance.State is not { } state)
+        {
+            return;
+        }
+
+        RemoteUiFlashSynchronizer.Send(new RemoteUiFlashMessage
+        {
+            SenderId = RunManager.Instance.NetService.NetId,
+            TargetPlayerId = player.NetId,
+            Kind = RemoteUiFlashKind.BlitzShopEntry,
+            ShopEntryId = entryId,
+            ShopLocation = state.RunLocation
+        });
+    }
+
     public static void RequestRemoteFlash(Player player, RemoteUiFlashKind kind, CardModel card)
     {
         ArgumentNullException.ThrowIfNull(player);

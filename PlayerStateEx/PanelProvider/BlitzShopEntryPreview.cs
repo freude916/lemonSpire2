@@ -99,6 +99,13 @@ public partial class BlitzShopEntryPreview : Control
             PlayerPanelChatHelper.SendBlitzShopEntryToChat(Entry.Player, Entry,
                 includeExtraHoverTips: mouse.ButtonIndex == MouseButton.Right);
             GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
+        {
+            PlayerPanelChatHelper.RequestRemoteFlash(Entry.Player, Entry);
+            GetViewport().SetInputAsHandled();
         }
     }
 

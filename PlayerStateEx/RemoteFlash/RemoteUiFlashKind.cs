@@ -8,5 +8,6 @@ public enum RemoteUiFlashKind
     ShopPotion = 3,
     ShopRelic = 4,
     CardReward = 5,
-    AncientRelicChoice = 6
+    AncientRelicChoice = 6,
+    BlitzShopEntry = 7
 }
