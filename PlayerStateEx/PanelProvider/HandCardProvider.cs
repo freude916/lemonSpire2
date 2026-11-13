@@ -105,6 +105,7 @@ public class HandCardProvider : IPlayerPanelProvider
         };
         countLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.75f));
         countLabel.AddThemeFontSizeOverride("font_size", 16);
+        StsUiFonts.Apply(countLabel);
         container.AddChild(countLabel);
 
         var groupCards = LemonSpireConfig.GroupHandCards;

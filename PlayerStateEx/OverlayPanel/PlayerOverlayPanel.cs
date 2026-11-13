@@ -3,6 +3,8 @@ using lemonSpire2.SendGameItem;
 using lemonSpire2.util.Ui;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Players;
+using MegaCrit.Sts2.Core.Localization;
+using MegaCrit.Sts2.Core.Localization.Fonts;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Platform;
 using MegaCrit.Sts2.Core.Rooms;
@@ -55,6 +57,7 @@ public partial class PlayerOverlayPanel : Control
     {
         MouseFilter = MouseFilterEnum.Stop;
         CreateUi();
+        LocManager.Instance.SubscribeToLocaleChange(OnLocaleChanged);
 
         // 注册到 InputCapture，让其放过 Panel 内部的 Alt+Click
         ItemInputCapture.RegisterBlockingControl(_panel);
@@ -86,6 +89,8 @@ public partial class PlayerOverlayPanel : Control
     {
         if (_onViewportResized != null)
             ViewportResizeNotifier.Instance.OnViewportResized -= _onViewportResized;
+
+        LocManager.Instance.UnsubscribeToLocaleChange(OnLocaleChanged);
 
         CombatManager.Instance.CombatSetUp -= OnCombatSetUp;
         CombatManager.Instance.CombatEnded -= OnCombatEnded;
@@ -157,6 +162,7 @@ public partial class PlayerOverlayPanel : Control
             };
             sectionTitle.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.7f));
             sectionTitle.AddThemeFontSizeOverride("font_size", 20);
+            StsUiFonts.Apply(sectionTitle, FontType.Bold);
             sectionContainer.AddChild(sectionTitle);
 
             _contentContainer.AddChild(sectionContainer);
@@ -352,6 +358,11 @@ public partial class PlayerOverlayPanel : Control
     {
         Hide();
         QueueFree();
+    }
+
+    private void OnLocaleChanged()
+    {
+        StsUiFonts.Refresh(this);
     }
 
     private void OnCombatSetUp(CombatState _)

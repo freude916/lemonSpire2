@@ -1,7 +1,9 @@
 using lemonSpire2.Chat;
 using lemonSpire2.Chat.Message;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
+using lemonSpire2.SendGameItem;
 using lemonSpire2.Tooltips;
+using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
@@ -43,13 +45,22 @@ internal static class PlayerPanelChatHelper
         });
     }
 
-    public static void SendPlayerItemToChat(Player player, string locEntryKey, TooltipSegment tooltipSegment)
+    public static void SendBlitzShopEntryToChat(Player player, BlitzMerchantEntry entry, bool includeExtraHoverTips)
+    {
+        var segments = includeExtraHoverTips
+            ? ItemInputResolver.CreateBlitzMerchantSegments(entry)
+            : [ItemInputResolver.CreateBlitzMerchantSegment(entry)];
+        SendPlayerItemToChat(player, "LEMONSPIRE.chat.shopShare", segments[0], [.. segments.Skip(1)]);
+    }
+
+    public static void SendPlayerItemToChat(Player player, string locEntryKey, TooltipSegment tooltipSegment,
+        params IMsgSegment[] additionalSegments)
     {
         ArgumentNullException.ThrowIfNull(player);
         ArgumentException.ThrowIfNullOrWhiteSpace(locEntryKey);
         ArgumentNullException.ThrowIfNull(tooltipSegment);
 
-        ChatStore.SendToChat(
+        ChatStore.SendToChat([
             new TemplateSegment
             {
                 Template = new LocString("gameplay_ui", locEntryKey),
@@ -58,8 +69,9 @@ internal static class PlayerPanelChatHelper
                     EntitySegment.FromPlayer(player).ToNamedSegment("Player"),
                     tooltipSegment.ToNamedSegment("Item")
                 ]
-            }
-        );
+            },
+            .. additionalSegments
+        ]);
     }
 
     public static void OpenHandCardDetails(Player player, CardModel card)
@@ -83,6 +95,25 @@ internal static class PlayerPanelChatHelper
     {
         ArgumentNullException.ThrowIfNull(relic);
         NGame.Instance?.GetInspectRelicScreen().Open([relic], relic);
+    }
+
+    public static void RequestRemoteFlash(Player player, BlitzMerchantEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(player);
+        ArgumentNullException.ThrowIfNull(entry);
+        if (entry.Id is not { } entryId || RunManager.Instance.State is not { } state)
+        {
+            return;
+        }
+
+        RemoteUiFlashSynchronizer.Send(new RemoteUiFlashMessage
+        {
+            SenderId = RunManager.Instance.NetService.NetId,
+            TargetPlayerId = player.NetId,
+            Kind = RemoteUiFlashKind.BlitzShopEntry,
+            ShopEntryId = entryId,
+            ShopLocation = state.RunLocation
+        });
     }
 
     public static void RequestRemoteFlash(Player player, RemoteUiFlashKind kind, CardModel card)

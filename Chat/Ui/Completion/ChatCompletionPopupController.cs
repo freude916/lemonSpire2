@@ -1,5 +1,6 @@
 using Godot;
 using lemonSpire2.Chat.Input.Model;
+using lemonSpire2.util.Ui;
 
 namespace lemonSpire2.Chat.Ui.Completion;
 
@@ -59,6 +60,7 @@ internal sealed class ChatCompletionPopupController : IDisposable
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _list.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
+        StsUiFonts.Apply(_list);
         _scroll.AddChild(_list);
         _panel.AddChild(_scroll);
     }

@@ -1,6 +1,4 @@
-using System.Reflection;
 using Godot;
-using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
 
 namespace lemonSpire2.Tooltips;
@@ -11,12 +9,6 @@ namespace lemonSpire2.Tooltips;
 /// </summary>
 public sealed class RichTextTooltip : Tooltip
 {
-    private static readonly PropertyInfo? TitleProperty =
-        typeof(HoverTip).GetProperty(nameof(HoverTip.Title));
-
-    private static readonly PropertyInfo? DescriptionProperty =
-        typeof(HoverTip).GetProperty(nameof(HoverTip.Description));
-
     protected override string TypeTag => "rt";
 
     public string? Title { get; set; }
@@ -52,24 +44,10 @@ public sealed class RichTextTooltip : Tooltip
 
     public override Control? CreatePreview()
     {
-        // Create HoverTip with reflection to set readonly properties
-        var tip = new HoverTip
-        {
-            IsDebuff = IsDebuff,
-            IsSmart = false,
-            IsInstanced = false,
-            Id = $"richtext:{Title ?? "untitled"}"
-        };
-
-        object boxed = tip;
-        TitleProperty?.SetValue(boxed, Title);
-        DescriptionProperty?.SetValue(boxed, Description);
-        tip = (HoverTip)boxed;
-
         Texture2D? icon = null;
         if (!string.IsNullOrEmpty(IconPath) && ResourceLoader.Exists(IconPath))
             icon = ResourceLoader.Load<Texture2D>(IconPath);
 
-        return BuildHoverTipControl(tip, icon);
+        return BuildHoverTipControl(Title, Description, IsDebuff, icon);
     }
 }

@@ -151,6 +151,7 @@ public static class ItemInputResolver
                     MerchantCardEntry { CreationResult.Card: { } card } => CreateSegmentFromModel(card),
                     MerchantPotionEntry { Model: { } potion } => CreateSegmentFromModel(potion),
                     MerchantRelicEntry { Model: { } relic } => CreateSegmentFromModel(relic),
+                    BlitzMerchantEntry blitz => CreateBlitzMerchantSegment(blitz),
                     _ => null
                 };
 
@@ -173,6 +174,7 @@ public static class ItemInputResolver
                     MerchantCardEntry { CreationResult.Card: { } card } => CreateItemAndHoverTipSegments(card),
                     MerchantPotionEntry { Model: { } potion } => CreateItemAndHoverTipSegments(potion),
                     MerchantRelicEntry { Model: { } relic } => CreateItemAndHoverTipSegments(relic),
+                    BlitzMerchantEntry blitz => CreateBlitzMerchantSegments(blitz),
                     _ => []
                 };
 
@@ -180,6 +182,24 @@ public static class ItemInputResolver
         }
 
         return [];
+    }
+
+    internal static TooltipSegment CreateBlitzMerchantSegment(BlitzMerchantEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        // 附魔等选项的 LocString 含变量，分享已格式化的快照，避免变量在序列化中丢失。
+        return new RichTextTooltip
+        {
+            Title = entry.Title.GetFormattedText(),
+            Description = entry.Description.GetFormattedText(),
+            IconPath = entry.IconPath
+        }.ToTooltipSegment();
+    }
+
+    internal static List<TooltipSegment> CreateBlitzMerchantSegments(BlitzMerchantEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return [CreateBlitzMerchantSegment(entry), .. CreateSegmentsFromHoverTips(entry.HoverTips.Skip(1))];
     }
 
     /// <summary>

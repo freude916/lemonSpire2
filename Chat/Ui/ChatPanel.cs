@@ -75,6 +75,7 @@ public sealed class ChatPanel : IDisposable
         ViewportResizeNotifier.Instance.OnViewportResized -= OnViewportResized;
 
         _model.OnMessageAppended -= OnMessageAppended;
+        LocManager.Instance.UnsubscribeToLocaleChange(OnLocaleChanged);
         _panelStyle.Dispose();
         _inputStyle.Dispose();
         _container.QueueFree();
@@ -461,6 +462,7 @@ public sealed class ChatPanel : IDisposable
         };
         _messageBuffer.AddThemeColorOverride("default_color", Colors.White);
         _messageBuffer.AddThemeFontSizeOverride("normal_font_size", ChatConfig.FontSize);
+        StsUiFonts.Apply(_messageBuffer);
         _vboxLayout.AddChild(_messageBuffer);
 
         _messageBuffer.MetaClicked += OnMetaClicked;
@@ -489,6 +491,7 @@ public sealed class ChatPanel : IDisposable
         _inputField.AddThemeColorOverride("font_placeholder_color", ChatConfig.PlaceholderColor);
         _inputField.AddThemeColorOverride("caret_color", ChatConfig.CaretColor);
         _inputField.AddThemeFontSizeOverride("font_size", ChatConfig.FontSize);
+        StsUiFonts.Apply(_inputField);
 
         _inputStyle = new StyleBoxFlat { BgColor = ChatConfig.InputBgColor };
         _inputField.AddThemeStyleboxOverride("normal", _inputStyle);
@@ -552,6 +555,7 @@ public sealed class ChatPanel : IDisposable
 
         // 订阅窗口大小变化事件
         ViewportResizeNotifier.Instance.OnViewportResized += OnViewportResized;
+        LocManager.Instance.SubscribeToLocaleChange(OnLocaleChanged);
 
         // 注册到 InputCapture，让其放过 ChatPanel 内部的 Alt+Click
         ItemInputCapture.RegisterBlockingControl(_container);
@@ -561,6 +565,11 @@ public sealed class ChatPanel : IDisposable
     {
         PanelPositionHelper.ClampToViewport(_container);
         RequestCompletionRefresh();
+    }
+
+    private void OnLocaleChanged()
+    {
+        StsUiFonts.Refresh(_container);
     }
 
     private void ShowWelcome()

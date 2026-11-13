@@ -30,6 +30,7 @@ public static class RemoteUiFlashResolver
             RemoteUiFlashKind.ShopRelic => FindShopRelicTarget(message.Relic),
             RemoteUiFlashKind.CardReward => FindRewardCardTarget(message.Card),
             RemoteUiFlashKind.AncientRelicChoice => FindAncientRelicChoiceTarget(message.Relic),
+            RemoteUiFlashKind.BlitzShopEntry => FindBlitzShopEntryTarget(message),
             _ => null
         };
     }
@@ -114,6 +115,25 @@ public static class RemoteUiFlashResolver
                 slot.IsVisibleInTree() &&
                 slot.Entry is MerchantRelicEntry { Model: { } relic } &&
                 RemoteUiFlashSnapshotMatcher.MatchesRelic(expected, relic.ToSerializable()));
+    }
+
+    private static NBlitzMerchantSlot? FindBlitzShopEntryTarget(RemoteUiFlashMessage message)
+    {
+        if (RunManager.Instance.State is not { } state || state.RunLocation != message.ShopLocation)
+        {
+            return null;
+        }
+
+        var inventory = (NMerchantRoom.Instance as NBlitzMerchantRoom)?.Inventory;
+        if (inventory is not { IsOpen: true } || !inventory.IsVisibleInTree())
+        {
+            return null;
+        }
+
+        return UiHelper.FindAll<NBlitzMerchantSlot>(inventory).FirstOrDefault(slot =>
+            slot.IsVisibleInTree() &&
+            slot.Entry is BlitzMerchantEntry { IsStocked: true } entry &&
+            entry.Id == message.ShopEntryId);
     }
 
     private static NCardHolder? FindRewardCardTarget(SerializableCard? expected)

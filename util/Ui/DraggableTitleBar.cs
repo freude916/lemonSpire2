@@ -1,4 +1,5 @@
 using Godot;
+using MegaCrit.Sts2.Core.Localization.Fonts;
 
 namespace lemonSpire2.util.Ui;
 
@@ -49,10 +50,12 @@ public partial class DraggableTitleBar : PanelContainer
         // 内部 HBoxContainer 布局
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.95f));
         _titleLabel.AddThemeFontSizeOverride("font_size", 20);
+        StsUiFonts.Apply(_titleLabel, FontType.Bold);
         _hbox.AddChild(_titleLabel);
 
         _closeButton.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f));
         _closeButton.AddThemeColorOverride("font_hover_color", new Color(1f, 0.3f, 0.3f));
+        StsUiFonts.Apply(_closeButton, FontType.Bold);
         _hbox.AddChild(_closeButton);
 
         AddChild(_hbox);

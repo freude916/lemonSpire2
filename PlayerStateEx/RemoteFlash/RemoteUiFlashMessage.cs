@@ -1,5 +1,6 @@
 using lemonSpire2.util.Net;
 using MegaCrit.Sts2.Core.Multiplayer.Serialization;
+using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves.Runs;
 
 namespace lemonSpire2.PlayerStateEx.RemoteFlash;
@@ -15,6 +16,10 @@ public sealed record RemoteUiFlashMessage : BasePlayerMessage
     public SerializablePotion? Potion { get; set; }
 
     public SerializableRelic? Relic { get; set; }
+
+    public uint ShopEntryId { get; set; }
+
+    public RunLocation ShopLocation { get; set; }
 
     public override void Serialize(PacketWriter writer)
     {
@@ -32,6 +37,12 @@ public sealed record RemoteUiFlashMessage : BasePlayerMessage
 
         writer.WriteBool(Relic != null);
         if (Relic != null) writer.Write(Relic);
+
+        if (Kind == RemoteUiFlashKind.BlitzShopEntry)
+        {
+            writer.WriteUInt(ShopEntryId);
+            writer.Write(ShopLocation);
+        }
     }
 
     public override void Deserialize(PacketReader reader)
@@ -49,5 +60,11 @@ public sealed record RemoteUiFlashMessage : BasePlayerMessage
         Card = reader.ReadBool() ? reader.Read<SerializableCard>() : null;
         Potion = reader.ReadBool() ? reader.Read<SerializablePotion>() : null;
         Relic = reader.ReadBool() ? reader.Read<SerializableRelic>() : null;
+
+        if (Kind == RemoteUiFlashKind.BlitzShopEntry)
+        {
+            ShopEntryId = reader.ReadUInt();
+            ShopLocation = reader.Read<RunLocation>();
+        }
     }
 }

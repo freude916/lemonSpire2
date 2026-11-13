@@ -3,23 +3,25 @@ using Godot;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
+using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
-using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
+using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace lemonSpire2.PlayerStateEx.PanelProvider;
 
 /// <summary>
 ///     商店显示提供者
-///     显示玩家商店中的卡牌、遗物、药水
+///     显示玩家商店中的卡牌、遗物、药水，或极速商店的服务选项
 ///     卡牌：横向布局，左价格右卡牌
 ///     遗物/药水：网格布局，物品在上价格在下，一行三个
 ///     支持鼠标点击：左键闪烁、卡牌/遗物右键详情、Alt+Click 发送物品
@@ -29,33 +31,58 @@ public class ShopProvider : IPlayerPanelProvider
     private const int ItemsPerRow = 3;
     private const string GoldIconPath = "res://images/packed/sprite_fonts/gold_icon.png";
 
+    // 原版库存的引用，不复制或重新生成商品；离店时清空并解除订阅。
+    private static readonly Dictionary<ulong, MerchantInventory> ActiveInventories = new();
+
     private static Logger Log => PlayerPanelRegistry.Log;
 
     internal static event Action<ulong>? ShopUpdated;
 
     /// <summary>
-    ///     由 ShopProviderPatch 调用，通知指定玩家的商店数据已变化
+    ///     通知指定玩家的商店内容或可见性已变化
     /// </summary>
-    internal static void NotifyShopUpdated(ulong netId)
+    private static void NotifyShopUpdated(ulong netId)
     {
         ShopUpdated?.Invoke(netId);
     }
 
     /// <summary>
-    ///     由 ShopProviderPatch 调用，触发商店数据刷新
+    ///     原版已为所有玩家建立库存；购买消息会在各端更新同一份库存对象。
     /// </summary>
-    internal static void RequestRefresh()
+    internal static void ObserveInventories(IEnumerable<Player> players, MerchantSynchronizer synchronizer)
     {
-        var room = NMerchantRoom.Instance?.Room;
-        if (room == null || room.Inventories.Count == 0)
-            return;
+        StopObservingInventories();
 
-        foreach (var inventory in room.Inventories)
+        foreach (var player in players)
         {
-            Log.Debug(
-                $"RefreshShopData: player={inventory.Player.NetId}, items={inventory.CardEntries.Count() + inventory.RelicEntries.Count + inventory.PotionEntries.Count}");
+            var inventory = synchronizer.GetInventoryFor(player);
+            ActiveInventories.Add(player.NetId, inventory);
+            foreach (var entry in inventory.AllEntries)
+                entry.PurchaseCompleted += OnPurchaseCompleted;
+        }
+
+        foreach (var netId in ActiveInventories.Keys)
+            NotifyShopUpdated(netId);
+    }
+
+    internal static void StopObservingInventories()
+    {
+        var inventories = ActiveInventories.Values.ToArray();
+        ActiveInventories.Clear();
+
+        foreach (var inventory in inventories)
+        {
+            foreach (var entry in inventory.AllEntries)
+                entry.PurchaseCompleted -= OnPurchaseCompleted;
+
             NotifyShopUpdated(inventory.Player.NetId);
         }
+    }
+
+    private static void OnPurchaseCompleted(PurchaseStatus _, MerchantEntry entry)
+    {
+        // MerchantInventory.Setup 更早订阅，原版 UpdateEntries 会先完成，再通知面板。
+        NotifyShopUpdated(entry.Player.NetId);
     }
 
     #region IPlayerPanelProvider Implementation
@@ -67,7 +94,7 @@ public class ShopProvider : IPlayerPanelProvider
     public bool ShouldShow(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
-        return NMerchantRoom.Instance?.Room?.Inventories.Any(inv => inv.Player.NetId == player.NetId) == true;
+        return ActiveInventories.ContainsKey(player.NetId);
     }
 
     public Control CreateContent(Player player)
@@ -89,11 +116,16 @@ public class ShopProvider : IPlayerPanelProvider
 
         UiUtils.ClearChildren(container);
 
-        // 显示对方金币
+        var inventory = ActiveInventories.GetValueOrDefault(player.NetId);
+        if (inventory is { IsBlitzShop: true })
+        {
+            AddBlitzShop(container, inventory);
+            return;
+        }
+
+        // 普通商店显示对方金币。
         container.AddChild(CreateGoldRow(player));
 
-        var inventory =
-            NMerchantRoom.Instance?.Room.Inventories.FirstOrDefault(inv => inv.Player.NetId == player.NetId);
         if (inventory == null ||
             !(inventory.CardEntries.Any() || inventory.RelicEntries.Any() || inventory.PotionEntries.Any()))
         {
@@ -103,6 +135,7 @@ public class ShopProvider : IPlayerPanelProvider
                 MouseFilter = Control.MouseFilterEnum.Ignore
             };
             emptyLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.5f, 0.5f));
+            StsUiFonts.Apply(emptyLabel);
             container.AddChild(emptyLabel);
             return;
         }
@@ -173,6 +206,51 @@ public class ShopProvider : IPlayerPanelProvider
 
     #region UI Creation
 
+    private static void AddBlitzShop(VBoxContainer container, MerchantInventory inventory)
+    {
+        var grid = new GridContainer
+        {
+            Columns = NMerchantInventory.blitzColumns,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
+        };
+        grid.AddThemeConstantOverride("h_separation", 8);
+        grid.AddThemeConstantOverride("v_separation", 12);
+        container.AddChild(grid);
+
+        // 包含已使用的槽位，保持与原版六个选项的位置一一对应。
+        foreach (var entry in inventory.BlitzEntries)
+        {
+            grid.AddChild(BlitzShopEntryPreview.Create(entry));
+        }
+
+        var remaining = inventory.BlitzChoicesRemaining;
+        var text = new LocString("merchant_room", remaining > 0
+            ? "MERCHANT.blitzSelection.remaining"
+            : "MERCHANT.blitzSelection.none");
+        if (remaining > 0)
+        {
+            text.Add("Amount", remaining);
+        }
+
+        var label = new MegaRichTextLabel
+        {
+            AutoSizeEnabled = false,
+            Text = text.GetFormattedText(),
+            BbcodeEnabled = true,
+            FitContent = true,
+            ScrollActive = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        label.AddThemeColorOverride("default_color", StsColors.cream);
+        label.AddThemeFontSizeOverride("normal_font_size", 16);
+        label.AddThemeFontSizeOverride("bold_font_size", 16);
+        StsUiFonts.Apply(label);
+        container.AddChild(label);
+    }
+
     private static HBoxContainer CreateGoldRow(Player player)
     {
         var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -195,6 +273,7 @@ public class ShopProvider : IPlayerPanelProvider
         };
         goldLabel.AddThemeColorOverride("font_color", StsColors.gold);
         goldLabel.AddThemeFontSizeOverride("font_size", 16);
+        StsUiFonts.Apply(goldLabel);
         row.AddChild(goldLabel);
 
         var titleLabel = new Label
@@ -204,6 +283,7 @@ public class ShopProvider : IPlayerPanelProvider
         };
         titleLabel.AddThemeColorOverride("font_color", new Color(0.6f, 0.6f, 0.65f));
         titleLabel.AddThemeFontSizeOverride("font_size", 16);
+        StsUiFonts.Apply(titleLabel);
         row.AddChild(titleLabel);
 
         return row;
@@ -338,6 +418,7 @@ public class ShopProvider : IPlayerPanelProvider
             priceLabel.AddThemeColorOverride("font_color", StsColors.cream);
 
         priceLabel.AddThemeFontSizeOverride("font_size", 14);
+        StsUiFonts.Apply(priceLabel);
         return priceLabel;
     }
 
