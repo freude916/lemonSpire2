@@ -9,9 +9,9 @@ using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.HoverTips;
 using MegaCrit.Sts2.Core.Localization;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
-using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
@@ -29,33 +29,58 @@ public class ShopProvider : IPlayerPanelProvider
     private const int ItemsPerRow = 3;
     private const string GoldIconPath = "res://images/packed/sprite_fonts/gold_icon.png";
 
+    // 原版库存的引用，不复制或重新生成商品；离店时清空并解除订阅。
+    private static readonly Dictionary<ulong, MerchantInventory> ActiveInventories = new();
+
     private static Logger Log => PlayerPanelRegistry.Log;
 
     internal static event Action<ulong>? ShopUpdated;
 
     /// <summary>
-    ///     由 ShopProviderPatch 调用，通知指定玩家的商店数据已变化
+    ///     通知指定玩家的商店内容或可见性已变化
     /// </summary>
-    internal static void NotifyShopUpdated(ulong netId)
+    private static void NotifyShopUpdated(ulong netId)
     {
         ShopUpdated?.Invoke(netId);
     }
 
     /// <summary>
-    ///     由 ShopProviderPatch 调用，触发商店数据刷新
+    ///     原版已为所有玩家建立库存；购买消息会在各端更新同一份库存对象。
     /// </summary>
-    internal static void RequestRefresh()
+    internal static void ObserveInventories(IEnumerable<Player> players, MerchantSynchronizer synchronizer)
     {
-        var room = NMerchantRoom.Instance?.Room;
-        if (room == null || room.Inventories.Count == 0)
-            return;
+        StopObservingInventories();
 
-        foreach (var inventory in room.Inventories)
+        foreach (var player in players)
         {
-            Log.Debug(
-                $"RefreshShopData: player={inventory.Player.NetId}, items={inventory.CardEntries.Count() + inventory.RelicEntries.Count + inventory.PotionEntries.Count}");
+            var inventory = synchronizer.GetInventoryFor(player);
+            ActiveInventories.Add(player.NetId, inventory);
+            foreach (var entry in inventory.AllEntries)
+                entry.PurchaseCompleted += OnPurchaseCompleted;
+        }
+
+        foreach (var netId in ActiveInventories.Keys)
+            NotifyShopUpdated(netId);
+    }
+
+    internal static void StopObservingInventories()
+    {
+        var inventories = ActiveInventories.Values.ToArray();
+        ActiveInventories.Clear();
+
+        foreach (var inventory in inventories)
+        {
+            foreach (var entry in inventory.AllEntries)
+                entry.PurchaseCompleted -= OnPurchaseCompleted;
+
             NotifyShopUpdated(inventory.Player.NetId);
         }
+    }
+
+    private static void OnPurchaseCompleted(PurchaseStatus _, MerchantEntry entry)
+    {
+        // MerchantInventory.Setup 更早订阅，原版 UpdateEntries 会先完成，再通知面板。
+        NotifyShopUpdated(entry.Player.NetId);
     }
 
     #region IPlayerPanelProvider Implementation
@@ -67,7 +92,7 @@ public class ShopProvider : IPlayerPanelProvider
     public bool ShouldShow(Player player)
     {
         ArgumentNullException.ThrowIfNull(player);
-        return NMerchantRoom.Instance?.Room?.Inventories.Any(inv => inv.Player.NetId == player.NetId) == true;
+        return ActiveInventories.ContainsKey(player.NetId);
     }
 
     public Control CreateContent(Player player)
@@ -92,8 +117,7 @@ public class ShopProvider : IPlayerPanelProvider
         // 显示对方金币
         container.AddChild(CreateGoldRow(player));
 
-        var inventory =
-            NMerchantRoom.Instance?.Room.Inventories.FirstOrDefault(inv => inv.Player.NetId == player.NetId);
+        var inventory = ActiveInventories.GetValueOrDefault(player.NetId);
         if (inventory == null ||
             !(inventory.CardEntries.Any() || inventory.RelicEntries.Any() || inventory.PotionEntries.Any()))
         {
