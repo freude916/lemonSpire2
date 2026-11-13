@@ -8,7 +8,7 @@ namespace lemonSpire2.PlayerStateEx.PanelProvider;
 
 /// <summary>
 ///     商店房间的 Harmony 补丁
-///     监听普通商店生命周期，订阅原版库存的购买完成事件
+///     监听商店生命周期，订阅原版库存的购买完成事件
 /// </summary>
 [HarmonyPatchCategory("ShopSync")]
 [HarmonyPatch]
@@ -24,7 +24,7 @@ internal class ShopProviderPatch
         ArgumentNullException.ThrowIfNull(__instance);
         Log.Debug("NMerchantRoom._Ready");
 
-        if (__instance is not NStandardMerchantRoom || RunManager.Instance.State is not { } state)
+        if (RunManager.Instance.State is not { } state)
             return;
 
         _activeRoom = __instance;

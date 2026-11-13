@@ -3,6 +3,7 @@ using Godot;
 using lemonSpire2.PlayerStateEx.RemoteFlash;
 using lemonSpire2.util;
 using lemonSpire2.util.Ui;
+using MegaCrit.Sts2.addons.mega_text;
 using MegaCrit.Sts2.Core.Entities.Merchant;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Helpers;
@@ -13,13 +14,14 @@ using MegaCrit.Sts2.Core.Multiplayer.Game;
 using MegaCrit.Sts2.Core.Nodes.Potions;
 using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Screens.RunHistoryScreen;
+using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using Logger = MegaCrit.Sts2.Core.Logging.Logger;
 
 namespace lemonSpire2.PlayerStateEx.PanelProvider;
 
 /// <summary>
 ///     商店显示提供者
-///     显示玩家商店中的卡牌、遗物、药水
+///     显示玩家商店中的卡牌、遗物、药水，或极速商店的服务选项
 ///     卡牌：横向布局，左价格右卡牌
 ///     遗物/药水：网格布局，物品在上价格在下，一行三个
 ///     支持鼠标点击：左键闪烁、卡牌/遗物右键详情、Alt+Click 发送物品
@@ -114,10 +116,16 @@ public class ShopProvider : IPlayerPanelProvider
 
         UiUtils.ClearChildren(container);
 
-        // 显示对方金币
+        var inventory = ActiveInventories.GetValueOrDefault(player.NetId);
+        if (inventory is { IsBlitzShop: true })
+        {
+            AddBlitzShop(container, inventory);
+            return;
+        }
+
+        // 普通商店显示对方金币。
         container.AddChild(CreateGoldRow(player));
 
-        var inventory = ActiveInventories.GetValueOrDefault(player.NetId);
         if (inventory == null ||
             !(inventory.CardEntries.Any() || inventory.RelicEntries.Any() || inventory.PotionEntries.Any()))
         {
@@ -197,6 +205,51 @@ public class ShopProvider : IPlayerPanelProvider
     #endregion
 
     #region UI Creation
+
+    private static void AddBlitzShop(VBoxContainer container, MerchantInventory inventory)
+    {
+        var grid = new GridContainer
+        {
+            Columns = NMerchantInventory.blitzColumns,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter
+        };
+        grid.AddThemeConstantOverride("h_separation", 8);
+        grid.AddThemeConstantOverride("v_separation", 12);
+        container.AddChild(grid);
+
+        // 包含已使用的槽位，保持与原版六个选项的位置一一对应。
+        foreach (var entry in inventory.BlitzEntries)
+        {
+            grid.AddChild(BlitzShopEntryPreview.Create(entry));
+        }
+
+        var remaining = inventory.BlitzChoicesRemaining;
+        var text = new LocString("merchant_room", remaining > 0
+            ? "MERCHANT.blitzSelection.remaining"
+            : "MERCHANT.blitzSelection.none");
+        if (remaining > 0)
+        {
+            text.Add("Amount", remaining);
+        }
+
+        var label = new MegaRichTextLabel
+        {
+            AutoSizeEnabled = false,
+            Text = text.GetFormattedText(),
+            BbcodeEnabled = true,
+            FitContent = true,
+            ScrollActive = false,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        label.AddThemeColorOverride("default_color", StsColors.cream);
+        label.AddThemeFontSizeOverride("normal_font_size", 16);
+        label.AddThemeFontSizeOverride("bold_font_size", 16);
+        StsUiFonts.Apply(label);
+        container.AddChild(label);
+    }
 
     private static HBoxContainer CreateGoldRow(Player player)
     {
