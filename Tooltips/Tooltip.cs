@@ -112,20 +112,26 @@ public abstract class Tooltip : IPacketSerializable
 
     protected static Control? BuildHoverTipControl(HoverTip tip, Texture2D? icon = null)
     {
+        return BuildHoverTipControl(tip.Title, tip.Description, tip.IsDebuff, icon);
+    }
+
+    protected static Control? BuildHoverTipControl(string? titleText, string description, bool isDebuff,
+        Texture2D? icon = null)
+    {
         var control = PreloadManager.Cache
             .GetScene("res://scenes/ui/hover_tip.tscn")
             .Instantiate<Control>();
 
         var title = control.GetNode<MegaLabel>("%Title");
-        if (tip.Title is null)
+        if (titleText is null)
             title.Visible = false;
         else
-            title.SetTextAutoSize(tip.Title);
+            title.SetTextAutoSize(titleText);
 
-        control.GetNode<MegaRichTextLabel>("%Description").Text = tip.Description;
+        control.GetNode<MegaRichTextLabel>("%Description").Text = description;
         control.GetNode<TextureRect>("%Icon").Texture = icon;
 
-        if (tip.IsDebuff)
+        if (isDebuff)
         {
             var bg = control.GetNode<CanvasItem>("%Bg");
             bg.Material = PreloadManager.Cache.GetMaterial("res://materials/ui/hover_tip_debuff.tres");
